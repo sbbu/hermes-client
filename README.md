@@ -111,7 +111,9 @@ open ~/Applications/Hermes\ Client.app
 The installer creates a LaunchAgent that self-updates every 6h. Manual commands:
 
 ```bash
-hermes-client self-update
+hermes-client update
 hermes-client install-autoupdate --interval 21600
 hermes-client uninstall-autoupdate
 ```
+
+`hermes-client self-update` remains as a legacy alias.

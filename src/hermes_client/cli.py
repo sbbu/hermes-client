@@ -174,7 +174,7 @@ def cmd_install_desktop_shortcut(args) -> None:
     print(f"installed {app_path}")
 
 
-def cmd_self_update(args) -> None:
+def cmd_update(args) -> None:
     subprocess.run([str(Path(sys.executable)), "-m", "pip", "install", "-U", INSTALL_SPEC], check=True)
 
 
@@ -339,8 +339,8 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.set_defaults(func=cmd_install_desktop_shortcut)
 
-    c = sub.add_parser("self-update")
-    c.set_defaults(func=cmd_self_update)
+    c = sub.add_parser("update", aliases=["self-update"])
+    c.set_defaults(func=cmd_update)
 
     c = sub.add_parser("install-autoupdate")
     c.add_argument("--interval", type=int, default=21600, help="update interval in seconds; default 21600 (6h)")

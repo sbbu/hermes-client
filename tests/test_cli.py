@@ -12,6 +12,11 @@ def test_worker_service_defaults_to_waiting_for_tailscale():
     assert args.wait_seconds == -1
 
 
+def test_update_command_and_legacy_alias():
+    assert cli.build_parser().parse_args(["update"]).func is cli.cmd_update
+    assert cli.build_parser().parse_args(["self-update"]).func is cli.cmd_update
+
+
 def test_install_worker_writes_launchd_plist(tmp_path, monkeypatch, capsys):
     home = tmp_path / "home"
     (home / "Documents").mkdir(parents=True)
