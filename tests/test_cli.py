@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import plistlib
 from pathlib import Path
+from types import SimpleNamespace
 
 from hermes_client import cli
 
@@ -15,6 +16,26 @@ def test_worker_service_defaults_to_waiting_for_tailscale():
 def test_update_command_and_legacy_alias():
     assert cli.build_parser().parse_args(["update"]).func is cli.cmd_update
     assert cli.build_parser().parse_args(["self-update"]).func is cli.cmd_update
+
+
+def test_update_uses_uv_not_venv_pip(tmp_path, monkeypatch):
+    uv = tmp_path / "uv"
+    uv.write_text("#!/bin/sh\n")
+    uv.chmod(0o755)
+    monkeypatch.setenv("UV", str(uv))
+    calls = []
+
+    def fake_run(argv, check=False, **kwargs):
+        calls.append((argv, check, kwargs))
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    cli.cmd_update(SimpleNamespace())
+
+    assert calls == [
+        ([str(uv), "pip", "install", "--python", cli.sys.executable, "--upgrade", cli.INSTALL_SPEC], True, {})
+    ]
 
 
 def test_install_worker_writes_launchd_plist(tmp_path, monkeypatch, capsys):
@@ -53,4 +74,4 @@ def test_autoupdater_uses_valid_direct_reference(tmp_path, monkeypatch):
     plist = home / "Library" / "LaunchAgents" / "com.sbbu.hermes-client.updater.plist"
     data = plistlib.loads(plist.read_bytes())
     argv = data["ProgramArguments"]
-    assert "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git" in argv
+    assert argv == [cli.sys.executable, "-m", "hermes_client.cli", "update"]

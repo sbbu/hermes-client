@@ -4,6 +4,7 @@ import argparse
 import getpass
 import os
 import plistlib
+import shutil
 import subprocess
 import sys
 import webbrowser
@@ -16,6 +17,32 @@ from .tui import run_tui
 from .worker import mcp_config_text, run_worker
 
 INSTALL_SPEC = "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git"
+
+
+def _resolve_uv() -> str | None:
+    for raw in (
+        os.environ.get("HERMES_CLIENT_UV"),
+        os.environ.get("UV"),
+        str(Path.home() / ".local" / "bin" / "uv"),
+        shutil.which("uv"),
+    ):
+        if not raw:
+            continue
+        candidate = Path(raw).expanduser()
+        if candidate.is_file():
+            return str(candidate)
+        found = shutil.which(raw)
+        if found:
+            return found
+    return None
+
+
+def _python_has_pip() -> bool:
+    return subprocess.run(
+        [str(Path(sys.executable)), "-c", "import pip"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    ).returncode == 0
 
 
 def _configured_url(args) -> str:
@@ -175,7 +202,15 @@ def cmd_install_desktop_shortcut(args) -> None:
 
 
 def cmd_update(args) -> None:
-    subprocess.run([str(Path(sys.executable)), "-m", "pip", "install", "-U", INSTALL_SPEC], check=True)
+    uv = _resolve_uv()
+    if uv:
+        subprocess.run([uv, "pip", "install", "--python", str(Path(sys.executable)), "--upgrade", INSTALL_SPEC], check=True)
+        return
+
+    python = str(Path(sys.executable))
+    if not _python_has_pip():
+        subprocess.run([python, "-m", "ensurepip", "--upgrade"], check=True)
+    subprocess.run([python, "-m", "pip", "install", "-U", INSTALL_SPEC], check=True)
 
 
 def _autoupdate_plist_path() -> Path:
@@ -192,7 +227,7 @@ def cmd_install_autoupdate(args) -> None:
     interval = max(3600, int(args.interval))
     data = {
         "Label": "com.sbbu.hermes-client.updater",
-        "ProgramArguments": [str(Path(sys.executable)), "-m", "pip", "install", "-U", INSTALL_SPEC],
+        "ProgramArguments": [str(Path(sys.executable)), "-m", "hermes_client.cli", "update"],
         "StartInterval": interval,
         "RunAtLoad": False,
         "StandardOutPath": str(log_dir / "autoupdate.log"),
