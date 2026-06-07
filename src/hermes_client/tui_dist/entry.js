@@ -45,15 +45,15 @@ var init_termux = __esm({
     "use strict";
     TERMUX_PREFIX = "/data/data/com.termux/files/usr";
     truthy = (value) => /^(?:1|true|yes|on)$/i.test(String(value ?? "").trim());
-    isTermuxEnv = (env3 = process.env) => {
-      const prefix = String(env3.PREFIX ?? "");
-      return Boolean(env3.TERMUX_VERSION) || prefix.includes(TERMUX_PREFIX);
+    isTermuxEnv = (env5 = process.env) => {
+      const prefix = String(env5.PREFIX ?? "");
+      return Boolean(env5.TERMUX_VERSION) || prefix.includes(TERMUX_PREFIX);
     };
-    isTermuxTuiMode = (env3 = process.env) => {
-      if (!isTermuxEnv(env3)) {
+    isTermuxTuiMode = (env5 = process.env) => {
+      if (!isTermuxEnv(env5)) {
         return false;
       }
-      const override = String(env3.HERMES_TUI_TERMUX_MODE ?? "").trim().toLowerCase();
+      const override = String(env5.HERMES_TUI_TERMUX_MODE ?? "").trim().toLowerCase();
       if (override) {
         return truthy(override);
       }
@@ -213,9 +213,9 @@ var init_memory = __esm({
   }
 });
 
-// node_modules/react/cjs/react.production.js
+// ../node_modules/react/cjs/react.production.js
 var require_react_production = __commonJS({
-  "node_modules/react/cjs/react.production.js"(exports) {
+  "../node_modules/react/cjs/react.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -650,13 +650,13 @@ var require_react_production = __commonJS({
     exports.useTransition = function() {
       return ReactSharedInternals.H.useTransition();
     };
-    exports.version = "19.2.7";
+    exports.version = "19.2.5";
   }
 });
 
-// node_modules/react/cjs/react.development.js
+// ../node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "node_modules/react/cjs/react.development.js"(exports, module) {
+  "../node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function defineDeprecationWarning(methodName, info) {
@@ -1620,15 +1620,15 @@ var require_react_development = __commonJS({
       exports.useTransition = function() {
         return resolveDispatcher().useTransition();
       };
-      exports.version = "19.2.7";
+      exports.version = "19.2.5";
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
   }
 });
 
-// node_modules/react/index.js
+// ../node_modules/react/index.js
 var require_react = __commonJS({
-  "node_modules/react/index.js"(exports, module) {
+  "../node_modules/react/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_production();
@@ -1674,9 +1674,9 @@ var init_use_stdout = __esm({
   }
 });
 
-// node_modules/react/cjs/react-compiler-runtime.production.js
+// ../node_modules/react/cjs/react-compiler-runtime.production.js
 var require_react_compiler_runtime_production = __commonJS({
-  "node_modules/react/cjs/react-compiler-runtime.production.js"(exports) {
+  "../node_modules/react/cjs/react-compiler-runtime.production.js"(exports) {
     "use strict";
     var ReactSharedInternals = require_react().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
     exports.c = function(size) {
@@ -1685,9 +1685,9 @@ var require_react_compiler_runtime_production = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-compiler-runtime.development.js
+// ../node_modules/react/cjs/react-compiler-runtime.development.js
 var require_react_compiler_runtime_development = __commonJS({
-  "node_modules/react/cjs/react-compiler-runtime.development.js"(exports) {
+  "../node_modules/react/cjs/react-compiler-runtime.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       var ReactSharedInternals = require_react().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
@@ -1702,9 +1702,9 @@ var require_react_compiler_runtime_development = __commonJS({
   }
 });
 
-// node_modules/react/compiler-runtime.js
+// ../node_modules/react/compiler-runtime.js
 var require_compiler_runtime = __commonJS({
-  "node_modules/react/compiler-runtime.js"(exports, module) {
+  "../node_modules/react/compiler-runtime.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_compiler_runtime_production();
@@ -1714,9 +1714,9 @@ var require_compiler_runtime = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-jsx-runtime.production.js
+// ../node_modules/react/cjs/react-jsx-runtime.production.js
 var require_react_jsx_runtime_production = __commonJS({
-  "node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
+  "../node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -1744,9 +1744,9 @@ var require_react_jsx_runtime_production = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-jsx-runtime.development.js
+// ../node_modules/react/cjs/react-jsx-runtime.development.js
 var require_react_jsx_runtime_development = __commonJS({
-  "node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+  "../node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function getComponentNameFromType(type) {
@@ -2001,9 +2001,9 @@ var require_react_jsx_runtime_development = __commonJS({
   }
 });
 
-// node_modules/react/jsx-runtime.js
+// ../node_modules/react/jsx-runtime.js
 var require_jsx_runtime = __commonJS({
-  "node_modules/react/jsx-runtime.js"(exports, module) {
+  "../node_modules/react/jsx-runtime.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_jsx_runtime_production();
@@ -2014,25 +2014,25 @@ var require_jsx_runtime = __commonJS({
 });
 
 // packages/hermes-ink/src/ink/components/Text.tsx
-function shouldUseAnsiDim(env3 = process.env) {
-  const override = (env3.HERMES_TUI_DIM ?? "").trim();
+function shouldUseAnsiDim(env5 = process.env) {
+  const override = (env5.HERMES_TUI_DIM ?? "").trim();
   if (ENV_ON_RE.test(override)) {
     return true;
   }
   if (ENV_OFF_RE.test(override)) {
     return false;
   }
-  if ((env3.TERM_PROGRAM ?? "").trim() === "Apple_Terminal") {
+  if ((env5.TERM_PROGRAM ?? "").trim() === "Apple_Terminal") {
     return false;
   }
-  return !env3.VTE_VERSION;
+  return !env5.VTE_VERSION;
 }
-function dimColorFallback(env3 = process.env) {
-  const override = (env3.HERMES_TUI_DIM ?? "").trim();
+function dimColorFallback(env5 = process.env) {
+  const override = (env5.HERMES_TUI_DIM ?? "").trim();
   if (ENV_ON_RE.test(override) || ENV_OFF_RE.test(override)) {
     return void 0;
   }
-  return (env3.TERM_PROGRAM ?? "").trim() === "Apple_Terminal" ? LEGACY_APPLE_DIM_COLOR : void 0;
+  return (env5.TERM_PROGRAM ?? "").trim() === "Apple_Terminal" ? LEGACY_APPLE_DIM_COLOR : void 0;
 }
 function Text(t0) {
   const $ = (0, import_compiler_runtime.c)(29);
@@ -2758,24 +2758,24 @@ function wrapForMultiplexer(sequence) {
   }
   return sequence;
 }
-function shouldEmitClipboardSequence(env3 = process.env) {
-  const override = (env3.HERMES_TUI_FORCE_OSC52 ?? env3.HERMES_TUI_CLIPBOARD_OSC52 ?? env3.HERMES_TUI_COPY_OSC52 ?? "").trim();
+function shouldEmitClipboardSequence(env5 = process.env) {
+  const override = (env5.HERMES_TUI_FORCE_OSC52 ?? env5.HERMES_TUI_CLIPBOARD_OSC52 ?? env5.HERMES_TUI_COPY_OSC52 ?? "").trim();
   if (ENV_ON_RE2.test(override)) {
     return true;
   }
   if (ENV_OFF_RE2.test(override)) {
     return false;
   }
-  return !!env3["SSH_CONNECTION"] || !env3["TMUX"] && !env3["STY"];
+  return !!env5["SSH_CONNECTION"] || !env5["TMUX"] && !env5["STY"];
 }
-function shouldUseNativeClipboard(env3 = process.env, terminal = env.terminal) {
-  if (env3.SSH_CONNECTION) {
+function shouldUseNativeClipboard(env5 = process.env, terminal = env.terminal) {
+  if (env5.SSH_CONNECTION) {
     return false;
   }
-  if (env3.TMUX || env3.STY) {
+  if (env5.TMUX || env5.STY) {
     return true;
   }
-  if (!shouldEmitClipboardSequence(env3)) {
+  if (!shouldEmitClipboardSequence(env5)) {
     return true;
   }
   return !supportsOsc52Clipboard(terminal);
@@ -4596,10 +4596,10 @@ var require_emoji_regex = __commonJS({
   }
 });
 
-// node_modules/get-east-asian-width/lookup-data.js
+// ../node_modules/get-east-asian-width/lookup-data.js
 var ambiguousMinimalCodePoint, ambiguousMaximumCodePoint, ambiguousRanges, fullwidthMinimalCodePoint, fullwidthMaximumCodePoint, fullwidthRanges, wideMinimalCodePoint, wideMaximumCodePoint, wideRanges;
 var init_lookup_data = __esm({
-  "node_modules/get-east-asian-width/lookup-data.js"() {
+  "../node_modules/get-east-asian-width/lookup-data.js"() {
     ambiguousMinimalCodePoint = 161;
     ambiguousMaximumCodePoint = 1114109;
     ambiguousRanges = [161, 161, 164, 164, 167, 168, 170, 170, 173, 174, 176, 180, 182, 186, 188, 191, 198, 198, 208, 208, 215, 216, 222, 225, 230, 230, 232, 234, 236, 237, 240, 240, 242, 243, 247, 250, 252, 252, 254, 254, 257, 257, 273, 273, 275, 275, 283, 283, 294, 295, 299, 299, 305, 307, 312, 312, 319, 322, 324, 324, 328, 331, 333, 333, 338, 339, 358, 359, 363, 363, 462, 462, 464, 464, 466, 466, 468, 468, 470, 470, 472, 472, 474, 474, 476, 476, 593, 593, 609, 609, 708, 708, 711, 711, 713, 715, 717, 717, 720, 720, 728, 731, 733, 733, 735, 735, 768, 879, 913, 929, 931, 937, 945, 961, 963, 969, 1025, 1025, 1040, 1103, 1105, 1105, 8208, 8208, 8211, 8214, 8216, 8217, 8220, 8221, 8224, 8226, 8228, 8231, 8240, 8240, 8242, 8243, 8245, 8245, 8251, 8251, 8254, 8254, 8308, 8308, 8319, 8319, 8321, 8324, 8364, 8364, 8451, 8451, 8453, 8453, 8457, 8457, 8467, 8467, 8470, 8470, 8481, 8482, 8486, 8486, 8491, 8491, 8531, 8532, 8539, 8542, 8544, 8555, 8560, 8569, 8585, 8585, 8592, 8601, 8632, 8633, 8658, 8658, 8660, 8660, 8679, 8679, 8704, 8704, 8706, 8707, 8711, 8712, 8715, 8715, 8719, 8719, 8721, 8721, 8725, 8725, 8730, 8730, 8733, 8736, 8739, 8739, 8741, 8741, 8743, 8748, 8750, 8750, 8756, 8759, 8764, 8765, 8776, 8776, 8780, 8780, 8786, 8786, 8800, 8801, 8804, 8807, 8810, 8811, 8814, 8815, 8834, 8835, 8838, 8839, 8853, 8853, 8857, 8857, 8869, 8869, 8895, 8895, 8978, 8978, 9312, 9449, 9451, 9547, 9552, 9587, 9600, 9615, 9618, 9621, 9632, 9633, 9635, 9641, 9650, 9651, 9654, 9655, 9660, 9661, 9664, 9665, 9670, 9672, 9675, 9675, 9678, 9681, 9698, 9701, 9711, 9711, 9733, 9734, 9737, 9737, 9742, 9743, 9756, 9756, 9758, 9758, 9792, 9792, 9794, 9794, 9824, 9825, 9827, 9829, 9831, 9834, 9836, 9837, 9839, 9839, 9886, 9887, 9919, 9919, 9926, 9933, 9935, 9939, 9941, 9953, 9955, 9955, 9960, 9961, 9963, 9969, 9972, 9972, 9974, 9977, 9979, 9980, 9982, 9983, 10045, 10045, 10102, 10111, 11094, 11097, 12872, 12879, 57344, 63743, 65024, 65039, 65533, 65533, 127232, 127242, 127248, 127277, 127280, 127337, 127344, 127373, 127375, 127376, 127387, 127404, 917760, 917999, 983040, 1048573, 1048576, 1114109];
@@ -4612,10 +4612,10 @@ var init_lookup_data = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/utilities.js
+// ../node_modules/get-east-asian-width/utilities.js
 var isInRange;
 var init_utilities = __esm({
-  "node_modules/get-east-asian-width/utilities.js"() {
+  "../node_modules/get-east-asian-width/utilities.js"() {
     isInRange = (ranges, codePoint) => {
       let low = 0;
       let high = Math.floor(ranges.length / 2) - 1;
@@ -4635,7 +4635,7 @@ var init_utilities = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/lookup.js
+// ../node_modules/get-east-asian-width/lookup.js
 function findWideFastPathRange(ranges) {
   let fastPathStart = ranges[0];
   let fastPathEnd = ranges[1];
@@ -4654,7 +4654,7 @@ function findWideFastPathRange(ranges) {
 }
 var commonCjkCodePoint, wideFastPathStart, wideFastPathEnd, isAmbiguous, isFullWidth, isWide;
 var init_lookup = __esm({
-  "node_modules/get-east-asian-width/lookup.js"() {
+  "../node_modules/get-east-asian-width/lookup.js"() {
     init_lookup_data();
     init_utilities();
     commonCjkCodePoint = 19968;
@@ -4683,7 +4683,7 @@ var init_lookup = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/index.js
+// ../node_modules/get-east-asian-width/index.js
 function validate(codePoint) {
   if (!Number.isSafeInteger(codePoint)) {
     throw new TypeError(`Expected a code point, got \`${typeof codePoint}\`.`);
@@ -4697,7 +4697,7 @@ function eastAsianWidth(codePoint, { ambiguousAsWide = false } = {}) {
   return 1;
 }
 var init_get_east_asian_width = __esm({
-  "node_modules/get-east-asian-width/index.js"() {
+  "../node_modules/get-east-asian-width/index.js"() {
     init_lookup();
     init_lookup();
   }
@@ -5052,7 +5052,7 @@ var init_line_width_cache = __esm({
   }
 });
 
-// node_modules/wrap-ansi/node_modules/string-width/index.js
+// node_modules/string-width/index.js
 function stringWidth2(string, options = {}) {
   if (typeof string !== "string" || string.length === 0) {
     return 0;
@@ -5099,7 +5099,7 @@ function stringWidth2(string, options = {}) {
 }
 var import_emoji_regex2, segmenter, defaultIgnorableCodePointRegex;
 var init_string_width = __esm({
-  "node_modules/wrap-ansi/node_modules/string-width/index.js"() {
+  "node_modules/string-width/index.js"() {
     init_strip_ansi();
     init_get_east_asian_width();
     import_emoji_regex2 = __toESM(require_emoji_regex(), 1);
@@ -5419,9 +5419,9 @@ var init_instances = __esm({
   }
 });
 
-// node_modules/semver/internal/constants.js
+// ../node_modules/semver/internal/constants.js
 var require_constants = __commonJS({
-  "node_modules/semver/internal/constants.js"(exports, module) {
+  "../node_modules/semver/internal/constants.js"(exports, module) {
     "use strict";
     var SEMVER_SPEC_VERSION = "2.0.0";
     var MAX_LENGTH = 256;
@@ -5451,9 +5451,9 @@ var require_constants = __commonJS({
   }
 });
 
-// node_modules/semver/internal/debug.js
+// ../node_modules/semver/internal/debug.js
 var require_debug = __commonJS({
-  "node_modules/semver/internal/debug.js"(exports, module) {
+  "../node_modules/semver/internal/debug.js"(exports, module) {
     "use strict";
     var debug = typeof process === "object" && process.env && process.env.NODE_DEBUG && /\bsemver\b/i.test(process.env.NODE_DEBUG) ? (...args) => console.error("SEMVER", ...args) : () => {
     };
@@ -5461,9 +5461,9 @@ var require_debug = __commonJS({
   }
 });
 
-// node_modules/semver/internal/re.js
+// ../node_modules/semver/internal/re.js
 var require_re = __commonJS({
-  "node_modules/semver/internal/re.js"(exports, module) {
+  "../node_modules/semver/internal/re.js"(exports, module) {
     "use strict";
     var {
       MAX_SAFE_COMPONENT_LENGTH,
@@ -5549,9 +5549,9 @@ var require_re = __commonJS({
   }
 });
 
-// node_modules/semver/internal/parse-options.js
+// ../node_modules/semver/internal/parse-options.js
 var require_parse_options = __commonJS({
-  "node_modules/semver/internal/parse-options.js"(exports, module) {
+  "../node_modules/semver/internal/parse-options.js"(exports, module) {
     "use strict";
     var looseOption = Object.freeze({ loose: true });
     var emptyOpts = Object.freeze({});
@@ -5568,9 +5568,9 @@ var require_parse_options = __commonJS({
   }
 });
 
-// node_modules/semver/internal/identifiers.js
+// ../node_modules/semver/internal/identifiers.js
 var require_identifiers = __commonJS({
-  "node_modules/semver/internal/identifiers.js"(exports, module) {
+  "../node_modules/semver/internal/identifiers.js"(exports, module) {
     "use strict";
     var numeric = /^[0-9]+$/;
     var compareIdentifiers = (a, b) => {
@@ -5593,27 +5593,15 @@ var require_identifiers = __commonJS({
   }
 });
 
-// node_modules/semver/classes/semver.js
+// ../node_modules/semver/classes/semver.js
 var require_semver = __commonJS({
-  "node_modules/semver/classes/semver.js"(exports, module) {
+  "../node_modules/semver/classes/semver.js"(exports, module) {
     "use strict";
     var debug = require_debug();
     var { MAX_LENGTH, MAX_SAFE_INTEGER } = require_constants();
     var { safeRe: re, t } = require_re();
     var parseOptions = require_parse_options();
     var { compareIdentifiers } = require_identifiers();
-    var isPrereleaseIdentifier = (prerelease, identifier) => {
-      const identifiers = identifier.split(".");
-      if (identifiers.length > prerelease.length) {
-        return false;
-      }
-      for (let i = 0; i < identifiers.length; i++) {
-        if (compareIdentifiers(prerelease[i], identifiers[i]) !== 0) {
-          return false;
-        }
-      }
-      return true;
-    };
     var SemVer = class _SemVer {
       constructor(version, options) {
         options = parseOptions(options);
@@ -5860,9 +5848,8 @@ var require_semver = __commonJS({
               if (identifierBase === false) {
                 prerelease = [identifier];
               }
-              if (isPrereleaseIdentifier(this.prerelease, identifier)) {
-                const prereleaseBase = this.prerelease[identifier.split(".").length];
-                if (isNaN(prereleaseBase)) {
+              if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
+                if (isNaN(this.prerelease[1])) {
                   this.prerelease = prerelease;
                 }
               } else {
@@ -5885,9 +5872,9 @@ var require_semver = __commonJS({
   }
 });
 
-// node_modules/semver/functions/parse.js
+// ../node_modules/semver/functions/parse.js
 var require_parse = __commonJS({
-  "node_modules/semver/functions/parse.js"(exports, module) {
+  "../node_modules/semver/functions/parse.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var parse = (version, options, throwErrors = false) => {
@@ -5907,9 +5894,9 @@ var require_parse = __commonJS({
   }
 });
 
-// node_modules/semver/functions/valid.js
+// ../node_modules/semver/functions/valid.js
 var require_valid = __commonJS({
-  "node_modules/semver/functions/valid.js"(exports, module) {
+  "../node_modules/semver/functions/valid.js"(exports, module) {
     "use strict";
     var parse = require_parse();
     var valid = (version, options) => {
@@ -5920,9 +5907,9 @@ var require_valid = __commonJS({
   }
 });
 
-// node_modules/semver/functions/clean.js
+// ../node_modules/semver/functions/clean.js
 var require_clean = __commonJS({
-  "node_modules/semver/functions/clean.js"(exports, module) {
+  "../node_modules/semver/functions/clean.js"(exports, module) {
     "use strict";
     var parse = require_parse();
     var clean2 = (version, options) => {
@@ -5933,9 +5920,9 @@ var require_clean = __commonJS({
   }
 });
 
-// node_modules/semver/functions/inc.js
+// ../node_modules/semver/functions/inc.js
 var require_inc = __commonJS({
-  "node_modules/semver/functions/inc.js"(exports, module) {
+  "../node_modules/semver/functions/inc.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var inc = (version, release, options, identifier, identifierBase) => {
@@ -5957,9 +5944,9 @@ var require_inc = __commonJS({
   }
 });
 
-// node_modules/semver/functions/diff.js
+// ../node_modules/semver/functions/diff.js
 var require_diff = __commonJS({
-  "node_modules/semver/functions/diff.js"(exports, module) {
+  "../node_modules/semver/functions/diff.js"(exports, module) {
     "use strict";
     var parse = require_parse();
     var diff3 = (version1, version2) => {
@@ -6001,9 +5988,9 @@ var require_diff = __commonJS({
   }
 });
 
-// node_modules/semver/functions/major.js
+// ../node_modules/semver/functions/major.js
 var require_major = __commonJS({
-  "node_modules/semver/functions/major.js"(exports, module) {
+  "../node_modules/semver/functions/major.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var major = (a, loose) => new SemVer(a, loose).major;
@@ -6011,9 +5998,9 @@ var require_major = __commonJS({
   }
 });
 
-// node_modules/semver/functions/minor.js
+// ../node_modules/semver/functions/minor.js
 var require_minor = __commonJS({
-  "node_modules/semver/functions/minor.js"(exports, module) {
+  "../node_modules/semver/functions/minor.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var minor = (a, loose) => new SemVer(a, loose).minor;
@@ -6021,9 +6008,9 @@ var require_minor = __commonJS({
   }
 });
 
-// node_modules/semver/functions/patch.js
+// ../node_modules/semver/functions/patch.js
 var require_patch = __commonJS({
-  "node_modules/semver/functions/patch.js"(exports, module) {
+  "../node_modules/semver/functions/patch.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var patch = (a, loose) => new SemVer(a, loose).patch;
@@ -6031,9 +6018,9 @@ var require_patch = __commonJS({
   }
 });
 
-// node_modules/semver/functions/prerelease.js
+// ../node_modules/semver/functions/prerelease.js
 var require_prerelease = __commonJS({
-  "node_modules/semver/functions/prerelease.js"(exports, module) {
+  "../node_modules/semver/functions/prerelease.js"(exports, module) {
     "use strict";
     var parse = require_parse();
     var prerelease = (version, options) => {
@@ -6044,9 +6031,9 @@ var require_prerelease = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare.js
+// ../node_modules/semver/functions/compare.js
 var require_compare = __commonJS({
-  "node_modules/semver/functions/compare.js"(exports, module) {
+  "../node_modules/semver/functions/compare.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var compare = (a, b, loose) => new SemVer(a, loose).compare(new SemVer(b, loose));
@@ -6054,9 +6041,9 @@ var require_compare = __commonJS({
   }
 });
 
-// node_modules/semver/functions/rcompare.js
+// ../node_modules/semver/functions/rcompare.js
 var require_rcompare = __commonJS({
-  "node_modules/semver/functions/rcompare.js"(exports, module) {
+  "../node_modules/semver/functions/rcompare.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var rcompare = (a, b, loose) => compare(b, a, loose);
@@ -6064,9 +6051,9 @@ var require_rcompare = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare-loose.js
+// ../node_modules/semver/functions/compare-loose.js
 var require_compare_loose = __commonJS({
-  "node_modules/semver/functions/compare-loose.js"(exports, module) {
+  "../node_modules/semver/functions/compare-loose.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var compareLoose = (a, b) => compare(a, b, true);
@@ -6074,9 +6061,9 @@ var require_compare_loose = __commonJS({
   }
 });
 
-// node_modules/semver/functions/compare-build.js
+// ../node_modules/semver/functions/compare-build.js
 var require_compare_build = __commonJS({
-  "node_modules/semver/functions/compare-build.js"(exports, module) {
+  "../node_modules/semver/functions/compare-build.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var compareBuild = (a, b, loose) => {
@@ -6088,9 +6075,9 @@ var require_compare_build = __commonJS({
   }
 });
 
-// node_modules/semver/functions/sort.js
+// ../node_modules/semver/functions/sort.js
 var require_sort = __commonJS({
-  "node_modules/semver/functions/sort.js"(exports, module) {
+  "../node_modules/semver/functions/sort.js"(exports, module) {
     "use strict";
     var compareBuild = require_compare_build();
     var sort = (list, loose) => list.sort((a, b) => compareBuild(a, b, loose));
@@ -6098,9 +6085,9 @@ var require_sort = __commonJS({
   }
 });
 
-// node_modules/semver/functions/rsort.js
+// ../node_modules/semver/functions/rsort.js
 var require_rsort = __commonJS({
-  "node_modules/semver/functions/rsort.js"(exports, module) {
+  "../node_modules/semver/functions/rsort.js"(exports, module) {
     "use strict";
     var compareBuild = require_compare_build();
     var rsort = (list, loose) => list.sort((a, b) => compareBuild(b, a, loose));
@@ -6108,9 +6095,9 @@ var require_rsort = __commonJS({
   }
 });
 
-// node_modules/semver/functions/gt.js
+// ../node_modules/semver/functions/gt.js
 var require_gt = __commonJS({
-  "node_modules/semver/functions/gt.js"(exports, module) {
+  "../node_modules/semver/functions/gt.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var gt = (a, b, loose) => compare(a, b, loose) > 0;
@@ -6118,9 +6105,9 @@ var require_gt = __commonJS({
   }
 });
 
-// node_modules/semver/functions/lt.js
+// ../node_modules/semver/functions/lt.js
 var require_lt = __commonJS({
-  "node_modules/semver/functions/lt.js"(exports, module) {
+  "../node_modules/semver/functions/lt.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var lt = (a, b, loose) => compare(a, b, loose) < 0;
@@ -6128,9 +6115,9 @@ var require_lt = __commonJS({
   }
 });
 
-// node_modules/semver/functions/eq.js
+// ../node_modules/semver/functions/eq.js
 var require_eq = __commonJS({
-  "node_modules/semver/functions/eq.js"(exports, module) {
+  "../node_modules/semver/functions/eq.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var eq = (a, b, loose) => compare(a, b, loose) === 0;
@@ -6138,9 +6125,9 @@ var require_eq = __commonJS({
   }
 });
 
-// node_modules/semver/functions/neq.js
+// ../node_modules/semver/functions/neq.js
 var require_neq = __commonJS({
-  "node_modules/semver/functions/neq.js"(exports, module) {
+  "../node_modules/semver/functions/neq.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var neq = (a, b, loose) => compare(a, b, loose) !== 0;
@@ -6148,9 +6135,9 @@ var require_neq = __commonJS({
   }
 });
 
-// node_modules/semver/functions/gte.js
+// ../node_modules/semver/functions/gte.js
 var require_gte = __commonJS({
-  "node_modules/semver/functions/gte.js"(exports, module) {
+  "../node_modules/semver/functions/gte.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var gte2 = (a, b, loose) => compare(a, b, loose) >= 0;
@@ -6158,9 +6145,9 @@ var require_gte = __commonJS({
   }
 });
 
-// node_modules/semver/functions/lte.js
+// ../node_modules/semver/functions/lte.js
 var require_lte = __commonJS({
-  "node_modules/semver/functions/lte.js"(exports, module) {
+  "../node_modules/semver/functions/lte.js"(exports, module) {
     "use strict";
     var compare = require_compare();
     var lte = (a, b, loose) => compare(a, b, loose) <= 0;
@@ -6168,9 +6155,9 @@ var require_lte = __commonJS({
   }
 });
 
-// node_modules/semver/functions/cmp.js
+// ../node_modules/semver/functions/cmp.js
 var require_cmp = __commonJS({
-  "node_modules/semver/functions/cmp.js"(exports, module) {
+  "../node_modules/semver/functions/cmp.js"(exports, module) {
     "use strict";
     var eq = require_eq();
     var neq = require_neq();
@@ -6218,9 +6205,9 @@ var require_cmp = __commonJS({
   }
 });
 
-// node_modules/semver/functions/coerce.js
+// ../node_modules/semver/functions/coerce.js
 var require_coerce = __commonJS({
-  "node_modules/semver/functions/coerce.js"(exports, module) {
+  "../node_modules/semver/functions/coerce.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var parse = require_parse();
@@ -6264,50 +6251,9 @@ var require_coerce = __commonJS({
   }
 });
 
-// node_modules/semver/functions/truncate.js
-var require_truncate = __commonJS({
-  "node_modules/semver/functions/truncate.js"(exports, module) {
-    "use strict";
-    var parse = require_parse();
-    var constants3 = require_constants();
-    var SemVer = require_semver();
-    var truncate2 = (version, truncation, options) => {
-      if (!constants3.RELEASE_TYPES.includes(truncation)) {
-        return null;
-      }
-      const clonedVersion = cloneInputVersion(version, options);
-      return clonedVersion && doTruncation(clonedVersion, truncation);
-    };
-    var cloneInputVersion = (version, options) => {
-      const versionStringToParse = version instanceof SemVer ? version.version : version;
-      return parse(versionStringToParse, options);
-    };
-    var doTruncation = (version, truncation) => {
-      if (isPrerelease(truncation)) {
-        return version.version;
-      }
-      version.prerelease = [];
-      switch (truncation) {
-        case "major":
-          version.minor = 0;
-          version.patch = 0;
-          break;
-        case "minor":
-          version.patch = 0;
-          break;
-      }
-      return version.format();
-    };
-    var isPrerelease = (type) => {
-      return type.startsWith("pre");
-    };
-    module.exports = truncate2;
-  }
-});
-
-// node_modules/semver/internal/lrucache.js
+// ../node_modules/semver/internal/lrucache.js
 var require_lrucache = __commonJS({
-  "node_modules/semver/internal/lrucache.js"(exports, module) {
+  "../node_modules/semver/internal/lrucache.js"(exports, module) {
     "use strict";
     var LRUCache = class {
       constructor() {
@@ -6343,9 +6289,9 @@ var require_lrucache = __commonJS({
   }
 });
 
-// node_modules/semver/classes/range.js
+// ../node_modules/semver/classes/range.js
 var require_range = __commonJS({
-  "node_modules/semver/classes/range.js"(exports, module) {
+  "../node_modules/semver/classes/range.js"(exports, module) {
     "use strict";
     var SPACE_CHARACTERS = /\s+/g;
     var Range = class _Range {
@@ -6413,7 +6359,6 @@ var require_range = __commonJS({
         return this.range;
       }
       parseRange(range) {
-        range = range.replace(BUILDSTRIPRE, "");
         const memoOpts = (this.options.includePrerelease && FLAG_INCLUDE_PRERELEASE) | (this.options.loose && FLAG_LOOSE);
         const memoKey = memoOpts + ":" + range;
         const cached = cache6.get(memoKey);
@@ -6496,14 +6441,12 @@ var require_range = __commonJS({
     var SemVer = require_semver();
     var {
       safeRe: re,
-      src,
       t,
       comparatorTrimReplace,
       tildeTrimReplace,
       caretTrimReplace
     } = require_re();
     var { FLAG_INCLUDE_PRERELEASE, FLAG_LOOSE } = require_constants();
-    var BUILDSTRIPRE = new RegExp(src[t.BUILD], "g");
     var isNullSet = (c) => c.value === "<0.0.0-0";
     var isAny = (c) => c.value === "";
     var isSatisfiable = (comparators, options) => {
@@ -6723,9 +6666,9 @@ var require_range = __commonJS({
   }
 });
 
-// node_modules/semver/classes/comparator.js
+// ../node_modules/semver/classes/comparator.js
 var require_comparator = __commonJS({
-  "node_modules/semver/classes/comparator.js"(exports, module) {
+  "../node_modules/semver/classes/comparator.js"(exports, module) {
     "use strict";
     var ANY = /* @__PURE__ */ Symbol("SemVer ANY");
     var Comparator = class _Comparator {
@@ -6836,9 +6779,9 @@ var require_comparator = __commonJS({
   }
 });
 
-// node_modules/semver/functions/satisfies.js
+// ../node_modules/semver/functions/satisfies.js
 var require_satisfies = __commonJS({
-  "node_modules/semver/functions/satisfies.js"(exports, module) {
+  "../node_modules/semver/functions/satisfies.js"(exports, module) {
     "use strict";
     var Range = require_range();
     var satisfies = (version, range, options) => {
@@ -6853,9 +6796,9 @@ var require_satisfies = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/to-comparators.js
+// ../node_modules/semver/ranges/to-comparators.js
 var require_to_comparators = __commonJS({
-  "node_modules/semver/ranges/to-comparators.js"(exports, module) {
+  "../node_modules/semver/ranges/to-comparators.js"(exports, module) {
     "use strict";
     var Range = require_range();
     var toComparators = (range, options) => new Range(range, options).set.map((comp) => comp.map((c) => c.value).join(" ").trim().split(" "));
@@ -6863,9 +6806,9 @@ var require_to_comparators = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/max-satisfying.js
+// ../node_modules/semver/ranges/max-satisfying.js
 var require_max_satisfying = __commonJS({
-  "node_modules/semver/ranges/max-satisfying.js"(exports, module) {
+  "../node_modules/semver/ranges/max-satisfying.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -6892,9 +6835,9 @@ var require_max_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-satisfying.js
+// ../node_modules/semver/ranges/min-satisfying.js
 var require_min_satisfying = __commonJS({
-  "node_modules/semver/ranges/min-satisfying.js"(exports, module) {
+  "../node_modules/semver/ranges/min-satisfying.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -6921,9 +6864,9 @@ var require_min_satisfying = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/min-version.js
+// ../node_modules/semver/ranges/min-version.js
 var require_min_version = __commonJS({
-  "node_modules/semver/ranges/min-version.js"(exports, module) {
+  "../node_modules/semver/ranges/min-version.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var Range = require_range();
@@ -6980,9 +6923,9 @@ var require_min_version = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/valid.js
+// ../node_modules/semver/ranges/valid.js
 var require_valid2 = __commonJS({
-  "node_modules/semver/ranges/valid.js"(exports, module) {
+  "../node_modules/semver/ranges/valid.js"(exports, module) {
     "use strict";
     var Range = require_range();
     var validRange = (range, options) => {
@@ -6996,9 +6939,9 @@ var require_valid2 = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/outside.js
+// ../node_modules/semver/ranges/outside.js
 var require_outside = __commonJS({
-  "node_modules/semver/ranges/outside.js"(exports, module) {
+  "../node_modules/semver/ranges/outside.js"(exports, module) {
     "use strict";
     var SemVer = require_semver();
     var Comparator = require_comparator();
@@ -7065,9 +7008,9 @@ var require_outside = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/gtr.js
+// ../node_modules/semver/ranges/gtr.js
 var require_gtr = __commonJS({
-  "node_modules/semver/ranges/gtr.js"(exports, module) {
+  "../node_modules/semver/ranges/gtr.js"(exports, module) {
     "use strict";
     var outside = require_outside();
     var gtr = (version, range, options) => outside(version, range, ">", options);
@@ -7075,9 +7018,9 @@ var require_gtr = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/ltr.js
+// ../node_modules/semver/ranges/ltr.js
 var require_ltr = __commonJS({
-  "node_modules/semver/ranges/ltr.js"(exports, module) {
+  "../node_modules/semver/ranges/ltr.js"(exports, module) {
     "use strict";
     var outside = require_outside();
     var ltr = (version, range, options) => outside(version, range, "<", options);
@@ -7085,9 +7028,9 @@ var require_ltr = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/intersects.js
+// ../node_modules/semver/ranges/intersects.js
 var require_intersects = __commonJS({
-  "node_modules/semver/ranges/intersects.js"(exports, module) {
+  "../node_modules/semver/ranges/intersects.js"(exports, module) {
     "use strict";
     var Range = require_range();
     var intersects = (r1, r2, options) => {
@@ -7099,9 +7042,9 @@ var require_intersects = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/simplify.js
+// ../node_modules/semver/ranges/simplify.js
 var require_simplify = __commonJS({
-  "node_modules/semver/ranges/simplify.js"(exports, module) {
+  "../node_modules/semver/ranges/simplify.js"(exports, module) {
     "use strict";
     var satisfies = require_satisfies();
     var compare = require_compare();
@@ -7149,9 +7092,9 @@ var require_simplify = __commonJS({
   }
 });
 
-// node_modules/semver/ranges/subset.js
+// ../node_modules/semver/ranges/subset.js
 var require_subset = __commonJS({
-  "node_modules/semver/ranges/subset.js"(exports, module) {
+  "../node_modules/semver/ranges/subset.js"(exports, module) {
     "use strict";
     var Range = require_range();
     var Comparator = require_comparator();
@@ -7259,7 +7202,7 @@ var require_subset = __commonJS({
             if (higher === c && higher !== gt) {
               return false;
             }
-          } else if (gt.operator === ">=" && !c.test(gt.semver)) {
+          } else if (gt.operator === ">=" && !satisfies(gt.semver, String(c), options)) {
             return false;
           }
         }
@@ -7274,7 +7217,7 @@ var require_subset = __commonJS({
             if (lower === c && lower !== lt) {
               return false;
             }
-          } else if (lt.operator === "<=" && !c.test(lt.semver)) {
+          } else if (lt.operator === "<=" && !satisfies(lt.semver, String(c), options)) {
             return false;
           }
         }
@@ -7311,9 +7254,9 @@ var require_subset = __commonJS({
   }
 });
 
-// node_modules/semver/index.js
+// ../node_modules/semver/index.js
 var require_semver2 = __commonJS({
-  "node_modules/semver/index.js"(exports, module) {
+  "../node_modules/semver/index.js"(exports, module) {
     "use strict";
     var internalRe = require_re();
     var constants3 = require_constants();
@@ -7342,7 +7285,6 @@ var require_semver2 = __commonJS({
     var lte = require_lte();
     var cmp = require_cmp();
     var coerce2 = require_coerce();
-    var truncate2 = require_truncate();
     var Comparator = require_comparator();
     var Range = require_range();
     var satisfies = require_satisfies();
@@ -7381,7 +7323,6 @@ var require_semver2 = __commonJS({
       lte,
       cmp,
       coerce: coerce2,
-      truncate: truncate2,
       Comparator,
       Range,
       satisfies,
@@ -7508,8 +7449,8 @@ function isXtermJs() {
   }
   return xtversionName?.startsWith("xterm.js") ?? false;
 }
-function needsAltScreenResizeScrollbackClear(env3 = process.env) {
-  return (env3.TERM_PROGRAM ?? "").trim() === "Apple_Terminal";
+function needsAltScreenResizeScrollbackClear(env5 = process.env) {
+  return (env5.TERM_PROGRAM ?? "").trim() === "Apple_Terminal";
 }
 function supportsExtendedKeys() {
   return EXTENDED_KEYS_TERMINALS.includes(env.terminal ?? "");
@@ -10612,9 +10553,9 @@ var init_dom = __esm({
   }
 });
 
-// node_modules/scheduler/cjs/scheduler.production.js
+// ../node_modules/scheduler/cjs/scheduler.production.js
 var require_scheduler_production = __commonJS({
-  "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+  "../node_modules/scheduler/cjs/scheduler.production.js"(exports) {
     "use strict";
     function push(heap, node) {
       var index = heap.length;
@@ -10885,9 +10826,9 @@ var require_scheduler_production = __commonJS({
   }
 });
 
-// node_modules/scheduler/cjs/scheduler.development.js
+// ../node_modules/scheduler/cjs/scheduler.development.js
 var require_scheduler_development = __commonJS({
-  "node_modules/scheduler/cjs/scheduler.development.js"(exports) {
+  "../node_modules/scheduler/cjs/scheduler.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function performWorkUntilDeadline() {
@@ -11144,9 +11085,9 @@ var require_scheduler_development = __commonJS({
   }
 });
 
-// node_modules/scheduler/index.js
+// ../node_modules/scheduler/index.js
 var require_scheduler = __commonJS({
-  "node_modules/scheduler/index.js"(exports, module) {
+  "../node_modules/scheduler/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_scheduler_production();
@@ -11156,9 +11097,9 @@ var require_scheduler = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler.production.js
+// ../node_modules/react-reconciler/cjs/react-reconciler.production.js
 var require_react_reconciler_production = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler.production.js"(exports, module) {
+  "../node_modules/react-reconciler/cjs/react-reconciler.production.js"(exports, module) {
     "use strict";
     module.exports = function($$$config) {
       function createFiber(tag, pendingProps, key, mode) {
@@ -19335,9 +19276,9 @@ var require_react_reconciler_production = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler.development.js
+// ../node_modules/react-reconciler/cjs/react-reconciler.development.js
 var require_react_reconciler_development = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler.development.js"(exports, module) {
+  "../node_modules/react-reconciler/cjs/react-reconciler.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (module.exports = function($$$config) {
       function findHook(fiber, id) {
@@ -20695,7 +20636,7 @@ var require_react_reconciler_development = __commonJS({
                 if ("string" === typeof entry.name) {
                   var JSCompiler_temp_const = info;
                   a: {
-                    var name = entry.name, env3 = entry.env, location = entry.debugLocation;
+                    var name = entry.name, env5 = entry.env, location = entry.debugLocation;
                     if (null != location) {
                       var childStack = formatOwnerStack(location), idx = childStack.lastIndexOf("\n"), lastLine = -1 === idx ? childStack : childStack.slice(idx + 1);
                       if (-1 !== lastLine.indexOf(name)) {
@@ -20704,7 +20645,7 @@ var require_react_reconciler_development = __commonJS({
                       }
                     }
                     JSCompiler_inline_result = describeBuiltInComponentFrame(
-                      name + (env3 ? " [" + env3 + "]" : "")
+                      name + (env5 ? " [" + env5 + "]" : "")
                     );
                   }
                   info = JSCompiler_temp_const + JSCompiler_inline_result;
@@ -33108,9 +33049,9 @@ var require_react_reconciler_development = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/index.js
+// ../node_modules/react-reconciler/index.js
 var require_react_reconciler = __commonJS({
-  "node_modules/react-reconciler/index.js"(exports, module) {
+  "../node_modules/react-reconciler/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_reconciler_production();
@@ -33120,9 +33061,9 @@ var require_react_reconciler = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler-constants.production.js
+// ../node_modules/react-reconciler/cjs/react-reconciler-constants.production.js
 var require_react_reconciler_constants_production = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler-constants.production.js"(exports) {
+  "../node_modules/react-reconciler/cjs/react-reconciler-constants.production.js"(exports) {
     "use strict";
     exports.ConcurrentRoot = 1;
     exports.ContinuousEventPriority = 8;
@@ -33134,17 +33075,17 @@ var require_react_reconciler_constants_production = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler-constants.development.js
+// ../node_modules/react-reconciler/cjs/react-reconciler-constants.development.js
 var require_react_reconciler_constants_development = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler-constants.development.js"(exports) {
+  "../node_modules/react-reconciler/cjs/react-reconciler-constants.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (exports.ConcurrentRoot = 1, exports.ContinuousEventPriority = 8, exports.DefaultEventPriority = 32, exports.DiscreteEventPriority = 2, exports.IdleEventPriority = 268435456, exports.LegacyRoot = 0, exports.NoEventPriority = 0);
   }
 });
 
-// node_modules/react-reconciler/constants.js
+// ../node_modules/react-reconciler/constants.js
 var require_constants2 = __commonJS({
-  "node_modules/react-reconciler/constants.js"(exports, module) {
+  "../node_modules/react-reconciler/constants.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_reconciler_constants_production();
@@ -34511,9 +34452,9 @@ var init_use_external_process = __esm({
   }
 });
 
-// node_modules/lodash.debounce/index.js
+// ../node_modules/lodash.debounce/index.js
 var require_lodash = __commonJS({
-  "node_modules/lodash.debounce/index.js"(exports, module) {
+  "../node_modules/lodash.debounce/index.js"(exports, module) {
     var FUNC_ERROR_TEXT3 = "Expected a function";
     var NAN2 = 0 / 0;
     var symbolTag2 = "[object Symbol]";
@@ -34644,7 +34585,7 @@ var require_lodash = __commonJS({
   }
 });
 
-// node_modules/usehooks-ts/dist/index.js
+// ../node_modules/usehooks-ts/dist/index.js
 function useEventCallback(fn) {
   const ref = (0, import_react15.useRef)(() => {
     throw new Error("Cannot call an event handler while rendering.");
@@ -34659,7 +34600,7 @@ function useEventCallback(fn) {
 }
 var import_react15, import_lodash, useIsomorphicLayoutEffect;
 var init_dist = __esm({
-  "node_modules/usehooks-ts/dist/index.js"() {
+  "../node_modules/usehooks-ts/dist/index.js"() {
     import_react15 = __toESM(require_react(), 1);
     import_lodash = __toESM(require_lodash(), 1);
     useIsomorphicLayoutEffect = typeof window !== "undefined" ? import_react15.useLayoutEffect : import_react15.useEffect;
@@ -34795,8 +34736,8 @@ var init_geometry = __esm({
 });
 
 // packages/hermes-ink/src/ink/screen.ts
-function hasVisibleSpaceEffect(styles6) {
-  for (const style of styles6) {
+function hasVisibleSpaceEffect(styles12) {
+  for (const style of styles12) {
     if (VISIBLE_ON_SPACE.has(style.endCode)) {
       return true;
     }
@@ -34831,7 +34772,7 @@ function isWrittenCellAt(screen, x, y) {
 function internHyperlink(screen, hyperlink) {
   return screen.hyperlinkPool.intern(hyperlink);
 }
-function createScreen(width, height, styles6, charPool, hyperlinkPool) {
+function createScreen(width, height, styles12, charPool, hyperlinkPool) {
   ifNotInteger(width, "createScreen width");
   ifNotInteger(height, "createScreen height");
   if (!Number.isInteger(width) || width < 0) {
@@ -34851,7 +34792,7 @@ function createScreen(width, height, styles6, charPool, hyperlinkPool) {
     cells64,
     charPool,
     hyperlinkPool,
-    emptyStyleId: styles6.none,
+    emptyStyleId: styles12.none,
     damage: void 0,
     noSelect: new Uint8Array(size),
     written: new Uint8Array(size),
@@ -35177,8 +35118,8 @@ function shiftRows(screen, top, bottom, n) {
     sw.fill(0, top, top - n);
   }
 }
-function extractHyperlinkFromStyles(styles6) {
-  for (const style of styles6) {
+function extractHyperlinkFromStyles(styles12) {
+  for (const style of styles12) {
     const code = style.code;
     if (code.length < 5 || !code.startsWith(OSC8_PREFIX)) {
       continue;
@@ -35190,8 +35131,8 @@ function extractHyperlinkFromStyles(styles6) {
   }
   return null;
 }
-function filterOutHyperlinkStyles(styles6) {
-  return styles6.filter((style) => !style.code.startsWith(OSC8_PREFIX) || !OSC8_REGEX.test(style.code));
+function filterOutHyperlinkStyles(styles12) {
+  return styles12.filter((style) => !style.code.startsWith(OSC8_PREFIX) || !OSC8_REGEX.test(style.code));
 }
 function diffEach(prev, next, cb) {
   const prevWidth = prev.width;
@@ -35508,13 +35449,13 @@ var init_screen = __esm({
        * on spaces get odd IDs. This lets the renderer skip invisible spaces
        * with a single bitmask check on the packed word.
        */
-      intern(styles6) {
-        const key = styles6.length === 0 ? "" : styles6.map((s) => s.code).join("\0");
+      intern(styles12) {
+        const key = styles12.length === 0 ? "" : styles12.map((s) => s.code).join("\0");
         let id = this.ids.get(key);
         if (id === void 0) {
           const rawId = this.styles.length;
-          this.styles.push(styles6.length === 0 ? [] : styles6);
-          id = rawId << 1 | (styles6.length > 0 && hasVisibleSpaceEffect(styles6) ? 1 : 0);
+          this.styles.push(styles12.length === 0 ? [] : styles12);
+          id = rawId << 1 | (styles12.length > 0 && hasVisibleSpaceEffect(styles12) ? 1 : 0);
           this.ids.set(key, id);
         }
         return id;
@@ -36546,7 +36487,7 @@ var init_measure_element = __esm({
   }
 });
 
-// node_modules/indent-string/index.js
+// ../node_modules/indent-string/index.js
 function indentString(string, count = 1, options = {}) {
   const {
     indent = " ",
@@ -36575,11 +36516,11 @@ function indentString(string, count = 1, options = {}) {
   if (count === 0) {
     return string;
   }
-  const regex2 = includeEmptyLines ? /^/gm : /^(?!\s*$)/gm;
-  return string.replace(regex2, indent.repeat(count));
+  const regex4 = includeEmptyLines ? /^/gm : /^(?!\s*$)/gm;
+  return string.replace(regex4, indent.repeat(count));
 }
 var init_indent_string = __esm({
-  "node_modules/indent-string/index.js"() {
+  "../node_modules/indent-string/index.js"() {
   }
 });
 
@@ -36973,10 +36914,10 @@ var init_source = __esm({
       object.level = options.level === void 0 ? colorLevel : options.level;
     };
     chalkFactory = (options) => {
-      const chalk2 = (...strings) => strings.join(" ");
-      applyOptions(chalk2, options);
-      Object.setPrototypeOf(chalk2, createChalk.prototype);
-      return chalk2;
+      const chalk4 = (...strings) => strings.join(" ");
+      applyOptions(chalk4, options);
+      Object.setPrototypeOf(chalk4, createChalk.prototype);
+      return chalk4;
     };
     Object.setPrototypeOf(createChalk.prototype, Function.prototype);
     for (const [styleName, style] of Object.entries(ansi_styles_default2)) {
@@ -37107,11 +37048,11 @@ function boostChalkLevelForXtermJs() {
   }
   return false;
 }
-function shouldUseRichEightBitDowngradeForLegacyAppleTerminal(env3 = process.env, level = source_default.level) {
-  const termProgram = (env3.TERM_PROGRAM ?? "").trim();
-  const truecolorOverride = /^(?:1|true|yes|on)$/i.test((env3.HERMES_TUI_TRUECOLOR ?? "").trim());
-  const advertisesTruecolor = /^(?:truecolor|24bit)$/i.test((env3.COLORTERM ?? "").trim());
-  return termProgram === "Apple_Terminal" && !truecolorOverride && !advertisesTruecolor && !("FORCE_COLOR" in env3) && level === 2;
+function shouldUseRichEightBitDowngradeForLegacyAppleTerminal(env5 = process.env, level = source_default.level) {
+  const termProgram = (env5.TERM_PROGRAM ?? "").trim();
+  const truecolorOverride = /^(?:1|true|yes|on)$/i.test((env5.HERMES_TUI_TRUECOLOR ?? "").trim());
+  const advertisesTruecolor = /^(?:truecolor|24bit)$/i.test((env5.COLORTERM ?? "").trim());
+  return termProgram === "Apple_Terminal" && !truecolorOverride && !advertisesTruecolor && !("FORCE_COLOR" in env5) && level === 2;
 }
 function richEightBitColorNumber(red, green, blue) {
   const rn = red / 255;
@@ -37137,31 +37078,31 @@ function clampChalkLevelForTmux() {
   }
   return false;
 }
-function applyTextStyles(text, styles6) {
+function applyTextStyles(text, styles12) {
   let result = text;
-  if (styles6.inverse) {
+  if (styles12.inverse) {
     result = source_default.inverse(result);
   }
-  if (styles6.strikethrough) {
+  if (styles12.strikethrough) {
     result = source_default.strikethrough(result);
   }
-  if (styles6.underline) {
+  if (styles12.underline) {
     result = source_default.underline(result);
   }
-  if (styles6.italic) {
+  if (styles12.italic) {
     result = source_default.italic(result);
   }
-  if (styles6.bold) {
+  if (styles12.bold) {
     result = source_default.bold(result);
   }
-  if (styles6.dim) {
+  if (styles12.dim) {
     result = source_default.dim(result);
   }
-  if (styles6.color) {
-    result = colorize(result, styles6.color, "foreground");
+  if (styles12.color) {
+    result = colorize(result, styles12.color, "foreground");
   }
-  if (styles6.backgroundColor) {
-    result = colorize(result, styles6.backgroundColor, "background");
+  if (styles12.backgroundColor) {
+    result = colorize(result, styles12.backgroundColor, "background");
   }
   return result;
 }
@@ -37274,9 +37215,9 @@ var init_get_max_width = __esm({
   }
 });
 
-// node_modules/cli-boxes/boxes.json
+// ../node_modules/cli-boxes/boxes.json
 var require_boxes = __commonJS({
-  "node_modules/cli-boxes/boxes.json"(exports, module) {
+  "../node_modules/cli-boxes/boxes.json"(exports, module) {
     module.exports = {
       single: {
         topLeft: "\u250C",
@@ -37362,9 +37303,9 @@ var require_boxes = __commonJS({
   }
 });
 
-// node_modules/cli-boxes/index.js
+// ../node_modules/cli-boxes/index.js
 var require_cli_boxes = __commonJS({
-  "node_modules/cli-boxes/index.js"(exports, module) {
+  "../node_modules/cli-boxes/index.js"(exports, module) {
     "use strict";
     var cliBoxes3 = require_boxes();
     module.exports = cliBoxes3;
@@ -38329,7 +38270,7 @@ var init_render_node_to_output = __esm({
   }
 });
 
-// node_modules/auto-bind/index.js
+// ../node_modules/auto-bind/index.js
 function autoBind(self2, { include, exclude } = {}) {
   const filter = (key) => {
     const match = (pattern) => typeof pattern === "string" ? key === pattern : pattern.test(key);
@@ -38354,7 +38295,7 @@ function autoBind(self2, { include, exclude } = {}) {
 }
 var getAllProperties;
 var init_auto_bind = __esm({
-  "node_modules/auto-bind/index.js"() {
+  "../node_modules/auto-bind/index.js"() {
     getAllProperties = (object) => {
       const properties = /* @__PURE__ */ new Set();
       do {
@@ -38367,41 +38308,41 @@ var init_auto_bind = __esm({
   }
 });
 
-// node_modules/lodash-es/noop.js
+// ../node_modules/lodash-es/noop.js
 function noop() {
 }
 var noop_default;
 var init_noop = __esm({
-  "node_modules/lodash-es/noop.js"() {
+  "../node_modules/lodash-es/noop.js"() {
     noop_default = noop;
   }
 });
 
-// node_modules/lodash-es/isObject.js
+// ../node_modules/lodash-es/isObject.js
 function isObject(value) {
   var type = typeof value;
   return value != null && (type == "object" || type == "function");
 }
 var isObject_default;
 var init_isObject = __esm({
-  "node_modules/lodash-es/isObject.js"() {
+  "../node_modules/lodash-es/isObject.js"() {
     isObject_default = isObject;
   }
 });
 
-// node_modules/lodash-es/_freeGlobal.js
+// ../node_modules/lodash-es/_freeGlobal.js
 var freeGlobal, freeGlobal_default;
 var init_freeGlobal = __esm({
-  "node_modules/lodash-es/_freeGlobal.js"() {
+  "../node_modules/lodash-es/_freeGlobal.js"() {
     freeGlobal = typeof global == "object" && global && global.Object === Object && global;
     freeGlobal_default = freeGlobal;
   }
 });
 
-// node_modules/lodash-es/_root.js
+// ../node_modules/lodash-es/_root.js
 var freeSelf, root, root_default;
 var init_root = __esm({
-  "node_modules/lodash-es/_root.js"() {
+  "../node_modules/lodash-es/_root.js"() {
     init_freeGlobal();
     freeSelf = typeof self == "object" && self && self.Object === Object && self;
     root = freeGlobal_default || freeSelf || Function("return this")();
@@ -38409,10 +38350,10 @@ var init_root = __esm({
   }
 });
 
-// node_modules/lodash-es/now.js
+// ../node_modules/lodash-es/now.js
 var now, now_default;
 var init_now = __esm({
-  "node_modules/lodash-es/now.js"() {
+  "../node_modules/lodash-es/now.js"() {
     init_root();
     now = function() {
       return root_default.Date.now();
@@ -38421,7 +38362,7 @@ var init_now = __esm({
   }
 });
 
-// node_modules/lodash-es/_trimmedEndIndex.js
+// ../node_modules/lodash-es/_trimmedEndIndex.js
 function trimmedEndIndex(string) {
   var index = string.length;
   while (index-- && reWhitespace.test(string.charAt(index))) {
@@ -38430,36 +38371,36 @@ function trimmedEndIndex(string) {
 }
 var reWhitespace, trimmedEndIndex_default;
 var init_trimmedEndIndex = __esm({
-  "node_modules/lodash-es/_trimmedEndIndex.js"() {
+  "../node_modules/lodash-es/_trimmedEndIndex.js"() {
     reWhitespace = /\s/;
     trimmedEndIndex_default = trimmedEndIndex;
   }
 });
 
-// node_modules/lodash-es/_baseTrim.js
+// ../node_modules/lodash-es/_baseTrim.js
 function baseTrim(string) {
   return string ? string.slice(0, trimmedEndIndex_default(string) + 1).replace(reTrimStart, "") : string;
 }
 var reTrimStart, baseTrim_default;
 var init_baseTrim = __esm({
-  "node_modules/lodash-es/_baseTrim.js"() {
+  "../node_modules/lodash-es/_baseTrim.js"() {
     init_trimmedEndIndex();
     reTrimStart = /^\s+/;
     baseTrim_default = baseTrim;
   }
 });
 
-// node_modules/lodash-es/_Symbol.js
+// ../node_modules/lodash-es/_Symbol.js
 var Symbol2, Symbol_default;
 var init_Symbol = __esm({
-  "node_modules/lodash-es/_Symbol.js"() {
+  "../node_modules/lodash-es/_Symbol.js"() {
     init_root();
     Symbol2 = root_default.Symbol;
     Symbol_default = Symbol2;
   }
 });
 
-// node_modules/lodash-es/_getRawTag.js
+// ../node_modules/lodash-es/_getRawTag.js
 function getRawTag(value) {
   var isOwn = hasOwnProperty.call(value, symToStringTag), tag = value[symToStringTag];
   try {
@@ -38479,7 +38420,7 @@ function getRawTag(value) {
 }
 var objectProto, hasOwnProperty, nativeObjectToString, symToStringTag, getRawTag_default;
 var init_getRawTag = __esm({
-  "node_modules/lodash-es/_getRawTag.js"() {
+  "../node_modules/lodash-es/_getRawTag.js"() {
     init_Symbol();
     objectProto = Object.prototype;
     hasOwnProperty = objectProto.hasOwnProperty;
@@ -38489,20 +38430,20 @@ var init_getRawTag = __esm({
   }
 });
 
-// node_modules/lodash-es/_objectToString.js
+// ../node_modules/lodash-es/_objectToString.js
 function objectToString(value) {
   return nativeObjectToString2.call(value);
 }
 var objectProto2, nativeObjectToString2, objectToString_default;
 var init_objectToString = __esm({
-  "node_modules/lodash-es/_objectToString.js"() {
+  "../node_modules/lodash-es/_objectToString.js"() {
     objectProto2 = Object.prototype;
     nativeObjectToString2 = objectProto2.toString;
     objectToString_default = objectToString;
   }
 });
 
-// node_modules/lodash-es/_baseGetTag.js
+// ../node_modules/lodash-es/_baseGetTag.js
 function baseGetTag(value) {
   if (value == null) {
     return value === void 0 ? undefinedTag : nullTag;
@@ -38511,7 +38452,7 @@ function baseGetTag(value) {
 }
 var nullTag, undefinedTag, symToStringTag2, baseGetTag_default;
 var init_baseGetTag = __esm({
-  "node_modules/lodash-es/_baseGetTag.js"() {
+  "../node_modules/lodash-es/_baseGetTag.js"() {
     init_Symbol();
     init_getRawTag();
     init_objectToString();
@@ -38522,24 +38463,24 @@ var init_baseGetTag = __esm({
   }
 });
 
-// node_modules/lodash-es/isObjectLike.js
+// ../node_modules/lodash-es/isObjectLike.js
 function isObjectLike(value) {
   return value != null && typeof value == "object";
 }
 var isObjectLike_default;
 var init_isObjectLike = __esm({
-  "node_modules/lodash-es/isObjectLike.js"() {
+  "../node_modules/lodash-es/isObjectLike.js"() {
     isObjectLike_default = isObjectLike;
   }
 });
 
-// node_modules/lodash-es/isSymbol.js
+// ../node_modules/lodash-es/isSymbol.js
 function isSymbol(value) {
   return typeof value == "symbol" || isObjectLike_default(value) && baseGetTag_default(value) == symbolTag;
 }
 var symbolTag, isSymbol_default;
 var init_isSymbol = __esm({
-  "node_modules/lodash-es/isSymbol.js"() {
+  "../node_modules/lodash-es/isSymbol.js"() {
     init_baseGetTag();
     init_isObjectLike();
     symbolTag = "[object Symbol]";
@@ -38547,7 +38488,7 @@ var init_isSymbol = __esm({
   }
 });
 
-// node_modules/lodash-es/toNumber.js
+// ../node_modules/lodash-es/toNumber.js
 function toNumber(value) {
   if (typeof value == "number") {
     return value;
@@ -38568,7 +38509,7 @@ function toNumber(value) {
 }
 var NAN, reIsBadHex, reIsBinary, reIsOctal, freeParseInt, toNumber_default;
 var init_toNumber = __esm({
-  "node_modules/lodash-es/toNumber.js"() {
+  "../node_modules/lodash-es/toNumber.js"() {
     init_baseTrim();
     init_isObject();
     init_isSymbol();
@@ -38581,7 +38522,7 @@ var init_toNumber = __esm({
   }
 });
 
-// node_modules/lodash-es/debounce.js
+// ../node_modules/lodash-es/debounce.js
 function debounce2(func, wait, options) {
   var lastArgs, lastThis, maxWait, result, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
   if (typeof func != "function") {
@@ -38665,7 +38606,7 @@ function debounce2(func, wait, options) {
 }
 var FUNC_ERROR_TEXT, nativeMax, nativeMin, debounce_default;
 var init_debounce = __esm({
-  "node_modules/lodash-es/debounce.js"() {
+  "../node_modules/lodash-es/debounce.js"() {
     init_isObject();
     init_now();
     init_toNumber();
@@ -38676,7 +38617,7 @@ var init_debounce = __esm({
   }
 });
 
-// node_modules/lodash-es/throttle.js
+// ../node_modules/lodash-es/throttle.js
 function throttle(func, wait, options) {
   var leading = true, trailing = true;
   if (typeof func != "function") {
@@ -38694,7 +38635,7 @@ function throttle(func, wait, options) {
 }
 var FUNC_ERROR_TEXT2, throttle_default;
 var init_throttle = __esm({
-  "node_modules/lodash-es/throttle.js"() {
+  "../node_modules/lodash-es/throttle.js"() {
     init_debounce();
     init_isObject();
     FUNC_ERROR_TEXT2 = "Expected a function";
@@ -38736,7 +38677,7 @@ var processOk, kExitEmitter, global2, ObjectDefineProperty, Emitter, SignalExitB
 var init_mjs = __esm({
   "node_modules/signal-exit/dist/mjs/index.js"() {
     init_signals();
-    processOk = (process11) => !!process11 && typeof process11 === "object" && typeof process11.removeListener === "function" && typeof process11.emit === "function" && typeof process11.reallyExit === "function" && typeof process11.listeners === "function" && typeof process11.kill === "function" && typeof process11.pid === "number" && typeof process11.on === "function";
+    processOk = (process13) => !!process13 && typeof process13 === "object" && typeof process13.removeListener === "function" && typeof process13.emit === "function" && typeof process13.reallyExit === "function" && typeof process13.listeners === "function" && typeof process13.kill === "function" && typeof process13.pid === "number" && typeof process13.on === "function";
     kExitEmitter = /* @__PURE__ */ Symbol.for("signal-exit emitter");
     global2 = globalThis;
     ObjectDefineProperty = Object.defineProperty.bind(Object);
@@ -38829,15 +38770,15 @@ var init_mjs = __esm({
       #originalProcessReallyExit;
       #sigListeners = {};
       #loaded = false;
-      constructor(process11) {
+      constructor(process13) {
         super();
-        this.#process = process11;
+        this.#process = process13;
         this.#sigListeners = {};
         for (const sig of signals) {
           this.#sigListeners[sig] = () => {
             const listeners = this.#process.listeners(sig);
             let { count } = this.#emitter;
-            const p = process11;
+            const p = process13;
             if (typeof p.__signal_exit_emitter__ === "object" && typeof p.__signal_exit_emitter__.count === "number") {
               count += p.__signal_exit_emitter__.count;
             }
@@ -38846,12 +38787,12 @@ var init_mjs = __esm({
               const ret = this.#emitter.emit("exit", null, sig);
               const s = sig === "SIGHUP" ? this.#hupSig : sig;
               if (!ret)
-                process11.kill(process11.pid, s);
+                process13.kill(process13.pid, s);
             }
           };
         }
-        this.#originalProcessReallyExit = process11.reallyExit;
-        this.#originalProcessEmit = process11.emit;
+        this.#originalProcessReallyExit = process13.reallyExit;
+        this.#originalProcessEmit = process13.emit;
       }
       onExit(cb, opts) {
         if (!processOk(this.#process)) {
@@ -39874,10 +39815,10 @@ var init_ClockContext = __esm({
   }
 });
 
-// node_modules/convert-to-spaces/dist/index.js
+// ../node_modules/convert-to-spaces/dist/index.js
 var convertToSpaces, dist_default;
 var init_dist2 = __esm({
-  "node_modules/convert-to-spaces/dist/index.js"() {
+  "../node_modules/convert-to-spaces/dist/index.js"() {
     convertToSpaces = (input, spaces = 2) => {
       return input.replace(/^\t+/gm, ($1) => " ".repeat($1.length * spaces));
     };
@@ -39885,10 +39826,10 @@ var init_dist2 = __esm({
   }
 });
 
-// node_modules/code-excerpt/dist/index.js
+// ../node_modules/code-excerpt/dist/index.js
 var generateLineNumbers, codeExcerpt, dist_default2;
 var init_dist3 = __esm({
-  "node_modules/code-excerpt/dist/index.js"() {
+  "../node_modules/code-excerpt/dist/index.js"() {
     init_dist2();
     generateLineNumbers = (line, around) => {
       const lineNumbers = [];
@@ -39917,9 +39858,9 @@ var init_dist3 = __esm({
   }
 });
 
-// node_modules/stack-utils/node_modules/escape-string-regexp/index.js
+// ../node_modules/stack-utils/node_modules/escape-string-regexp/index.js
 var require_escape_string_regexp = __commonJS({
-  "node_modules/stack-utils/node_modules/escape-string-regexp/index.js"(exports, module) {
+  "../node_modules/stack-utils/node_modules/escape-string-regexp/index.js"(exports, module) {
     "use strict";
     var matchOperatorsRegex = /[|\\{}()[\]^$+*?.-]/g;
     module.exports = (string) => {
@@ -39931,9 +39872,9 @@ var require_escape_string_regexp = __commonJS({
   }
 });
 
-// node_modules/stack-utils/index.js
+// ../node_modules/stack-utils/index.js
 var require_stack_utils = __commonJS({
-  "node_modules/stack-utils/index.js"(exports, module) {
+  "../node_modules/stack-utils/index.js"(exports, module) {
     "use strict";
     var escapeStringRegexp = require_escape_string_regexp();
     var cwd2 = typeof process === "object" && process && typeof process.cwd === "function" ? process.cwd() : ".";
@@ -41495,9 +41436,9 @@ var init_optimizer = __esm({
   }
 });
 
-// node_modules/bidi-js/dist/bidi.js
+// ../node_modules/bidi-js/dist/bidi.js
 var require_bidi = __commonJS({
-  "node_modules/bidi-js/dist/bidi.js"(exports, module) {
+  "../node_modules/bidi-js/dist/bidi.js"(exports, module) {
     (function(global3, factory) {
       typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (global3 = typeof globalThis !== "undefined" ? globalThis : global3 || self, global3.bidi_js = factory());
     })(exports, (function() {
@@ -42410,23 +42351,23 @@ function styledCharsWithGraphemeClustering(chars, stylePool) {
   let bufferStyles = chars[0].styles;
   for (let i = 0; i < charCount; i++) {
     const char = chars[i];
-    const styles6 = char.styles;
-    if (bufferChars.length > 0 && !stylesEqual3(styles6, bufferStyles)) {
+    const styles12 = char.styles;
+    if (bufferChars.length > 0 && !stylesEqual3(styles12, bufferStyles)) {
       flushBuffer(bufferChars.join(""), bufferStyles, stylePool, result);
       bufferChars.length = 0;
     }
     bufferChars.push(char.value);
-    bufferStyles = styles6;
+    bufferStyles = styles12;
   }
   if (bufferChars.length > 0) {
     flushBuffer(bufferChars.join(""), bufferStyles, stylePool, result);
   }
   return result;
 }
-function flushBuffer(buffer, styles6, stylePool, out) {
-  const hyperlink = extractHyperlinkFromStyles(styles6) ?? void 0;
-  const hasOsc8Styles = hyperlink !== void 0 || styles6.some((s) => s.code.length >= OSC8_PREFIX.length && s.code.startsWith(OSC8_PREFIX));
-  const filteredStyles = hasOsc8Styles ? filterOutHyperlinkStyles(styles6) : styles6;
+function flushBuffer(buffer, styles12, stylePool, out) {
+  const hyperlink = extractHyperlinkFromStyles(styles12) ?? void 0;
+  const hasOsc8Styles = hyperlink !== void 0 || styles12.some((s) => s.code.length >= OSC8_PREFIX.length && s.code.startsWith(OSC8_PREFIX));
+  const filteredStyles = hasOsc8Styles ? filterOutHyperlinkStyles(styles12) : styles12;
   const styleId = stylePool.intern(filteredStyles);
   for (const { segment: grapheme } of getGraphemeSegmenter().segment(buffer)) {
     out.push({
@@ -43055,12 +42996,12 @@ function drainStdin(stdin = process.stdin) {
   if (process.platform === "win32") {
     return;
   }
-  const tty2 = stdin;
-  const wasRaw = tty2.isRaw === true;
+  const tty4 = stdin;
+  const wasRaw = tty4.isRaw === true;
   let fd = -1;
   try {
     if (!wasRaw) {
-      tty2.setRawMode?.(true);
+      tty4.setRawMode?.(true);
     }
     fd = openSync("/dev/tty", fsConstants.O_RDONLY | fsConstants.O_NONBLOCK);
     const buf = Buffer.alloc(1024);
@@ -43079,7 +43020,7 @@ function drainStdin(stdin = process.stdin) {
     }
     if (!wasRaw) {
       try {
-        tty2.setRawMode?.(false);
+        tty4.setRawMode?.(false);
       } catch {
       }
     }
@@ -44921,9 +44862,9 @@ var init_root2 = __esm({
   }
 });
 
-// node_modules/ink/node_modules/signal-exit/signals.js
+// ../node_modules/signal-exit/signals.js
 var require_signals = __commonJS({
-  "node_modules/ink/node_modules/signal-exit/signals.js"(exports, module) {
+  "../node_modules/signal-exit/signals.js"(exports, module) {
     module.exports = [
       "SIGABRT",
       "SIGALRM",
@@ -44958,14 +44899,14 @@ var require_signals = __commonJS({
   }
 });
 
-// node_modules/ink/node_modules/signal-exit/index.js
+// ../node_modules/signal-exit/index.js
 var require_signal_exit = __commonJS({
-  "node_modules/ink/node_modules/signal-exit/index.js"(exports, module) {
-    var process11 = global.process;
-    var processOk2 = function(process12) {
-      return process12 && typeof process12 === "object" && typeof process12.removeListener === "function" && typeof process12.emit === "function" && typeof process12.reallyExit === "function" && typeof process12.listeners === "function" && typeof process12.kill === "function" && typeof process12.pid === "number" && typeof process12.on === "function";
+  "../node_modules/signal-exit/index.js"(exports, module) {
+    var process13 = global.process;
+    var processOk2 = function(process14) {
+      return process14 && typeof process14 === "object" && typeof process14.removeListener === "function" && typeof process14.emit === "function" && typeof process14.reallyExit === "function" && typeof process14.listeners === "function" && typeof process14.kill === "function" && typeof process14.pid === "number" && typeof process14.on === "function";
     };
-    if (!processOk2(process11)) {
+    if (!processOk2(process13)) {
       module.exports = function() {
         return function() {
         };
@@ -44973,15 +44914,15 @@ var require_signal_exit = __commonJS({
     } else {
       assert = __require("assert");
       signals2 = require_signals();
-      isWin = /^win/i.test(process11.platform);
+      isWin = /^win/i.test(process13.platform);
       EE = __require("events");
       if (typeof EE !== "function") {
         EE = EE.EventEmitter;
       }
-      if (process11.__signal_exit_emitter__) {
-        emitter = process11.__signal_exit_emitter__;
+      if (process13.__signal_exit_emitter__) {
+        emitter = process13.__signal_exit_emitter__;
       } else {
-        emitter = process11.__signal_exit_emitter__ = new EE();
+        emitter = process13.__signal_exit_emitter__ = new EE();
         emitter.count = 0;
         emitter.emitted = {};
       }
@@ -45018,12 +44959,12 @@ var require_signal_exit = __commonJS({
         loaded = false;
         signals2.forEach(function(sig) {
           try {
-            process11.removeListener(sig, sigListeners[sig]);
+            process13.removeListener(sig, sigListeners[sig]);
           } catch (er) {
           }
         });
-        process11.emit = originalProcessEmit;
-        process11.reallyExit = originalProcessReallyExit;
+        process13.emit = originalProcessEmit;
+        process13.reallyExit = originalProcessReallyExit;
         emitter.count -= 1;
       };
       module.exports.unload = unload2;
@@ -45040,7 +44981,7 @@ var require_signal_exit = __commonJS({
           if (!processOk2(global.process)) {
             return;
           }
-          var listeners = process11.listeners(sig);
+          var listeners = process13.listeners(sig);
           if (listeners.length === emitter.count) {
             unload2();
             emit2("exit", null, sig);
@@ -45048,7 +44989,7 @@ var require_signal_exit = __commonJS({
             if (isWin && sig === "SIGHUP") {
               sig = "SIGINT";
             }
-            process11.kill(process11.pid, sig);
+            process13.kill(process13.pid, sig);
           }
         };
       });
@@ -45064,36 +45005,36 @@ var require_signal_exit = __commonJS({
         emitter.count += 1;
         signals2 = signals2.filter(function(sig) {
           try {
-            process11.on(sig, sigListeners[sig]);
+            process13.on(sig, sigListeners[sig]);
             return true;
           } catch (er) {
             return false;
           }
         });
-        process11.emit = processEmit;
-        process11.reallyExit = processReallyExit;
+        process13.emit = processEmit;
+        process13.reallyExit = processReallyExit;
       };
       module.exports.load = load3;
-      originalProcessReallyExit = process11.reallyExit;
+      originalProcessReallyExit = process13.reallyExit;
       processReallyExit = function processReallyExit2(code) {
         if (!processOk2(global.process)) {
           return;
         }
-        process11.exitCode = code || /* istanbul ignore next */
+        process13.exitCode = code || /* istanbul ignore next */
         0;
-        emit2("exit", process11.exitCode, null);
-        emit2("afterexit", process11.exitCode, null);
-        originalProcessReallyExit.call(process11, process11.exitCode);
+        emit2("exit", process13.exitCode, null);
+        emit2("afterexit", process13.exitCode, null);
+        originalProcessReallyExit.call(process13, process13.exitCode);
       };
-      originalProcessEmit = process11.emit;
+      originalProcessEmit = process13.emit;
       processEmit = function processEmit2(ev, arg) {
         if (ev === "exit" && processOk2(global.process)) {
           if (arg !== void 0) {
-            process11.exitCode = arg;
+            process13.exitCode = arg;
           }
           var ret = originalProcessEmit.apply(this, arguments);
-          emit2("exit", process11.exitCode, null);
-          emit2("afterexit", process11.exitCode, null);
+          emit2("exit", process13.exitCode, null);
+          emit2("afterexit", process13.exitCode, null);
           return ret;
         } else {
           return originalProcessEmit.apply(this, arguments);
@@ -45117,16 +45058,16 @@ var require_signal_exit = __commonJS({
   }
 });
 
-// node_modules/patch-console/dist/index.js
+// ../node_modules/patch-console/dist/index.js
 var init_dist4 = __esm({
-  "node_modules/patch-console/dist/index.js"() {
+  "../node_modules/patch-console/dist/index.js"() {
   }
 });
 
-// node_modules/yoga-layout/dist/binaries/yoga-wasm-base64-esm.js
+// ../node_modules/yoga-layout/dist/binaries/yoga-wasm-base64-esm.js
 var loadYoga, yoga_wasm_base64_esm_default;
 var init_yoga_wasm_base64_esm = __esm({
-  "node_modules/yoga-layout/dist/binaries/yoga-wasm-base64-esm.js"() {
+  "../node_modules/yoga-layout/dist/binaries/yoga-wasm-base64-esm.js"() {
     loadYoga = (() => {
       var _scriptDir = import.meta.url;
       return (function(loadYoga2) {
@@ -46359,10 +46300,10 @@ var init_yoga_wasm_base64_esm = __esm({
   }
 });
 
-// node_modules/yoga-layout/dist/src/generated/YGEnums.js
+// ../node_modules/yoga-layout/dist/src/generated/YGEnums.js
 var Align2, BoxSizing2, Dimension2, Direction2, Display2, Edge2, Errata2, ExperimentalFeature2, FlexDirection2, Gutter2, Justify2, LogLevel, MeasureMode2, NodeType, Overflow2, PositionType2, Unit2, Wrap2, constants, YGEnums_default;
 var init_YGEnums = __esm({
-  "node_modules/yoga-layout/dist/src/generated/YGEnums.js"() {
+  "../node_modules/yoga-layout/dist/src/generated/YGEnums.js"() {
     Align2 = /* @__PURE__ */ (function(Align3) {
       Align3[Align3["Auto"] = 0] = "Auto";
       Align3[Align3["FlexStart"] = 1] = "FlexStart";
@@ -46567,7 +46508,7 @@ var init_YGEnums = __esm({
   }
 });
 
-// node_modules/yoga-layout/dist/src/wrapAssembly.js
+// ../node_modules/yoga-layout/dist/src/wrapAssembly.js
 function wrapAssembly(lib) {
   function patch(prototype, name, fn) {
     const original = prototype[name];
@@ -46668,16 +46609,16 @@ function wrapAssembly(lib) {
   };
 }
 var init_wrapAssembly = __esm({
-  "node_modules/yoga-layout/dist/src/wrapAssembly.js"() {
+  "../node_modules/yoga-layout/dist/src/wrapAssembly.js"() {
     init_YGEnums();
     init_YGEnums();
   }
 });
 
-// node_modules/yoga-layout/dist/src/index.js
+// ../node_modules/yoga-layout/dist/src/index.js
 var Yoga, src_default;
 var init_src = __esm({
-  async "node_modules/yoga-layout/dist/src/index.js"() {
+  async "../node_modules/yoga-layout/dist/src/index.js"() {
     init_yoga_wasm_base64_esm();
     init_wrapAssembly();
     init_YGEnums();
@@ -46686,16 +46627,497 @@ var init_src = __esm({
   }
 });
 
-// node_modules/ink/build/utils.js
+// ../node_modules/ink/node_modules/ansi-regex/index.js
+function ansiRegex2({ onlyFirst = false } = {}) {
+  const ST3 = "(?:\\u0007|\\u001B\\u005C|\\u009C)";
+  const osc2 = `(?:\\u001B\\][\\s\\S]*?${ST3})`;
+  const csi2 = "[\\u001B\\u009B][[\\]()#;?]*(?:\\d{1,4}(?:[;:]\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]";
+  const pattern = `${osc2}|${csi2}`;
+  return new RegExp(pattern, onlyFirst ? void 0 : "g");
+}
+var init_ansi_regex2 = __esm({
+  "../node_modules/ink/node_modules/ansi-regex/index.js"() {
+  }
+});
+
+// ../node_modules/ink/node_modules/strip-ansi/index.js
+function stripAnsi2(string) {
+  if (typeof string !== "string") {
+    throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
+  }
+  if (!string.includes("\x1B") && !string.includes("\x9B")) {
+    return string;
+  }
+  return string.replace(regex2, "");
+}
+var regex2;
+var init_strip_ansi2 = __esm({
+  "../node_modules/ink/node_modules/strip-ansi/index.js"() {
+    init_ansi_regex2();
+    regex2 = ansiRegex2();
+  }
+});
+
+// ../node_modules/ink/node_modules/emoji-regex/index.js
+var require_emoji_regex2 = __commonJS({
+  "../node_modules/ink/node_modules/emoji-regex/index.js"(exports, module) {
+    module.exports = () => {
+      return /[#*0-9]\uFE0F?\u20E3|[\xA9\xAE\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u231A\u231B\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u24C2\u25AA\u25AB\u25B6\u25C0\u25FB\u25FC\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692\u2694-\u2697\u2699\u269B\u269C\u26A0\u26A7\u26AA\u26B0\u26B1\u26BD\u26BE\u26C4\u26C8\u26CF\u26D1\u26E9\u26F0-\u26F5\u26F7\u26F8\u26FA\u2702\u2708\u2709\u270F\u2712\u2714\u2716\u271D\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u27A1\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B55\u3030\u303D\u3297\u3299]\uFE0F?|[\u261D\u270C\u270D](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\u270A\u270B](?:\uD83C[\uDFFB-\uDFFF])?|[\u23E9-\u23EC\u23F0\u23F3\u25FD\u2693\u26A1\u26AB\u26C5\u26CE\u26D4\u26EA\u26FD\u2705\u2728\u274C\u274E\u2753-\u2755\u2795-\u2797\u27B0\u27BF\u2B50]|\u26D3\uFE0F?(?:\u200D\uD83D\uDCA5)?|\u26F9(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\u2764\uFE0F?(?:\u200D(?:\uD83D\uDD25|\uD83E\uDE79))?|\uD83C(?:[\uDC04\uDD70\uDD71\uDD7E\uDD7F\uDE02\uDE37\uDF21\uDF24-\uDF2C\uDF36\uDF7D\uDF96\uDF97\uDF99-\uDF9B\uDF9E\uDF9F\uDFCD\uDFCE\uDFD4-\uDFDF\uDFF5\uDFF7]\uFE0F?|[\uDF85\uDFC2\uDFC7](?:\uD83C[\uDFFB-\uDFFF])?|[\uDFC4\uDFCA](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDFCB\uDFCC](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDCCF\uDD8E\uDD91-\uDD9A\uDE01\uDE1A\uDE2F\uDE32-\uDE36\uDE38-\uDE3A\uDE50\uDE51\uDF00-\uDF20\uDF2D-\uDF35\uDF37-\uDF43\uDF45-\uDF4A\uDF4C-\uDF7C\uDF7E-\uDF84\uDF86-\uDF93\uDFA0-\uDFC1\uDFC5\uDFC6\uDFC8\uDFC9\uDFCF-\uDFD3\uDFE0-\uDFF0\uDFF8-\uDFFF]|\uDDE6\uD83C[\uDDE8-\uDDEC\uDDEE\uDDF1\uDDF2\uDDF4\uDDF6-\uDDFA\uDDFC\uDDFD\uDDFF]|\uDDE7\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEF\uDDF1-\uDDF4\uDDF6-\uDDF9\uDDFB\uDDFC\uDDFE\uDDFF]|\uDDE8\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDEE\uDDF0-\uDDF7\uDDFA-\uDDFF]|\uDDE9\uD83C[\uDDEA\uDDEC\uDDEF\uDDF0\uDDF2\uDDF4\uDDFF]|\uDDEA\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDED\uDDF7-\uDDFA]|\uDDEB\uD83C[\uDDEE-\uDDF0\uDDF2\uDDF4\uDDF7]|\uDDEC\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEE\uDDF1-\uDDF3\uDDF5-\uDDFA\uDDFC\uDDFE]|\uDDED\uD83C[\uDDF0\uDDF2\uDDF3\uDDF7\uDDF9\uDDFA]|\uDDEE\uD83C[\uDDE8-\uDDEA\uDDF1-\uDDF4\uDDF6-\uDDF9]|\uDDEF\uD83C[\uDDEA\uDDF2\uDDF4\uDDF5]|\uDDF0\uD83C[\uDDEA\uDDEC-\uDDEE\uDDF2\uDDF3\uDDF5\uDDF7\uDDFC\uDDFE\uDDFF]|\uDDF1\uD83C[\uDDE6-\uDDE8\uDDEE\uDDF0\uDDF7-\uDDFB\uDDFE]|\uDDF2\uD83C[\uDDE6\uDDE8-\uDDED\uDDF0-\uDDFF]|\uDDF3\uD83C[\uDDE6\uDDE8\uDDEA-\uDDEC\uDDEE\uDDF1\uDDF4\uDDF5\uDDF7\uDDFA\uDDFF]|\uDDF4\uD83C\uDDF2|\uDDF5\uD83C[\uDDE6\uDDEA-\uDDED\uDDF0-\uDDF3\uDDF7-\uDDF9\uDDFC\uDDFE]|\uDDF6\uD83C\uDDE6|\uDDF7\uD83C[\uDDEA\uDDF4\uDDF8\uDDFA\uDDFC]|\uDDF8\uD83C[\uDDE6-\uDDEA\uDDEC-\uDDF4\uDDF7-\uDDF9\uDDFB\uDDFD-\uDDFF]|\uDDF9\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDED\uDDEF-\uDDF4\uDDF7\uDDF9\uDDFB\uDDFC\uDDFF]|\uDDFA\uD83C[\uDDE6\uDDEC\uDDF2\uDDF3\uDDF8\uDDFE\uDDFF]|\uDDFB\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDEE\uDDF3\uDDFA]|\uDDFC\uD83C[\uDDEB\uDDF8]|\uDDFD\uD83C\uDDF0|\uDDFE\uD83C[\uDDEA\uDDF9]|\uDDFF\uD83C[\uDDE6\uDDF2\uDDFC]|\uDF44(?:\u200D\uD83D\uDFEB)?|\uDF4B(?:\u200D\uD83D\uDFE9)?|\uDFC3(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDFF3\uFE0F?(?:\u200D(?:\u26A7\uFE0F?|\uD83C\uDF08))?|\uDFF4(?:\u200D\u2620\uFE0F?|\uDB40\uDC67\uDB40\uDC62\uDB40(?:\uDC65\uDB40\uDC6E\uDB40\uDC67|\uDC73\uDB40\uDC63\uDB40\uDC74|\uDC77\uDB40\uDC6C\uDB40\uDC73)\uDB40\uDC7F)?)|\uD83D(?:[\uDC3F\uDCFD\uDD49\uDD4A\uDD6F\uDD70\uDD73\uDD76-\uDD79\uDD87\uDD8A-\uDD8D\uDDA5\uDDA8\uDDB1\uDDB2\uDDBC\uDDC2-\uDDC4\uDDD1-\uDDD3\uDDDC-\uDDDE\uDDE1\uDDE3\uDDE8\uDDEF\uDDF3\uDDFA\uDECB\uDECD-\uDECF\uDEE0-\uDEE5\uDEE9\uDEF0\uDEF3]\uFE0F?|[\uDC42\uDC43\uDC46-\uDC50\uDC66\uDC67\uDC6B-\uDC6D\uDC72\uDC74-\uDC76\uDC78\uDC7C\uDC83\uDC85\uDC8F\uDC91\uDCAA\uDD7A\uDD95\uDD96\uDE4C\uDE4F\uDEC0\uDECC](?:\uD83C[\uDFFB-\uDFFF])?|[\uDC6E-\uDC71\uDC73\uDC77\uDC81\uDC82\uDC86\uDC87\uDE45-\uDE47\uDE4B\uDE4D\uDE4E\uDEA3\uDEB4\uDEB5](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD74\uDD90](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\uDC00-\uDC07\uDC09-\uDC14\uDC16-\uDC25\uDC27-\uDC3A\uDC3C-\uDC3E\uDC40\uDC44\uDC45\uDC51-\uDC65\uDC6A\uDC79-\uDC7B\uDC7D-\uDC80\uDC84\uDC88-\uDC8E\uDC90\uDC92-\uDCA9\uDCAB-\uDCFC\uDCFF-\uDD3D\uDD4B-\uDD4E\uDD50-\uDD67\uDDA4\uDDFB-\uDE2D\uDE2F-\uDE34\uDE37-\uDE41\uDE43\uDE44\uDE48-\uDE4A\uDE80-\uDEA2\uDEA4-\uDEB3\uDEB7-\uDEBF\uDEC1-\uDEC5\uDED0-\uDED2\uDED5-\uDED8\uDEDC-\uDEDF\uDEEB\uDEEC\uDEF4-\uDEFC\uDFE0-\uDFEB\uDFF0]|\uDC08(?:\u200D\u2B1B)?|\uDC15(?:\u200D\uD83E\uDDBA)?|\uDC26(?:\u200D(?:\u2B1B|\uD83D\uDD25))?|\uDC3B(?:\u200D\u2744\uFE0F?)?|\uDC41\uFE0F?(?:\u200D\uD83D\uDDE8\uFE0F?)?|\uDC68(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDC68\uDC69]\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?))?|\uDC69(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?[\uDC68\uDC69]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?|\uDC69\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?))|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFC-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFD-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFD\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFE]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])))?))?|\uDD75(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\uDE2E(?:\u200D\uD83D\uDCA8)?|\uDE35(?:\u200D\uD83D\uDCAB)?|\uDE36(?:\u200D\uD83C\uDF2B\uFE0F?)?|\uDE42(?:\u200D[\u2194\u2195]\uFE0F?)?|\uDEB6(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?)|\uD83E(?:[\uDD0C\uDD0F\uDD18-\uDD1F\uDD30-\uDD34\uDD36\uDD77\uDDB5\uDDB6\uDDBB\uDDD2\uDDD3\uDDD5\uDEC3-\uDEC5\uDEF0\uDEF2-\uDEF8](?:\uD83C[\uDFFB-\uDFFF])?|[\uDD26\uDD35\uDD37-\uDD39\uDD3C-\uDD3E\uDDB8\uDDB9\uDDCD\uDDCF\uDDD4\uDDD6-\uDDDD](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDDDE\uDDDF](?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD0D\uDD0E\uDD10-\uDD17\uDD20-\uDD25\uDD27-\uDD2F\uDD3A\uDD3F-\uDD45\uDD47-\uDD76\uDD78-\uDDB4\uDDB7\uDDBA\uDDBC-\uDDCC\uDDD0\uDDE0-\uDDFF\uDE70-\uDE7C\uDE80-\uDE8A\uDE8E-\uDEC2\uDEC6\uDEC8\uDECD-\uDEDC\uDEDF-\uDEEA\uDEEF]|\uDDCE(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDDD1(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1|\uDDD1\u200D\uD83E\uDDD2(?:\u200D\uD83E\uDDD2)?|\uDDD2(?:\u200D\uD83E\uDDD2)?))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])))?))?|\uDEF1(?:\uD83C(?:\uDFFB(?:\u200D\uD83E\uDEF2\uD83C[\uDFFC-\uDFFF])?|\uDFFC(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFD-\uDFFF])?|\uDFFD(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])?|\uDFFE(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFD\uDFFF])?|\uDFFF(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFE])?))?)/g;
+    };
+  }
+});
+
+// ../node_modules/ink/node_modules/wrap-ansi/node_modules/string-width/index.js
+function stringWidth3(string, options = {}) {
+  if (typeof string !== "string" || string.length === 0) {
+    return 0;
+  }
+  const {
+    ambiguousIsNarrow = true,
+    countAnsiEscapeCodes = false
+  } = options;
+  if (!countAnsiEscapeCodes) {
+    string = stripAnsi2(string);
+  }
+  if (string.length === 0) {
+    return 0;
+  }
+  let width = 0;
+  const eastAsianWidthOptions = { ambiguousAsWide: !ambiguousIsNarrow };
+  for (const { segment: character } of segmenter2.segment(string)) {
+    const codePoint = character.codePointAt(0);
+    if (codePoint <= 31 || codePoint >= 127 && codePoint <= 159) {
+      continue;
+    }
+    if (codePoint >= 8203 && codePoint <= 8207 || codePoint === 65279) {
+      continue;
+    }
+    if (codePoint >= 768 && codePoint <= 879 || codePoint >= 6832 && codePoint <= 6911 || codePoint >= 7616 && codePoint <= 7679 || codePoint >= 8400 && codePoint <= 8447 || codePoint >= 65056 && codePoint <= 65071) {
+      continue;
+    }
+    if (codePoint >= 55296 && codePoint <= 57343) {
+      continue;
+    }
+    if (codePoint >= 65024 && codePoint <= 65039) {
+      continue;
+    }
+    if (defaultIgnorableCodePointRegex2.test(character)) {
+      continue;
+    }
+    if ((0, import_emoji_regex3.default)().test(character)) {
+      width += 2;
+      continue;
+    }
+    width += eastAsianWidth(codePoint, eastAsianWidthOptions);
+  }
+  return width;
+}
+var import_emoji_regex3, segmenter2, defaultIgnorableCodePointRegex2;
+var init_string_width2 = __esm({
+  "../node_modules/ink/node_modules/wrap-ansi/node_modules/string-width/index.js"() {
+    init_strip_ansi2();
+    init_get_east_asian_width();
+    import_emoji_regex3 = __toESM(require_emoji_regex2(), 1);
+    segmenter2 = new Intl.Segmenter();
+    defaultIgnorableCodePointRegex2 = new RegExp("^\\p{Default_Ignorable_Code_Point}$", "u");
+  }
+});
+
+// ../node_modules/ink/node_modules/ansi-styles/index.js
+function assembleStyles3() {
+  const codes = /* @__PURE__ */ new Map();
+  for (const [groupName, group] of Object.entries(styles5)) {
+    for (const [styleName, style] of Object.entries(group)) {
+      styles5[styleName] = {
+        open: `\x1B[${style[0]}m`,
+        close: `\x1B[${style[1]}m`
+      };
+      group[styleName] = styles5[styleName];
+      codes.set(style[0], style[1]);
+    }
+    Object.defineProperty(styles5, groupName, {
+      value: group,
+      enumerable: false
+    });
+  }
+  Object.defineProperty(styles5, "codes", {
+    value: codes,
+    enumerable: false
+  });
+  styles5.color.close = "\x1B[39m";
+  styles5.bgColor.close = "\x1B[49m";
+  styles5.color.ansi = wrapAnsi163();
+  styles5.color.ansi256 = wrapAnsi2563();
+  styles5.color.ansi16m = wrapAnsi16m3();
+  styles5.bgColor.ansi = wrapAnsi163(ANSI_BACKGROUND_OFFSET3);
+  styles5.bgColor.ansi256 = wrapAnsi2563(ANSI_BACKGROUND_OFFSET3);
+  styles5.bgColor.ansi16m = wrapAnsi16m3(ANSI_BACKGROUND_OFFSET3);
+  Object.defineProperties(styles5, {
+    rgbToAnsi256: {
+      value(red, green, blue) {
+        if (red === green && green === blue) {
+          if (red < 8) {
+            return 16;
+          }
+          if (red > 248) {
+            return 231;
+          }
+          return Math.round((red - 8) / 247 * 24) + 232;
+        }
+        return 16 + 36 * Math.round(red / 255 * 5) + 6 * Math.round(green / 255 * 5) + Math.round(blue / 255 * 5);
+      },
+      enumerable: false
+    },
+    hexToRgb: {
+      value(hex) {
+        const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+        if (!matches) {
+          return [0, 0, 0];
+        }
+        let [colorString] = matches;
+        if (colorString.length === 3) {
+          colorString = [...colorString].map((character) => character + character).join("");
+        }
+        const integer = Number.parseInt(colorString, 16);
+        return [
+          /* eslint-disable no-bitwise */
+          integer >> 16 & 255,
+          integer >> 8 & 255,
+          integer & 255
+          /* eslint-enable no-bitwise */
+        ];
+      },
+      enumerable: false
+    },
+    hexToAnsi256: {
+      value: (hex) => styles5.rgbToAnsi256(...styles5.hexToRgb(hex)),
+      enumerable: false
+    },
+    ansi256ToAnsi: {
+      value(code) {
+        if (code < 8) {
+          return 30 + code;
+        }
+        if (code < 16) {
+          return 90 + (code - 8);
+        }
+        let red;
+        let green;
+        let blue;
+        if (code >= 232) {
+          red = ((code - 232) * 10 + 8) / 255;
+          green = red;
+          blue = red;
+        } else {
+          code -= 16;
+          const remainder = code % 36;
+          red = Math.floor(code / 36) / 5;
+          green = Math.floor(remainder / 6) / 5;
+          blue = remainder % 6 / 5;
+        }
+        const value = Math.max(red, green, blue) * 2;
+        if (value === 0) {
+          return 30;
+        }
+        let result = 30 + (Math.round(blue) << 2 | Math.round(green) << 1 | Math.round(red));
+        if (value === 2) {
+          result += 60;
+        }
+        return result;
+      },
+      enumerable: false
+    },
+    rgbToAnsi: {
+      value: (red, green, blue) => styles5.ansi256ToAnsi(styles5.rgbToAnsi256(red, green, blue)),
+      enumerable: false
+    },
+    hexToAnsi: {
+      value: (hex) => styles5.ansi256ToAnsi(styles5.hexToAnsi256(hex)),
+      enumerable: false
+    }
+  });
+  return styles5;
+}
+var ANSI_BACKGROUND_OFFSET3, wrapAnsi163, wrapAnsi2563, wrapAnsi16m3, styles5, modifierNames3, foregroundColorNames3, backgroundColorNames3, colorNames3, ansiStyles3, ansi_styles_default3;
+var init_ansi_styles3 = __esm({
+  "../node_modules/ink/node_modules/ansi-styles/index.js"() {
+    ANSI_BACKGROUND_OFFSET3 = 10;
+    wrapAnsi163 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
+    wrapAnsi2563 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
+    wrapAnsi16m3 = (offset = 0) => (red, green, blue) => `\x1B[${38 + offset};2;${red};${green};${blue}m`;
+    styles5 = {
+      modifier: {
+        reset: [0, 0],
+        // 21 isn't widely supported and 22 does the same thing
+        bold: [1, 22],
+        dim: [2, 22],
+        italic: [3, 23],
+        underline: [4, 24],
+        overline: [53, 55],
+        inverse: [7, 27],
+        hidden: [8, 28],
+        strikethrough: [9, 29]
+      },
+      color: {
+        black: [30, 39],
+        red: [31, 39],
+        green: [32, 39],
+        yellow: [33, 39],
+        blue: [34, 39],
+        magenta: [35, 39],
+        cyan: [36, 39],
+        white: [37, 39],
+        // Bright color
+        blackBright: [90, 39],
+        gray: [90, 39],
+        // Alias of `blackBright`
+        grey: [90, 39],
+        // Alias of `blackBright`
+        redBright: [91, 39],
+        greenBright: [92, 39],
+        yellowBright: [93, 39],
+        blueBright: [94, 39],
+        magentaBright: [95, 39],
+        cyanBright: [96, 39],
+        whiteBright: [97, 39]
+      },
+      bgColor: {
+        bgBlack: [40, 49],
+        bgRed: [41, 49],
+        bgGreen: [42, 49],
+        bgYellow: [43, 49],
+        bgBlue: [44, 49],
+        bgMagenta: [45, 49],
+        bgCyan: [46, 49],
+        bgWhite: [47, 49],
+        // Bright color
+        bgBlackBright: [100, 49],
+        bgGray: [100, 49],
+        // Alias of `bgBlackBright`
+        bgGrey: [100, 49],
+        // Alias of `bgBlackBright`
+        bgRedBright: [101, 49],
+        bgGreenBright: [102, 49],
+        bgYellowBright: [103, 49],
+        bgBlueBright: [104, 49],
+        bgMagentaBright: [105, 49],
+        bgCyanBright: [106, 49],
+        bgWhiteBright: [107, 49]
+      }
+    };
+    modifierNames3 = Object.keys(styles5.modifier);
+    foregroundColorNames3 = Object.keys(styles5.color);
+    backgroundColorNames3 = Object.keys(styles5.bgColor);
+    colorNames3 = [...foregroundColorNames3, ...backgroundColorNames3];
+    ansiStyles3 = assembleStyles3();
+    ansi_styles_default3 = ansiStyles3;
+  }
+});
+
+// ../node_modules/ink/node_modules/wrap-ansi/index.js
+function wrapAnsi3(string, columns, options) {
+  return String(string).normalize().replaceAll("\r\n", "\n").split("\n").map((line) => exec2(line, columns, options)).join("\n");
+}
+var ESCAPES3, END_CODE2, ANSI_ESCAPE_BELL2, ANSI_CSI2, ANSI_OSC2, ANSI_SGR_TERMINATOR2, ANSI_ESCAPE_LINK2, wrapAnsiCode2, wrapAnsiHyperlink2, wordLengths2, wrapWord2, stringVisibleTrimSpacesRight2, exec2;
+var init_wrap_ansi2 = __esm({
+  "../node_modules/ink/node_modules/wrap-ansi/index.js"() {
+    init_string_width2();
+    init_strip_ansi2();
+    init_ansi_styles3();
+    ESCAPES3 = /* @__PURE__ */ new Set([
+      "\x1B",
+      "\x9B"
+    ]);
+    END_CODE2 = 39;
+    ANSI_ESCAPE_BELL2 = "\x07";
+    ANSI_CSI2 = "[";
+    ANSI_OSC2 = "]";
+    ANSI_SGR_TERMINATOR2 = "m";
+    ANSI_ESCAPE_LINK2 = `${ANSI_OSC2}8;;`;
+    wrapAnsiCode2 = (code) => `${ESCAPES3.values().next().value}${ANSI_CSI2}${code}${ANSI_SGR_TERMINATOR2}`;
+    wrapAnsiHyperlink2 = (url) => `${ESCAPES3.values().next().value}${ANSI_ESCAPE_LINK2}${url}${ANSI_ESCAPE_BELL2}`;
+    wordLengths2 = (string) => string.split(" ").map((character) => stringWidth3(character));
+    wrapWord2 = (rows, word, columns) => {
+      const characters = [...word];
+      let isInsideEscape = false;
+      let isInsideLinkEscape = false;
+      let visible = stringWidth3(stripAnsi2(rows.at(-1)));
+      for (const [index, character] of characters.entries()) {
+        const characterLength = stringWidth3(character);
+        if (visible + characterLength <= columns) {
+          rows[rows.length - 1] += character;
+        } else {
+          rows.push(character);
+          visible = 0;
+        }
+        if (ESCAPES3.has(character)) {
+          isInsideEscape = true;
+          const ansiEscapeLinkCandidate = characters.slice(index + 1, index + 1 + ANSI_ESCAPE_LINK2.length).join("");
+          isInsideLinkEscape = ansiEscapeLinkCandidate === ANSI_ESCAPE_LINK2;
+        }
+        if (isInsideEscape) {
+          if (isInsideLinkEscape) {
+            if (character === ANSI_ESCAPE_BELL2) {
+              isInsideEscape = false;
+              isInsideLinkEscape = false;
+            }
+          } else if (character === ANSI_SGR_TERMINATOR2) {
+            isInsideEscape = false;
+          }
+          continue;
+        }
+        visible += characterLength;
+        if (visible === columns && index < characters.length - 1) {
+          rows.push("");
+          visible = 0;
+        }
+      }
+      if (!visible && rows.at(-1).length > 0 && rows.length > 1) {
+        rows[rows.length - 2] += rows.pop();
+      }
+    };
+    stringVisibleTrimSpacesRight2 = (string) => {
+      const words = string.split(" ");
+      let last = words.length;
+      while (last > 0) {
+        if (stringWidth3(words[last - 1]) > 0) {
+          break;
+        }
+        last--;
+      }
+      if (last === words.length) {
+        return string;
+      }
+      return words.slice(0, last).join(" ") + words.slice(last).join("");
+    };
+    exec2 = (string, columns, options = {}) => {
+      if (options.trim !== false && string.trim() === "") {
+        return "";
+      }
+      let returnValue = "";
+      let escapeCode;
+      let escapeUrl;
+      const lengths = wordLengths2(string);
+      let rows = [""];
+      for (const [index, word] of string.split(" ").entries()) {
+        if (options.trim !== false) {
+          rows[rows.length - 1] = rows.at(-1).trimStart();
+        }
+        let rowLength = stringWidth3(rows.at(-1));
+        if (index !== 0) {
+          if (rowLength >= columns && (options.wordWrap === false || options.trim === false)) {
+            rows.push("");
+            rowLength = 0;
+          }
+          if (rowLength > 0 || options.trim === false) {
+            rows[rows.length - 1] += " ";
+            rowLength++;
+          }
+        }
+        if (options.hard && lengths[index] > columns) {
+          const remainingColumns = columns - rowLength;
+          const breaksStartingThisLine = 1 + Math.floor((lengths[index] - remainingColumns - 1) / columns);
+          const breaksStartingNextLine = Math.floor((lengths[index] - 1) / columns);
+          if (breaksStartingNextLine < breaksStartingThisLine) {
+            rows.push("");
+          }
+          wrapWord2(rows, word, columns);
+          continue;
+        }
+        if (rowLength + lengths[index] > columns && rowLength > 0 && lengths[index] > 0) {
+          if (options.wordWrap === false && rowLength < columns) {
+            wrapWord2(rows, word, columns);
+            continue;
+          }
+          rows.push("");
+        }
+        if (rowLength + lengths[index] > columns && options.wordWrap === false) {
+          wrapWord2(rows, word, columns);
+          continue;
+        }
+        rows[rows.length - 1] += word;
+      }
+      if (options.trim !== false) {
+        rows = rows.map((row) => stringVisibleTrimSpacesRight2(row));
+      }
+      const preString = rows.join("\n");
+      const pre = [...preString];
+      let preStringIndex = 0;
+      for (const [index, character] of pre.entries()) {
+        returnValue += character;
+        if (ESCAPES3.has(character)) {
+          const { groups } = new RegExp(`(?:\\${ANSI_CSI2}(?<code>\\d+)m|\\${ANSI_ESCAPE_LINK2}(?<uri>.*)${ANSI_ESCAPE_BELL2})`).exec(preString.slice(preStringIndex)) || { groups: {} };
+          if (groups.code !== void 0) {
+            const code2 = Number.parseFloat(groups.code);
+            escapeCode = code2 === END_CODE2 ? void 0 : code2;
+          } else if (groups.uri !== void 0) {
+            escapeUrl = groups.uri.length === 0 ? void 0 : groups.uri;
+          }
+        }
+        const code = ansi_styles_default3.codes.get(Number(escapeCode));
+        if (pre[index + 1] === "\n") {
+          if (escapeUrl) {
+            returnValue += wrapAnsiHyperlink2("");
+          }
+          if (escapeCode && code) {
+            returnValue += wrapAnsiCode2(code);
+          }
+        } else if (character === "\n") {
+          if (escapeCode && code) {
+            returnValue += wrapAnsiCode2(escapeCode);
+          }
+          if (escapeUrl) {
+            returnValue += wrapAnsiHyperlink2(escapeUrl);
+          }
+        }
+        preStringIndex += character.length;
+      }
+      return returnValue;
+    };
+  }
+});
+
+// ../node_modules/ink/build/utils.js
 import process4 from "node:process";
 var isDev;
 var init_utils = __esm({
-  "node_modules/ink/build/utils.js"() {
+  "../node_modules/ink/build/utils.js"() {
     isDev = () => process4.env["DEV"] === "true";
   }
 });
 
-// node_modules/string-width/index.js
+// ../node_modules/widest-line/node_modules/ansi-regex/index.js
+function ansiRegex3({ onlyFirst = false } = {}) {
+  const ST3 = "(?:\\u0007|\\u001B\\u005C|\\u009C)";
+  const osc2 = `(?:\\u001B\\][\\s\\S]*?${ST3})`;
+  const csi2 = "[\\u001B\\u009B][[\\]()#;?]*(?:\\d{1,4}(?:[;:]\\d{0,4})*)?[\\dA-PR-TZcf-nq-uy=><~]";
+  const pattern = `${osc2}|${csi2}`;
+  return new RegExp(pattern, onlyFirst ? void 0 : "g");
+}
+var init_ansi_regex3 = __esm({
+  "../node_modules/widest-line/node_modules/ansi-regex/index.js"() {
+  }
+});
+
+// ../node_modules/widest-line/node_modules/strip-ansi/index.js
+function stripAnsi3(string) {
+  if (typeof string !== "string") {
+    throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
+  }
+  if (!string.includes("\x1B") && !string.includes("\x9B")) {
+    return string;
+  }
+  return string.replace(regex3, "");
+}
+var regex3;
+var init_strip_ansi3 = __esm({
+  "../node_modules/widest-line/node_modules/strip-ansi/index.js"() {
+    init_ansi_regex3();
+    regex3 = ansiRegex3();
+  }
+});
+
+// ../node_modules/widest-line/node_modules/string-width/index.js
 function isDoubleWidthNonRgiEmojiSequence(segment) {
   if (segment.length > 50) {
     return false;
@@ -46773,7 +47195,7 @@ function trailingHalfwidthWidth(visibleSegment, eastAsianWidthOptions) {
   }
   return extra;
 }
-function stringWidth3(input, options = {}) {
+function stringWidth4(input, options = {}) {
   if (typeof input !== "string" || input.length === 0) {
     return 0;
   }
@@ -46783,7 +47205,7 @@ function stringWidth3(input, options = {}) {
   } = options;
   let string = input;
   if (!countAnsiEscapeCodes && (string.includes("\x1B") || string.includes("\x9B"))) {
-    string = stripAnsi(string);
+    string = stripAnsi3(string);
   }
   if (string.length === 0) {
     return 0;
@@ -46793,7 +47215,7 @@ function stringWidth3(input, options = {}) {
   }
   let width = 0;
   const eastAsianWidthOptions = { ambiguousAsWide: !ambiguousIsNarrow };
-  for (const { segment } of segmenter2.segment(string)) {
+  for (const { segment } of segmenter3.segment(string)) {
     if (isZeroWidthCluster(segment)) {
       continue;
     }
@@ -46813,12 +47235,12 @@ function stringWidth3(input, options = {}) {
   }
   return width;
 }
-var segmenter2, zeroWidthClusterRegex, leadingNonPrintingRegex, rgiEmojiRegex, unqualifiedKeycapRegex, extendedPictographicRegex;
-var init_string_width2 = __esm({
-  "node_modules/string-width/index.js"() {
-    init_strip_ansi();
+var segmenter3, zeroWidthClusterRegex, leadingNonPrintingRegex, rgiEmojiRegex, unqualifiedKeycapRegex, extendedPictographicRegex;
+var init_string_width3 = __esm({
+  "../node_modules/widest-line/node_modules/string-width/index.js"() {
+    init_strip_ansi3();
     init_get_east_asian_width();
-    segmenter2 = new Intl.Segmenter();
+    segmenter3 = new Intl.Segmenter();
     zeroWidthClusterRegex = new RegExp("^(?:\\p{Default_Ignorable_Code_Point}|\\p{Control}|\\p{Format}|\\p{Mark}|\\p{Surrogate})+$", "v");
     leadingNonPrintingRegex = new RegExp("^[\\p{Default_Ignorable_Code_Point}\\p{Control}\\p{Format}\\p{Mark}\\p{Surrogate}]+", "v");
     rgiEmojiRegex = new RegExp("^\\p{RGI_Emoji}$", "v");
@@ -46827,24 +47249,24 @@ var init_string_width2 = __esm({
   }
 });
 
-// node_modules/widest-line/index.js
+// ../node_modules/widest-line/index.js
 function widestLine2(string) {
   let lineWidth2 = 0;
   for (const line of string.split("\n")) {
-    lineWidth2 = Math.max(lineWidth2, stringWidth3(line));
+    lineWidth2 = Math.max(lineWidth2, stringWidth4(line));
   }
   return lineWidth2;
 }
 var init_widest_line2 = __esm({
-  "node_modules/widest-line/index.js"() {
-    init_string_width2();
+  "../node_modules/widest-line/index.js"() {
+    init_string_width3();
   }
 });
 
-// node_modules/ink/build/measure-text.js
+// ../node_modules/ink/build/measure-text.js
 var cache2, measureText2, measure_text_default2;
 var init_measure_text2 = __esm({
-  "node_modules/ink/build/measure-text.js"() {
+  "../node_modules/ink/build/measure-text.js"() {
     init_widest_line2();
     cache2 = /* @__PURE__ */ new Map();
     measureText2 = (text) => {
@@ -46868,7 +47290,7 @@ var init_measure_text2 = __esm({
   }
 });
 
-// node_modules/slice-ansi/node_modules/is-fullwidth-code-point/index.js
+// ../node_modules/ink/node_modules/is-fullwidth-code-point/index.js
 function isFullwidthCodePoint2(codePoint) {
   if (!Number.isInteger(codePoint)) {
     return false;
@@ -46876,12 +47298,12 @@ function isFullwidthCodePoint2(codePoint) {
   return isFullWidth(codePoint) || isWide(codePoint);
 }
 var init_is_fullwidth_code_point2 = __esm({
-  "node_modules/slice-ansi/node_modules/is-fullwidth-code-point/index.js"() {
+  "../node_modules/ink/node_modules/is-fullwidth-code-point/index.js"() {
     init_get_east_asian_width();
   }
 });
 
-// node_modules/slice-ansi/tokenize-ansi.js
+// ../node_modules/ink/node_modules/slice-ansi/tokenize-ansi.js
 function isSgrParameterCharacter(codePoint) {
   return codePoint >= CODE_POINT_0 && codePoint <= CODE_POINT_9 || codePoint === CODE_POINT_SEMICOLON || codePoint === CODE_POINT_COLON;
 }
@@ -46941,16 +47363,16 @@ function getSgrPrefix(code) {
   if (code.startsWith("\x9B")) {
     return "\x9B";
   }
-  return `${ESCAPE}${ANSI_CSI2}`;
+  return `${ESCAPE}${ANSI_CSI3}`;
 }
 function createSgrCode(prefix, values) {
-  return `${prefix}${values.join(";")}${ANSI_SGR_TERMINATOR2}`;
+  return `${prefix}${values.join(";")}${ANSI_SGR_TERMINATOR3}`;
 }
 function getSgrFragments(code) {
   const fragments = [];
   const sgrPrefix = getSgrPrefix(code);
   let parameterString;
-  if (code.startsWith(`${ESCAPE}${ANSI_CSI2}`)) {
+  if (code.startsWith(`${ESCAPE}${ANSI_CSI3}`)) {
     parameterString = code.slice(2, -1);
   } else if (code.startsWith("\x9B")) {
     parameterString = code.slice(1, -1);
@@ -46977,7 +47399,7 @@ function getSgrFragments(code) {
         fragments.push({
           type: "start",
           code: openCode3,
-          endCode: ansi_styles_default.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
+          endCode: ansi_styles_default3.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
         });
         index += SGR_ANSI_256_FRAGMENT_LENGTH;
         continue;
@@ -46987,7 +47409,7 @@ function getSgrFragments(code) {
         fragments.push({
           type: "start",
           code: openCode3,
-          endCode: ansi_styles_default.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
+          endCode: ansi_styles_default3.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
         });
         index += SGR_TRUECOLOR_FRAGMENT_LENGTH;
         continue;
@@ -46996,7 +47418,7 @@ function getSgrFragments(code) {
       fragments.push({
         type: "start",
         code: openCode2,
-        endCode: ansi_styles_default.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
+        endCode: ansi_styles_default3.color.ansi(codeNumber === SGR_EXTENDED_FOREGROUND_CODE ? SGR_DEFAULT_FOREGROUND_CODE : SGR_DEFAULT_BACKGROUND_CODE)
       });
       index++;
       continue;
@@ -47004,18 +47426,18 @@ function getSgrFragments(code) {
     if (endCodeNumbers.has(codeNumber)) {
       fragments.push({
         type: "end",
-        endCode: ansi_styles_default.color.ansi(codeNumber)
+        endCode: ansi_styles_default3.color.ansi(codeNumber)
       });
       index++;
       continue;
     }
-    const mappedEndCode = ansi_styles_default.codes.get(codeNumber);
+    const mappedEndCode = ansi_styles_default3.codes.get(codeNumber);
     if (mappedEndCode !== void 0) {
       const openCode2 = createSgrCode(sgrPrefix, [rawCodes[index]]);
       fragments.push({
         type: "start",
         code: openCode2,
-        endCode: ansi_styles_default.color.ansi(mappedEndCode)
+        endCode: ansi_styles_default3.color.ansi(mappedEndCode)
       });
       index++;
       continue;
@@ -47024,7 +47446,7 @@ function getSgrFragments(code) {
     fragments.push({
       type: "start",
       code: openCode,
-      endCode: ansi_styles_default.reset.open
+      endCode: ansi_styles_default3.reset.open
     });
     index++;
   }
@@ -47037,7 +47459,7 @@ function parseCsiCode(string, index) {
   const escapeCodePoint = string.codePointAt(index);
   let sequenceStartIndex;
   if (escapeCodePoint === ESCAPE_CODE_POINT) {
-    if (string[index + 1] !== ANSI_CSI2) {
+    if (string[index + 1] !== ANSI_CSI3) {
       return;
     }
     sequenceStartIndex = index + 2;
@@ -47051,7 +47473,7 @@ function parseCsiCode(string, index) {
     const codePoint = string.codePointAt(sequenceIndex);
     if (isCsiFinalCharacter(codePoint)) {
       const code = string.slice(index, sequenceIndex + 1);
-      if (string[sequenceIndex] !== ANSI_SGR_TERMINATOR2 || !hasCanonicalSgrParameters) {
+      if (string[sequenceIndex] !== ANSI_SGR_TERMINATOR3 || !hasCanonicalSgrParameters) {
         return createControlParseResult(code, sequenceIndex + 1);
       }
       return {
@@ -47150,7 +47572,7 @@ function parseControlStringCode(string, index) {
     case ESCAPE_CODE_POINT: {
       const command = string[index + 1];
       switch (command) {
-        case ANSI_OSC2: {
+        case ANSI_OSC3: {
           sequenceStartIndex = index + 2;
           supportsBellTerminator = true;
           break;
@@ -47220,7 +47642,7 @@ function parseAnsiCode2(string, index) {
 function appendTrailingAnsiTokens(string, index, tokens) {
   while (index < string.length) {
     const nextCodePoint = string.codePointAt(index);
-    if (!ESCAPES3.has(nextCodePoint)) {
+    if (!ESCAPES4.has(nextCodePoint)) {
       break;
     }
     const escapeCode = parseAnsiCode2(string, index);
@@ -47253,7 +47675,7 @@ function collectVisibleCharacters(string) {
   let index = 0;
   while (index < string.length) {
     const codePoint = string.codePointAt(index);
-    if (ESCAPES3.has(codePoint)) {
+    if (ESCAPES4.has(codePoint)) {
       const code = parseAnsiCode2(string, index);
       if (code) {
         index = code.endIndex;
@@ -47306,7 +47728,7 @@ function tokenizeAnsiWithVisibleSegmentation(string, { endCharacter = Number.POS
   let visibleCount = 0;
   while (index < string.length) {
     const codePoint = string.codePointAt(index);
-    if (ESCAPES3.has(codePoint)) {
+    if (ESCAPES4.has(codePoint)) {
       const code = parseAnsiCode2(string, index);
       if (code) {
         tokens.push(code.token);
@@ -47361,7 +47783,7 @@ function hasAnsiSplitContinuationAhead(string, startIndex, previousVisibleValue,
   let hasAnsiCode = false;
   while (index < string.length) {
     const codePoint = string.codePointAt(index);
-    if (ESCAPES3.has(codePoint)) {
+    if (ESCAPES4.has(codePoint)) {
       const code = parseAnsiCode2(string, index);
       if (code) {
         hasAnsiCode = true;
@@ -47389,7 +47811,7 @@ function tokenizeAnsi(string, { endCharacter = Number.POSITIVE_INFINITY } = {}) 
   let hasAnsiSinceLastVisible = false;
   while (index < string.length) {
     const codePoint = string.codePointAt(index);
-    if (ESCAPES3.has(codePoint)) {
+    if (ESCAPES4.has(codePoint)) {
       const code = parseAnsiCode2(string, index);
       if (code) {
         tokens.push(code.token);
@@ -47420,10 +47842,10 @@ function tokenizeAnsi(string, { endCharacter = Number.POSITIVE_INFINITY } = {}) 
   }
   return tokens;
 }
-var ESCAPE_CODE_POINT, C1_DCS_CODE_POINT, C1_SOS_CODE_POINT, C1_CSI_CODE_POINT, C1_ST_CODE_POINT, C1_OSC_CODE_POINT, C1_PM_CODE_POINT, C1_APC_CODE_POINT, ESCAPES3, ESCAPE, ANSI_BELL, ANSI_CSI2, ANSI_OSC2, ANSI_DCS, ANSI_SOS, ANSI_PM, ANSI_APC, ANSI_SGR_TERMINATOR2, ANSI_OSC_TERMINATOR, ANSI_STRING_TERMINATOR, C1_OSC, C1_STRING_TERMINATOR, ANSI_HYPERLINK_ESC_PREFIX, ANSI_HYPERLINK_C1_PREFIX, ANSI_HYPERLINK_ESC_CLOSE, ANSI_HYPERLINK_C1_CLOSE, CODE_POINT_0, CODE_POINT_9, CODE_POINT_SEMICOLON, CODE_POINT_COLON, CODE_POINT_CSI_PARAMETER_START, CODE_POINT_CSI_PARAMETER_END, CODE_POINT_CSI_INTERMEDIATE_START, CODE_POINT_CSI_INTERMEDIATE_END, CODE_POINT_CSI_FINAL_START, CODE_POINT_CSI_FINAL_END, REGIONAL_INDICATOR_SYMBOL_LETTER_A, REGIONAL_INDICATOR_SYMBOL_LETTER_Z, SGR_RESET_CODE, SGR_EXTENDED_FOREGROUND_CODE, SGR_DEFAULT_FOREGROUND_CODE, SGR_EXTENDED_BACKGROUND_CODE, SGR_DEFAULT_BACKGROUND_CODE, SGR_COLOR_TYPE_ANSI_256, SGR_COLOR_TYPE_TRUECOLOR, SGR_ANSI_256_FRAGMENT_LENGTH, SGR_TRUECOLOR_FRAGMENT_LENGTH, SGR_ANSI_256_LAST_PARAMETER_OFFSET, SGR_TRUECOLOR_LAST_PARAMETER_OFFSET, VARIATION_SELECTOR_16_CODE_POINT, COMBINING_ENCLOSING_KEYCAP_CODE_POINT, EMOJI_PRESENTATION_GRAPHEME_REGEX, GRAPHEME_SEGMENTER, endCodeNumbers;
+var ESCAPE_CODE_POINT, C1_DCS_CODE_POINT, C1_SOS_CODE_POINT, C1_CSI_CODE_POINT, C1_ST_CODE_POINT, C1_OSC_CODE_POINT, C1_PM_CODE_POINT, C1_APC_CODE_POINT, ESCAPES4, ESCAPE, ANSI_BELL, ANSI_CSI3, ANSI_OSC3, ANSI_DCS, ANSI_SOS, ANSI_PM, ANSI_APC, ANSI_SGR_TERMINATOR3, ANSI_OSC_TERMINATOR, ANSI_STRING_TERMINATOR, C1_OSC, C1_STRING_TERMINATOR, ANSI_HYPERLINK_ESC_PREFIX, ANSI_HYPERLINK_C1_PREFIX, ANSI_HYPERLINK_ESC_CLOSE, ANSI_HYPERLINK_C1_CLOSE, CODE_POINT_0, CODE_POINT_9, CODE_POINT_SEMICOLON, CODE_POINT_COLON, CODE_POINT_CSI_PARAMETER_START, CODE_POINT_CSI_PARAMETER_END, CODE_POINT_CSI_INTERMEDIATE_START, CODE_POINT_CSI_INTERMEDIATE_END, CODE_POINT_CSI_FINAL_START, CODE_POINT_CSI_FINAL_END, REGIONAL_INDICATOR_SYMBOL_LETTER_A, REGIONAL_INDICATOR_SYMBOL_LETTER_Z, SGR_RESET_CODE, SGR_EXTENDED_FOREGROUND_CODE, SGR_DEFAULT_FOREGROUND_CODE, SGR_EXTENDED_BACKGROUND_CODE, SGR_DEFAULT_BACKGROUND_CODE, SGR_COLOR_TYPE_ANSI_256, SGR_COLOR_TYPE_TRUECOLOR, SGR_ANSI_256_FRAGMENT_LENGTH, SGR_TRUECOLOR_FRAGMENT_LENGTH, SGR_ANSI_256_LAST_PARAMETER_OFFSET, SGR_TRUECOLOR_LAST_PARAMETER_OFFSET, VARIATION_SELECTOR_16_CODE_POINT, COMBINING_ENCLOSING_KEYCAP_CODE_POINT, EMOJI_PRESENTATION_GRAPHEME_REGEX, GRAPHEME_SEGMENTER, endCodeNumbers;
 var init_tokenize_ansi = __esm({
-  "node_modules/slice-ansi/tokenize-ansi.js"() {
-    init_ansi_styles();
+  "../node_modules/ink/node_modules/slice-ansi/tokenize-ansi.js"() {
+    init_ansi_styles3();
     init_is_fullwidth_code_point2();
     ESCAPE_CODE_POINT = 27;
     C1_DCS_CODE_POINT = 144;
@@ -47433,7 +47855,7 @@ var init_tokenize_ansi = __esm({
     C1_OSC_CODE_POINT = 157;
     C1_PM_CODE_POINT = 158;
     C1_APC_CODE_POINT = 159;
-    ESCAPES3 = /* @__PURE__ */ new Set([
+    ESCAPES4 = /* @__PURE__ */ new Set([
       ESCAPE_CODE_POINT,
       C1_DCS_CODE_POINT,
       C1_SOS_CODE_POINT,
@@ -47445,18 +47867,18 @@ var init_tokenize_ansi = __esm({
     ]);
     ESCAPE = "\x1B";
     ANSI_BELL = "\x07";
-    ANSI_CSI2 = "[";
-    ANSI_OSC2 = "]";
+    ANSI_CSI3 = "[";
+    ANSI_OSC3 = "]";
     ANSI_DCS = "P";
     ANSI_SOS = "X";
     ANSI_PM = "^";
     ANSI_APC = "_";
-    ANSI_SGR_TERMINATOR2 = "m";
+    ANSI_SGR_TERMINATOR3 = "m";
     ANSI_OSC_TERMINATOR = "\\";
     ANSI_STRING_TERMINATOR = `${ESCAPE}${ANSI_OSC_TERMINATOR}`;
     C1_OSC = "\x9D";
     C1_STRING_TERMINATOR = "\x9C";
-    ANSI_HYPERLINK_ESC_PREFIX = `${ESCAPE}${ANSI_OSC2}8;`;
+    ANSI_HYPERLINK_ESC_PREFIX = `${ESCAPE}${ANSI_OSC3}8;`;
     ANSI_HYPERLINK_C1_PREFIX = `${C1_OSC}8;`;
     ANSI_HYPERLINK_ESC_CLOSE = `${ANSI_HYPERLINK_ESC_PREFIX};`;
     ANSI_HYPERLINK_C1_CLOSE = `${ANSI_HYPERLINK_C1_PREFIX};`;
@@ -47488,13 +47910,13 @@ var init_tokenize_ansi = __esm({
     EMOJI_PRESENTATION_GRAPHEME_REGEX = new RegExp("\\p{Emoji_Presentation}", "u");
     GRAPHEME_SEGMENTER = new Intl.Segmenter(void 0, { granularity: "grapheme" });
     endCodeNumbers = /* @__PURE__ */ new Set();
-    for (const [, end] of ansi_styles_default.codes) {
+    for (const [, end] of ansi_styles_default3.codes) {
       endCodeNumbers.add(end);
     }
   }
 });
 
-// node_modules/slice-ansi/index.js
+// ../node_modules/ink/node_modules/slice-ansi/index.js
 function applySgrFragments(activeStyles, fragments) {
   for (const fragment of fragments) {
     switch (fragment.type) {
@@ -47692,7 +48114,7 @@ function sliceAnsi2(string, start, end) {
 }
 var tokenHandlers;
 var init_slice_ansi = __esm({
-  "node_modules/slice-ansi/index.js"() {
+  "../node_modules/ink/node_modules/slice-ansi/index.js"() {
     init_tokenize_ansi();
     tokenHandlers = {
       sgr: applySgrToken,
@@ -47703,7 +48125,139 @@ var init_slice_ansi = __esm({
   }
 });
 
-// node_modules/cli-truncate/index.js
+// ../node_modules/ink/node_modules/string-width/index.js
+function isDoubleWidthNonRgiEmojiSequence2(segment) {
+  if (segment.length > 50) {
+    return false;
+  }
+  if (unqualifiedKeycapRegex2.test(segment)) {
+    return true;
+  }
+  if (segment.includes("\u200D")) {
+    const pictographics = segment.match(extendedPictographicRegex2);
+    return pictographics !== null && pictographics.length >= 2;
+  }
+  return false;
+}
+function baseVisible2(segment) {
+  return segment.replace(leadingNonPrintingRegex2, "");
+}
+function isZeroWidthCluster2(segment) {
+  return zeroWidthClusterRegex2.test(segment);
+}
+function isHangulLeadingJamo2(codePoint) {
+  return codePoint >= 4352 && codePoint <= 4447 || codePoint >= 43360 && codePoint <= 43388;
+}
+function isHangulVowelJamo2(codePoint) {
+  return codePoint >= 4448 && codePoint <= 4519 || codePoint >= 55216 && codePoint <= 55238;
+}
+function isHangulTrailingJamo2(codePoint) {
+  return codePoint >= 4520 && codePoint <= 4607 || codePoint >= 55243 && codePoint <= 55291;
+}
+function isHangulJamo2(codePoint) {
+  return isHangulLeadingJamo2(codePoint) || isHangulVowelJamo2(codePoint) || isHangulTrailingJamo2(codePoint);
+}
+function hangulClusterWidth2(visibleSegment, eastAsianWidthOptions) {
+  const codePoints = [];
+  for (const character of visibleSegment) {
+    if (zeroWidthClusterRegex2.test(character)) {
+      continue;
+    }
+    codePoints.push(character.codePointAt(0));
+  }
+  if (codePoints.length === 0) {
+    return void 0;
+  }
+  let width = 0;
+  for (let index = 0; index < codePoints.length; index++) {
+    const codePoint = codePoints[index];
+    if (!isHangulJamo2(codePoint)) {
+      if (width === 0) {
+        return void 0;
+      }
+      for (let remaining = index; remaining < codePoints.length; remaining++) {
+        width += eastAsianWidth(codePoints[remaining], eastAsianWidthOptions);
+      }
+      return width;
+    }
+    if (isHangulLeadingJamo2(codePoint) && isHangulVowelJamo2(codePoints[index + 1])) {
+      width += 2;
+      index += isHangulTrailingJamo2(codePoints[index + 2]) ? 2 : 1;
+      continue;
+    }
+    width += eastAsianWidth(codePoint, eastAsianWidthOptions);
+  }
+  return width;
+}
+function trailingHalfwidthWidth2(visibleSegment, eastAsianWidthOptions) {
+  let extra = 0;
+  let first = true;
+  for (const character of visibleSegment) {
+    if (first) {
+      first = false;
+      continue;
+    }
+    if (character >= "\uFF00" && character <= "\uFFEF") {
+      extra += eastAsianWidth(character.codePointAt(0), eastAsianWidthOptions);
+    }
+  }
+  return extra;
+}
+function stringWidth5(input, options = {}) {
+  if (typeof input !== "string" || input.length === 0) {
+    return 0;
+  }
+  const {
+    ambiguousIsNarrow = true,
+    countAnsiEscapeCodes = false
+  } = options;
+  let string = input;
+  if (!countAnsiEscapeCodes && (string.includes("\x1B") || string.includes("\x9B"))) {
+    string = stripAnsi2(string);
+  }
+  if (string.length === 0) {
+    return 0;
+  }
+  if (/^[\u0020-\u007E]*$/.test(string)) {
+    return string.length;
+  }
+  let width = 0;
+  const eastAsianWidthOptions = { ambiguousAsWide: !ambiguousIsNarrow };
+  for (const { segment } of segmenter4.segment(string)) {
+    if (isZeroWidthCluster2(segment)) {
+      continue;
+    }
+    if (rgiEmojiRegex2.test(segment) || isDoubleWidthNonRgiEmojiSequence2(segment)) {
+      width += 2;
+      continue;
+    }
+    const visibleSegment = baseVisible2(segment);
+    const hangulWidth = hangulClusterWidth2(visibleSegment, eastAsianWidthOptions);
+    if (hangulWidth !== void 0) {
+      width += hangulWidth;
+      continue;
+    }
+    const codePoint = visibleSegment.codePointAt(0);
+    width += eastAsianWidth(codePoint, eastAsianWidthOptions);
+    width += trailingHalfwidthWidth2(visibleSegment, eastAsianWidthOptions);
+  }
+  return width;
+}
+var segmenter4, zeroWidthClusterRegex2, leadingNonPrintingRegex2, rgiEmojiRegex2, unqualifiedKeycapRegex2, extendedPictographicRegex2;
+var init_string_width4 = __esm({
+  "../node_modules/ink/node_modules/string-width/index.js"() {
+    init_strip_ansi2();
+    init_get_east_asian_width();
+    segmenter4 = new Intl.Segmenter();
+    zeroWidthClusterRegex2 = new RegExp("^(?:\\p{Default_Ignorable_Code_Point}|\\p{Control}|\\p{Format}|\\p{Mark}|\\p{Surrogate})+$", "v");
+    leadingNonPrintingRegex2 = new RegExp("^[\\p{Default_Ignorable_Code_Point}\\p{Control}\\p{Format}\\p{Mark}\\p{Surrogate}]+", "v");
+    rgiEmojiRegex2 = new RegExp("^\\p{RGI_Emoji}$", "v");
+    unqualifiedKeycapRegex2 = /^[\d#*]\u20E3$/;
+    extendedPictographicRegex2 = new RegExp("\\p{Extended_Pictographic}", "gu");
+  }
+});
+
+// ../node_modules/ink/node_modules/cli-truncate/index.js
 function getIndexOfNearestSpace(string, wantedIndex, shouldSearchRight) {
   if (string.charAt(wantedIndex) === " ") {
     return wantedIndex;
@@ -47733,7 +48287,7 @@ function cliTruncate(text, columns, options = {}) {
   if (columns < 1) {
     return "";
   }
-  const length = stringWidth3(text);
+  const length = stringWidth5(text);
   if (length <= columns) {
     return text;
   }
@@ -47799,7 +48353,7 @@ function cliTruncate(text, columns, options = {}) {
     if (space) {
       truncationCharacter += " ";
     }
-    const right = sliceAnsi2(text, length - columns + stringWidth3(truncationCharacter), length);
+    const right = sliceAnsi2(text, length - columns + stringWidth5(truncationCharacter), length);
     return prependWithInheritedStyleFromStart(truncationCharacter, right);
   }
   if (position === "middle") {
@@ -47812,7 +48366,7 @@ function cliTruncate(text, columns, options = {}) {
       const spaceNearSecondBreakPoint = getIndexOfNearestSpace(text, length - (columns - half) + 1, true);
       return sliceAnsi2(text, 0, spaceNearFirstBreakPoint) + truncationCharacter + sliceAnsi2(text, spaceNearSecondBreakPoint, length).trim();
     }
-    return sliceAnsi2(text, 0, half) + truncationCharacter + sliceAnsi2(text, length - (columns - half) + stringWidth3(truncationCharacter), length);
+    return sliceAnsi2(text, 0, half) + truncationCharacter + sliceAnsi2(text, length - (columns - half) + stringWidth5(truncationCharacter), length);
   }
   if (position === "end") {
     if (preferTruncationOnSpace) {
@@ -47823,23 +48377,23 @@ function cliTruncate(text, columns, options = {}) {
     if (space) {
       truncationCharacter = ` ${truncationCharacter}`;
     }
-    const left = sliceAnsi2(text, 0, columns - stringWidth3(truncationCharacter));
+    const left = sliceAnsi2(text, 0, columns - stringWidth5(truncationCharacter));
     return appendWithInheritedStyleFromEnd(left, truncationCharacter);
   }
   throw new Error(`Expected \`options.position\` to be either \`start\`, \`middle\` or \`end\`, got ${position}`);
 }
 var init_cli_truncate = __esm({
-  "node_modules/cli-truncate/index.js"() {
+  "../node_modules/ink/node_modules/cli-truncate/index.js"() {
     init_slice_ansi();
-    init_string_width2();
+    init_string_width4();
   }
 });
 
-// node_modules/ink/build/wrap-text.js
+// ../node_modules/ink/build/wrap-text.js
 var cache3, wrapText2, wrap_text_default;
 var init_wrap_text2 = __esm({
-  "node_modules/ink/build/wrap-text.js"() {
-    init_wrap_ansi();
+  "../node_modules/ink/build/wrap-text.js"() {
+    init_wrap_ansi2();
     init_cli_truncate();
     cache3 = {};
     wrapText2 = (text, maxWidth, wrapType) => {
@@ -47850,7 +48404,7 @@ var init_wrap_text2 = __esm({
       }
       let wrappedText = text;
       if (wrapType === "wrap") {
-        wrappedText = wrapAnsi(text, maxWidth, {
+        wrappedText = wrapAnsi3(text, maxWidth, {
           trim: false,
           hard: true
         });
@@ -47872,10 +48426,10 @@ var init_wrap_text2 = __esm({
   }
 });
 
-// node_modules/ink/build/ansi-tokenizer.js
+// ../node_modules/ink/build/ansi-tokenizer.js
 var bellCharacter, escapeCharacter, stringTerminatorCharacter, csiCharacter, oscCharacter, dcsCharacter, pmCharacter, apcCharacter, sosCharacter, isCsiParameterCharacter2, isCsiIntermediateCharacter2, isCsiFinalCharacter2, isEscapeIntermediateCharacter, isEscapeFinalCharacter, isC1ControlCharacter, readCsiSequence, findControlStringTerminatorIndex, readEscapeSequence, getControlStringFromEscapeIntroducer, getControlStringFromC1Introducer, hasAnsiControlCharacters, malformedFromIndex, tokenizeAnsi2;
 var init_ansi_tokenizer = __esm({
-  "node_modules/ink/build/ansi-tokenizer.js"() {
+  "../node_modules/ink/build/ansi-tokenizer.js"() {
     bellCharacter = "\x07";
     escapeCharacter = "\x1B";
     stringTerminatorCharacter = "\x9C";
@@ -48184,10 +48738,10 @@ var init_ansi_tokenizer = __esm({
   }
 });
 
-// node_modules/ink/build/sanitize-ansi.js
+// ../node_modules/ink/build/sanitize-ansi.js
 var sgrParametersRegex, sanitizeAnsi, sanitize_ansi_default;
 var init_sanitize_ansi = __esm({
-  "node_modules/ink/build/sanitize-ansi.js"() {
+  "../node_modules/ink/build/sanitize-ansi.js"() {
     init_ansi_tokenizer();
     sgrParametersRegex = /^[\d:;]*$/;
     sanitizeAnsi = (text) => {
@@ -48210,10 +48764,10 @@ var init_sanitize_ansi = __esm({
   }
 });
 
-// node_modules/ink/build/squash-text-nodes.js
+// ../node_modules/ink/build/squash-text-nodes.js
 var squashTextNodes2, squash_text_nodes_default2;
 var init_squash_text_nodes2 = __esm({
-  "node_modules/ink/build/squash-text-nodes.js"() {
+  "../node_modules/ink/build/squash-text-nodes.js"() {
     init_sanitize_ansi();
     squashTextNodes2 = (node) => {
       let text = "";
@@ -48241,10 +48795,10 @@ var init_squash_text_nodes2 = __esm({
   }
 });
 
-// node_modules/ink/build/dom.js
+// ../node_modules/ink/build/dom.js
 var createNode2, appendChildNode2, insertBeforeNode2, removeChildNode2, setAttribute2, setStyle2, createTextNode2, measureTextNode2, findClosestYogaNode, markNodeAsDirty, setTextNodeValue2;
 var init_dom2 = __esm({
-  async "node_modules/ink/build/dom.js"() {
+  async "../node_modules/ink/build/dom.js"() {
     await init_src();
     init_measure_text2();
     init_wrap_text2();
@@ -48366,10 +48920,10 @@ var init_dom2 = __esm({
   }
 });
 
-// node_modules/ink/build/styles.js
-var applyPositionStyles2, applyMarginStyles2, applyPaddingStyles2, applyFlexStyles2, applyDimensionStyles2, applyDisplayStyles2, applyBorderStyles2, applyGapStyles2, styles5, styles_default2;
+// ../node_modules/ink/build/styles.js
+var applyPositionStyles2, applyMarginStyles2, applyPaddingStyles2, applyFlexStyles2, applyDimensionStyles2, applyDisplayStyles2, applyBorderStyles2, applyGapStyles2, styles6, styles_default2;
 var init_styles2 = __esm({
-  async "node_modules/ink/build/styles.js"() {
+  async "../node_modules/ink/build/styles.js"() {
     await init_src();
     applyPositionStyles2 = (node, style) => {
       if ("position" in style) {
@@ -48579,7 +49133,7 @@ var init_styles2 = __esm({
         node.setGap(src_default.GUTTER_ROW, style.rowGap ?? 0);
       }
     };
-    styles5 = (node, style = {}) => {
+    styles6 = (node, style = {}) => {
       applyPositionStyles2(node, style);
       applyMarginStyles2(node, style);
       applyPaddingStyles2(node, style);
@@ -48589,13 +49143,13 @@ var init_styles2 = __esm({
       applyBorderStyles2(node, style);
       applyGapStyles2(node, style);
     };
-    styles_default2 = styles5;
+    styles_default2 = styles6;
   }
 });
 
-// node_modules/ws/lib/constants.js
+// ../node_modules/ws/lib/constants.js
 var require_constants3 = __commonJS({
-  "node_modules/ws/lib/constants.js"(exports, module) {
+  "../node_modules/ws/lib/constants.js"(exports, module) {
     "use strict";
     var BINARY_TYPES = ["nodebuffer", "arraybuffer", "fragments"];
     var hasBlob = typeof Blob !== "undefined";
@@ -48616,9 +49170,9 @@ var require_constants3 = __commonJS({
   }
 });
 
-// node_modules/ws/lib/buffer-util.js
+// ../node_modules/ws/lib/buffer-util.js
 var require_buffer_util = __commonJS({
-  "node_modules/ws/lib/buffer-util.js"(exports, module) {
+  "../node_modules/ws/lib/buffer-util.js"(exports, module) {
     "use strict";
     var { EMPTY_BUFFER } = require_constants3();
     var FastBuffer = Buffer[Symbol.species];
@@ -48691,9 +49245,9 @@ var require_buffer_util = __commonJS({
   }
 });
 
-// node_modules/ws/lib/limiter.js
+// ../node_modules/ws/lib/limiter.js
 var require_limiter = __commonJS({
-  "node_modules/ws/lib/limiter.js"(exports, module) {
+  "../node_modules/ws/lib/limiter.js"(exports, module) {
     "use strict";
     var kDone = /* @__PURE__ */ Symbol("kDone");
     var kRun = /* @__PURE__ */ Symbol("kRun");
@@ -48741,9 +49295,9 @@ var require_limiter = __commonJS({
   }
 });
 
-// node_modules/ws/lib/permessage-deflate.js
+// ../node_modules/ws/lib/permessage-deflate.js
 var require_permessage_deflate = __commonJS({
-  "node_modules/ws/lib/permessage-deflate.js"(exports, module) {
+  "../node_modules/ws/lib/permessage-deflate.js"(exports, module) {
     "use strict";
     var zlib = __require("zlib");
     var bufferUtil = require_buffer_util();
@@ -49124,9 +49678,9 @@ var require_permessage_deflate = __commonJS({
   }
 });
 
-// node_modules/ws/lib/validation.js
+// ../node_modules/ws/lib/validation.js
 var require_validation = __commonJS({
-  "node_modules/ws/lib/validation.js"(exports, module) {
+  "../node_modules/ws/lib/validation.js"(exports, module) {
     "use strict";
     var { isUtf8 } = __require("buffer");
     var { hasBlob } = require_constants3();
@@ -49325,9 +49879,9 @@ var require_validation = __commonJS({
   }
 });
 
-// node_modules/ws/lib/receiver.js
+// ../node_modules/ws/lib/receiver.js
 var require_receiver = __commonJS({
-  "node_modules/ws/lib/receiver.js"(exports, module) {
+  "../node_modules/ws/lib/receiver.js"(exports, module) {
     "use strict";
     var { Writable } = __require("stream");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -49957,9 +50511,9 @@ var require_receiver = __commonJS({
   }
 });
 
-// node_modules/ws/lib/sender.js
+// ../node_modules/ws/lib/sender.js
 var require_sender = __commonJS({
-  "node_modules/ws/lib/sender.js"(exports, module) {
+  "../node_modules/ws/lib/sender.js"(exports, module) {
     "use strict";
     var { Duplex } = __require("stream");
     var { randomFillSync } = __require("crypto");
@@ -50450,9 +51004,9 @@ var require_sender = __commonJS({
   }
 });
 
-// node_modules/ws/lib/event-target.js
+// ../node_modules/ws/lib/event-target.js
 var require_event_target = __commonJS({
-  "node_modules/ws/lib/event-target.js"(exports, module) {
+  "../node_modules/ws/lib/event-target.js"(exports, module) {
     "use strict";
     var { kForOnEventAttribute, kListener } = require_constants3();
     var kCode = /* @__PURE__ */ Symbol("kCode");
@@ -50679,9 +51233,9 @@ var require_event_target = __commonJS({
   }
 });
 
-// node_modules/ws/lib/extension.js
+// ../node_modules/ws/lib/extension.js
 var require_extension = __commonJS({
-  "node_modules/ws/lib/extension.js"(exports, module) {
+  "../node_modules/ws/lib/extension.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function push(dest, name, elem) {
@@ -50832,9 +51386,9 @@ var require_extension = __commonJS({
   }
 });
 
-// node_modules/ws/lib/websocket.js
+// ../node_modules/ws/lib/websocket.js
 var require_websocket = __commonJS({
-  "node_modules/ws/lib/websocket.js"(exports, module) {
+  "../node_modules/ws/lib/websocket.js"(exports, module) {
     "use strict";
     var EventEmitter5 = __require("events");
     var https = __require("https");
@@ -51728,9 +52282,9 @@ var require_websocket = __commonJS({
   }
 });
 
-// node_modules/ws/lib/stream.js
+// ../node_modules/ws/lib/stream.js
 var require_stream = __commonJS({
-  "node_modules/ws/lib/stream.js"(exports, module) {
+  "../node_modules/ws/lib/stream.js"(exports, module) {
     "use strict";
     var WebSocket3 = require_websocket();
     var { Duplex } = __require("stream");
@@ -51826,9 +52380,9 @@ var require_stream = __commonJS({
   }
 });
 
-// node_modules/ws/lib/subprotocol.js
+// ../node_modules/ws/lib/subprotocol.js
 var require_subprotocol = __commonJS({
-  "node_modules/ws/lib/subprotocol.js"(exports, module) {
+  "../node_modules/ws/lib/subprotocol.js"(exports, module) {
     "use strict";
     var { tokenChars } = require_validation();
     function parse(header) {
@@ -51871,9 +52425,9 @@ var require_subprotocol = __commonJS({
   }
 });
 
-// node_modules/ws/lib/websocket-server.js
+// ../node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS({
-  "node_modules/ws/lib/websocket-server.js"(exports, module) {
+  "../node_modules/ws/lib/websocket-server.js"(exports, module) {
     "use strict";
     var EventEmitter5 = __require("events");
     var http = __require("http");
@@ -52272,10 +52826,10 @@ var require_websocket_server = __commonJS({
   }
 });
 
-// node_modules/ws/wrapper.mjs
+// ../node_modules/ws/wrapper.mjs
 var import_stream2, import_extension, import_permessage_deflate, import_receiver, import_sender, import_subprotocol, import_websocket, import_websocket_server, wrapper_default;
 var init_wrapper = __esm({
-  "node_modules/ws/wrapper.mjs"() {
+  "../node_modules/ws/wrapper.mjs"() {
     import_stream2 = __toESM(require_stream(), 1);
     import_extension = __toESM(require_extension(), 1);
     import_permessage_deflate = __toESM(require_permessage_deflate(), 1);
@@ -52288,10 +52842,10 @@ var init_wrapper = __esm({
   }
 });
 
-// node_modules/ink/build/devtools-window-polyfill.js
+// ../node_modules/ink/build/devtools-window-polyfill.js
 var customGlobal;
 var init_devtools_window_polyfill = __esm({
-  "node_modules/ink/build/devtools-window-polyfill.js"() {
+  "../node_modules/ink/build/devtools-window-polyfill.js"() {
     init_wrapper();
     customGlobal = global;
     customGlobal.WebSocket ||= wrapper_default;
@@ -52361,10 +52915,10 @@ var init_react_devtools_core = __esm({
   }
 });
 
-// node_modules/ink/build/devtools.js
+// ../node_modules/ink/build/devtools.js
 var devtools_exports2 = {};
 var init_devtools2 = __esm({
-  "node_modules/ink/build/devtools.js"() {
+  "../node_modules/ink/build/devtools.js"() {
     init_devtools_window_polyfill();
     init_react_devtools_core();
     react_devtools_core_default.initialize();
@@ -52372,7 +52926,7 @@ var init_devtools2 = __esm({
   }
 });
 
-// node_modules/ink/build/reconciler.js
+// ../node_modules/ink/build/reconciler.js
 async function loadPackageJson() {
   const fs2 = await import("node:fs");
   const content = fs2.readFileSync(new URL("../package.json", import.meta.url), "utf8");
@@ -52380,7 +52934,7 @@ async function loadPackageJson() {
 }
 var import_react_reconciler2, import_constants6, Scheduler, import_react27, diff2, cleanupYogaNode2, currentUpdatePriority, currentRootNode, packageJson, reconciler_default2;
 var init_reconciler2 = __esm({
-  async "node_modules/ink/build/reconciler.js"() {
+  async "../node_modules/ink/build/reconciler.js"() {
     import_react_reconciler2 = __toESM(require_react_reconciler(), 1);
     import_constants6 = __toESM(require_constants2(), 1);
     Scheduler = __toESM(require_scheduler(), 1);
@@ -52645,22 +53199,538 @@ $ npm install --save-dev react-devtools-core
   }
 });
 
-// node_modules/ink/build/get-max-width.js
+// ../node_modules/ink/build/get-max-width.js
 var init_get_max_width2 = __esm({
-  async "node_modules/ink/build/get-max-width.js"() {
+  async "../node_modules/ink/build/get-max-width.js"() {
     await init_src();
   }
 });
 
-// node_modules/ink/build/colorize.js
-var rgbRegex, ansiRegex2, isNamedColor, colorize2, colorize_default;
+// ../node_modules/ink/node_modules/chalk/source/vendor/ansi-styles/index.js
+function assembleStyles4() {
+  const codes = /* @__PURE__ */ new Map();
+  for (const [groupName, group] of Object.entries(styles7)) {
+    for (const [styleName, style] of Object.entries(group)) {
+      styles7[styleName] = {
+        open: `\x1B[${style[0]}m`,
+        close: `\x1B[${style[1]}m`
+      };
+      group[styleName] = styles7[styleName];
+      codes.set(style[0], style[1]);
+    }
+    Object.defineProperty(styles7, groupName, {
+      value: group,
+      enumerable: false
+    });
+  }
+  Object.defineProperty(styles7, "codes", {
+    value: codes,
+    enumerable: false
+  });
+  styles7.color.close = "\x1B[39m";
+  styles7.bgColor.close = "\x1B[49m";
+  styles7.color.ansi = wrapAnsi164();
+  styles7.color.ansi256 = wrapAnsi2564();
+  styles7.color.ansi16m = wrapAnsi16m4();
+  styles7.bgColor.ansi = wrapAnsi164(ANSI_BACKGROUND_OFFSET4);
+  styles7.bgColor.ansi256 = wrapAnsi2564(ANSI_BACKGROUND_OFFSET4);
+  styles7.bgColor.ansi16m = wrapAnsi16m4(ANSI_BACKGROUND_OFFSET4);
+  Object.defineProperties(styles7, {
+    rgbToAnsi256: {
+      value(red, green, blue) {
+        if (red === green && green === blue) {
+          if (red < 8) {
+            return 16;
+          }
+          if (red > 248) {
+            return 231;
+          }
+          return Math.round((red - 8) / 247 * 24) + 232;
+        }
+        return 16 + 36 * Math.round(red / 255 * 5) + 6 * Math.round(green / 255 * 5) + Math.round(blue / 255 * 5);
+      },
+      enumerable: false
+    },
+    hexToRgb: {
+      value(hex) {
+        const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+        if (!matches) {
+          return [0, 0, 0];
+        }
+        let [colorString] = matches;
+        if (colorString.length === 3) {
+          colorString = [...colorString].map((character) => character + character).join("");
+        }
+        const integer = Number.parseInt(colorString, 16);
+        return [
+          /* eslint-disable no-bitwise */
+          integer >> 16 & 255,
+          integer >> 8 & 255,
+          integer & 255
+          /* eslint-enable no-bitwise */
+        ];
+      },
+      enumerable: false
+    },
+    hexToAnsi256: {
+      value: (hex) => styles7.rgbToAnsi256(...styles7.hexToRgb(hex)),
+      enumerable: false
+    },
+    ansi256ToAnsi: {
+      value(code) {
+        if (code < 8) {
+          return 30 + code;
+        }
+        if (code < 16) {
+          return 90 + (code - 8);
+        }
+        let red;
+        let green;
+        let blue;
+        if (code >= 232) {
+          red = ((code - 232) * 10 + 8) / 255;
+          green = red;
+          blue = red;
+        } else {
+          code -= 16;
+          const remainder = code % 36;
+          red = Math.floor(code / 36) / 5;
+          green = Math.floor(remainder / 6) / 5;
+          blue = remainder % 6 / 5;
+        }
+        const value = Math.max(red, green, blue) * 2;
+        if (value === 0) {
+          return 30;
+        }
+        let result = 30 + (Math.round(blue) << 2 | Math.round(green) << 1 | Math.round(red));
+        if (value === 2) {
+          result += 60;
+        }
+        return result;
+      },
+      enumerable: false
+    },
+    rgbToAnsi: {
+      value: (red, green, blue) => styles7.ansi256ToAnsi(styles7.rgbToAnsi256(red, green, blue)),
+      enumerable: false
+    },
+    hexToAnsi: {
+      value: (hex) => styles7.ansi256ToAnsi(styles7.hexToAnsi256(hex)),
+      enumerable: false
+    }
+  });
+  return styles7;
+}
+var ANSI_BACKGROUND_OFFSET4, wrapAnsi164, wrapAnsi2564, wrapAnsi16m4, styles7, modifierNames4, foregroundColorNames4, backgroundColorNames4, colorNames4, ansiStyles4, ansi_styles_default4;
+var init_ansi_styles4 = __esm({
+  "../node_modules/ink/node_modules/chalk/source/vendor/ansi-styles/index.js"() {
+    ANSI_BACKGROUND_OFFSET4 = 10;
+    wrapAnsi164 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
+    wrapAnsi2564 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
+    wrapAnsi16m4 = (offset = 0) => (red, green, blue) => `\x1B[${38 + offset};2;${red};${green};${blue}m`;
+    styles7 = {
+      modifier: {
+        reset: [0, 0],
+        // 21 isn't widely supported and 22 does the same thing
+        bold: [1, 22],
+        dim: [2, 22],
+        italic: [3, 23],
+        underline: [4, 24],
+        overline: [53, 55],
+        inverse: [7, 27],
+        hidden: [8, 28],
+        strikethrough: [9, 29]
+      },
+      color: {
+        black: [30, 39],
+        red: [31, 39],
+        green: [32, 39],
+        yellow: [33, 39],
+        blue: [34, 39],
+        magenta: [35, 39],
+        cyan: [36, 39],
+        white: [37, 39],
+        // Bright color
+        blackBright: [90, 39],
+        gray: [90, 39],
+        // Alias of `blackBright`
+        grey: [90, 39],
+        // Alias of `blackBright`
+        redBright: [91, 39],
+        greenBright: [92, 39],
+        yellowBright: [93, 39],
+        blueBright: [94, 39],
+        magentaBright: [95, 39],
+        cyanBright: [96, 39],
+        whiteBright: [97, 39]
+      },
+      bgColor: {
+        bgBlack: [40, 49],
+        bgRed: [41, 49],
+        bgGreen: [42, 49],
+        bgYellow: [43, 49],
+        bgBlue: [44, 49],
+        bgMagenta: [45, 49],
+        bgCyan: [46, 49],
+        bgWhite: [47, 49],
+        // Bright color
+        bgBlackBright: [100, 49],
+        bgGray: [100, 49],
+        // Alias of `bgBlackBright`
+        bgGrey: [100, 49],
+        // Alias of `bgBlackBright`
+        bgRedBright: [101, 49],
+        bgGreenBright: [102, 49],
+        bgYellowBright: [103, 49],
+        bgBlueBright: [104, 49],
+        bgMagentaBright: [105, 49],
+        bgCyanBright: [106, 49],
+        bgWhiteBright: [107, 49]
+      }
+    };
+    modifierNames4 = Object.keys(styles7.modifier);
+    foregroundColorNames4 = Object.keys(styles7.color);
+    backgroundColorNames4 = Object.keys(styles7.bgColor);
+    colorNames4 = [...foregroundColorNames4, ...backgroundColorNames4];
+    ansiStyles4 = assembleStyles4();
+    ansi_styles_default4 = ansiStyles4;
+  }
+});
+
+// ../node_modules/ink/node_modules/chalk/source/vendor/supports-color/index.js
+import process5 from "node:process";
+import os2 from "node:os";
+import tty2 from "node:tty";
+function hasFlag2(flag, argv = globalThis.Deno ? globalThis.Deno.args : process5.argv) {
+  const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+  const position = argv.indexOf(prefix + flag);
+  const terminatorPosition = argv.indexOf("--");
+  return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+}
+function envForceColor2() {
+  if ("FORCE_COLOR" in env3) {
+    if (env3.FORCE_COLOR === "true") {
+      return 1;
+    }
+    if (env3.FORCE_COLOR === "false") {
+      return 0;
+    }
+    return env3.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env3.FORCE_COLOR, 10), 3);
+  }
+}
+function translateLevel2(level) {
+  if (level === 0) {
+    return false;
+  }
+  return {
+    level,
+    hasBasic: true,
+    has256: level >= 2,
+    has16m: level >= 3
+  };
+}
+function _supportsColor2(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+  const noFlagForceColor = envForceColor2();
+  if (noFlagForceColor !== void 0) {
+    flagForceColor2 = noFlagForceColor;
+  }
+  const forceColor = sniffFlags ? flagForceColor2 : noFlagForceColor;
+  if (forceColor === 0) {
+    return 0;
+  }
+  if (sniffFlags) {
+    if (hasFlag2("color=16m") || hasFlag2("color=full") || hasFlag2("color=truecolor")) {
+      return 3;
+    }
+    if (hasFlag2("color=256")) {
+      return 2;
+    }
+  }
+  if ("TF_BUILD" in env3 && "AGENT_NAME" in env3) {
+    return 1;
+  }
+  if (haveStream && !streamIsTTY && forceColor === void 0) {
+    return 0;
+  }
+  const min = forceColor || 0;
+  if (env3.TERM === "dumb") {
+    return min;
+  }
+  if (process5.platform === "win32") {
+    const osRelease = os2.release().split(".");
+    if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+      return Number(osRelease[2]) >= 14931 ? 3 : 2;
+    }
+    return 1;
+  }
+  if ("CI" in env3) {
+    if (["GITHUB_ACTIONS", "GITEA_ACTIONS", "CIRCLECI"].some((key) => key in env3)) {
+      return 3;
+    }
+    if (["TRAVIS", "APPVEYOR", "GITLAB_CI", "BUILDKITE", "DRONE"].some((sign) => sign in env3) || env3.CI_NAME === "codeship") {
+      return 1;
+    }
+    return min;
+  }
+  if ("TEAMCITY_VERSION" in env3) {
+    return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env3.TEAMCITY_VERSION) ? 1 : 0;
+  }
+  if (env3.COLORTERM === "truecolor") {
+    return 3;
+  }
+  if (env3.TERM === "xterm-kitty") {
+    return 3;
+  }
+  if (env3.TERM === "xterm-ghostty") {
+    return 3;
+  }
+  if (env3.TERM === "wezterm") {
+    return 3;
+  }
+  if ("TERM_PROGRAM" in env3) {
+    const version = Number.parseInt((env3.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+    switch (env3.TERM_PROGRAM) {
+      case "iTerm.app": {
+        return version >= 3 ? 3 : 2;
+      }
+      case "Apple_Terminal": {
+        return 2;
+      }
+    }
+  }
+  if (/-256(color)?$/i.test(env3.TERM)) {
+    return 2;
+  }
+  if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env3.TERM)) {
+    return 1;
+  }
+  if ("COLORTERM" in env3) {
+    return 1;
+  }
+  return min;
+}
+function createSupportsColor2(stream, options = {}) {
+  const level = _supportsColor2(stream, {
+    streamIsTTY: stream && stream.isTTY,
+    ...options
+  });
+  return translateLevel2(level);
+}
+var env3, flagForceColor2, supportsColor2, supports_color_default2;
+var init_supports_color2 = __esm({
+  "../node_modules/ink/node_modules/chalk/source/vendor/supports-color/index.js"() {
+    ({ env: env3 } = process5);
+    if (hasFlag2("no-color") || hasFlag2("no-colors") || hasFlag2("color=false") || hasFlag2("color=never")) {
+      flagForceColor2 = 0;
+    } else if (hasFlag2("color") || hasFlag2("colors") || hasFlag2("color=true") || hasFlag2("color=always")) {
+      flagForceColor2 = 1;
+    }
+    supportsColor2 = {
+      stdout: createSupportsColor2({ isTTY: tty2.isatty(1) }),
+      stderr: createSupportsColor2({ isTTY: tty2.isatty(2) })
+    };
+    supports_color_default2 = supportsColor2;
+  }
+});
+
+// ../node_modules/ink/node_modules/chalk/source/utilities.js
+function stringReplaceAll2(string, substring, replacer) {
+  let index = string.indexOf(substring);
+  if (index === -1) {
+    return string;
+  }
+  const substringLength = substring.length;
+  let endIndex = 0;
+  let returnValue = "";
+  do {
+    returnValue += string.slice(endIndex, index) + substring + replacer;
+    endIndex = index + substringLength;
+    index = string.indexOf(substring, endIndex);
+  } while (index !== -1);
+  returnValue += string.slice(endIndex);
+  return returnValue;
+}
+function stringEncaseCRLFWithFirstIndex2(string, prefix, postfix, index) {
+  let endIndex = 0;
+  let returnValue = "";
+  do {
+    const gotCR = string[index - 1] === "\r";
+    returnValue += string.slice(endIndex, gotCR ? index - 1 : index) + prefix + (gotCR ? "\r\n" : "\n") + postfix;
+    endIndex = index + 1;
+    index = string.indexOf("\n", endIndex);
+  } while (index !== -1);
+  returnValue += string.slice(endIndex);
+  return returnValue;
+}
+var init_utilities3 = __esm({
+  "../node_modules/ink/node_modules/chalk/source/utilities.js"() {
+  }
+});
+
+// ../node_modules/ink/node_modules/chalk/source/index.js
+function createChalk2(options) {
+  return chalkFactory2(options);
+}
+var stdoutColor2, stderrColor2, GENERATOR2, STYLER2, IS_EMPTY2, levelMapping2, styles8, applyOptions2, chalkFactory2, getModelAnsi2, usedModels2, proto2, createStyler2, createBuilder2, applyStyle2, chalk2, chalkStderr2, source_default2;
+var init_source2 = __esm({
+  "../node_modules/ink/node_modules/chalk/source/index.js"() {
+    init_ansi_styles4();
+    init_supports_color2();
+    init_utilities3();
+    ({ stdout: stdoutColor2, stderr: stderrColor2 } = supports_color_default2);
+    GENERATOR2 = /* @__PURE__ */ Symbol("GENERATOR");
+    STYLER2 = /* @__PURE__ */ Symbol("STYLER");
+    IS_EMPTY2 = /* @__PURE__ */ Symbol("IS_EMPTY");
+    levelMapping2 = [
+      "ansi",
+      "ansi",
+      "ansi256",
+      "ansi16m"
+    ];
+    styles8 = /* @__PURE__ */ Object.create(null);
+    applyOptions2 = (object, options = {}) => {
+      if (options.level && !(Number.isInteger(options.level) && options.level >= 0 && options.level <= 3)) {
+        throw new Error("The `level` option should be an integer from 0 to 3");
+      }
+      const colorLevel = stdoutColor2 ? stdoutColor2.level : 0;
+      object.level = options.level === void 0 ? colorLevel : options.level;
+    };
+    chalkFactory2 = (options) => {
+      const chalk4 = (...strings) => strings.join(" ");
+      applyOptions2(chalk4, options);
+      Object.setPrototypeOf(chalk4, createChalk2.prototype);
+      return chalk4;
+    };
+    Object.setPrototypeOf(createChalk2.prototype, Function.prototype);
+    for (const [styleName, style] of Object.entries(ansi_styles_default4)) {
+      styles8[styleName] = {
+        get() {
+          const builder = createBuilder2(this, createStyler2(style.open, style.close, this[STYLER2]), this[IS_EMPTY2]);
+          Object.defineProperty(this, styleName, { value: builder });
+          return builder;
+        }
+      };
+    }
+    styles8.visible = {
+      get() {
+        const builder = createBuilder2(this, this[STYLER2], true);
+        Object.defineProperty(this, "visible", { value: builder });
+        return builder;
+      }
+    };
+    getModelAnsi2 = (model, level, type, ...arguments_) => {
+      if (model === "rgb") {
+        if (level === "ansi16m") {
+          return ansi_styles_default4[type].ansi16m(...arguments_);
+        }
+        if (level === "ansi256") {
+          return ansi_styles_default4[type].ansi256(ansi_styles_default4.rgbToAnsi256(...arguments_));
+        }
+        return ansi_styles_default4[type].ansi(ansi_styles_default4.rgbToAnsi(...arguments_));
+      }
+      if (model === "hex") {
+        return getModelAnsi2("rgb", level, type, ...ansi_styles_default4.hexToRgb(...arguments_));
+      }
+      return ansi_styles_default4[type][model](...arguments_);
+    };
+    usedModels2 = ["rgb", "hex", "ansi256"];
+    for (const model of usedModels2) {
+      styles8[model] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler2(getModelAnsi2(model, levelMapping2[level], "color", ...arguments_), ansi_styles_default4.color.close, this[STYLER2]);
+            return createBuilder2(this, styler, this[IS_EMPTY2]);
+          };
+        }
+      };
+      const bgModel = "bg" + model[0].toUpperCase() + model.slice(1);
+      styles8[bgModel] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler2(getModelAnsi2(model, levelMapping2[level], "bgColor", ...arguments_), ansi_styles_default4.bgColor.close, this[STYLER2]);
+            return createBuilder2(this, styler, this[IS_EMPTY2]);
+          };
+        }
+      };
+    }
+    proto2 = Object.defineProperties(() => {
+    }, {
+      ...styles8,
+      level: {
+        enumerable: true,
+        get() {
+          return this[GENERATOR2].level;
+        },
+        set(level) {
+          this[GENERATOR2].level = level;
+        }
+      }
+    });
+    createStyler2 = (open, close, parent) => {
+      let openAll;
+      let closeAll;
+      if (parent === void 0) {
+        openAll = open;
+        closeAll = close;
+      } else {
+        openAll = parent.openAll + open;
+        closeAll = close + parent.closeAll;
+      }
+      return {
+        open,
+        close,
+        openAll,
+        closeAll,
+        parent
+      };
+    };
+    createBuilder2 = (self2, _styler, _isEmpty) => {
+      const builder = (...arguments_) => applyStyle2(builder, arguments_.length === 1 ? "" + arguments_[0] : arguments_.join(" "));
+      Object.setPrototypeOf(builder, proto2);
+      builder[GENERATOR2] = self2;
+      builder[STYLER2] = _styler;
+      builder[IS_EMPTY2] = _isEmpty;
+      return builder;
+    };
+    applyStyle2 = (self2, string) => {
+      if (self2.level <= 0 || !string) {
+        return self2[IS_EMPTY2] ? "" : string;
+      }
+      let styler = self2[STYLER2];
+      if (styler === void 0) {
+        return string;
+      }
+      const { openAll, closeAll } = styler;
+      if (string.includes("\x1B")) {
+        while (styler !== void 0) {
+          string = stringReplaceAll2(string, styler.close, styler.open);
+          styler = styler.parent;
+        }
+      }
+      const lfIndex = string.indexOf("\n");
+      if (lfIndex !== -1) {
+        string = stringEncaseCRLFWithFirstIndex2(string, closeAll, openAll, lfIndex);
+      }
+      return openAll + string + closeAll;
+    };
+    Object.defineProperties(createChalk2.prototype, styles8);
+    chalk2 = createChalk2();
+    chalkStderr2 = createChalk2({ level: stderrColor2 ? stderrColor2.level : 0 });
+    source_default2 = chalk2;
+  }
+});
+
+// ../node_modules/ink/build/colorize.js
+var rgbRegex, ansiRegex4, isNamedColor, colorize2, colorize_default;
 var init_colorize2 = __esm({
-  "node_modules/ink/build/colorize.js"() {
-    init_source();
+  "../node_modules/ink/build/colorize.js"() {
+    init_source2();
     rgbRegex = /^rgb\(\s?(\d+),\s?(\d+),\s?(\d+)\s?\)$/;
-    ansiRegex2 = /^ansi256\(\s?(\d+)\s?\)$/;
+    ansiRegex4 = /^ansi256\(\s?(\d+)\s?\)$/;
     isNamedColor = (color) => {
-      return color in source_default;
+      return color in source_default2;
     };
     colorize2 = (str, color, type) => {
       if (!color) {
@@ -52668,21 +53738,21 @@ var init_colorize2 = __esm({
       }
       if (isNamedColor(color)) {
         if (type === "foreground") {
-          return source_default[color](str);
+          return source_default2[color](str);
         }
         const methodName = `bg${color[0].toUpperCase() + color.slice(1)}`;
-        return source_default[methodName](str);
+        return source_default2[methodName](str);
       }
       if (color.startsWith("#")) {
-        return type === "foreground" ? source_default.hex(color)(str) : source_default.bgHex(color)(str);
+        return type === "foreground" ? source_default2.hex(color)(str) : source_default2.bgHex(color)(str);
       }
       if (color.startsWith("ansi256")) {
-        const matches = ansiRegex2.exec(color);
+        const matches = ansiRegex4.exec(color);
         if (!matches) {
           return str;
         }
         const value = Number(matches[1]);
-        return type === "foreground" ? source_default.ansi256(value)(str) : source_default.bgAnsi256(value)(str);
+        return type === "foreground" ? source_default2.ansi256(value)(str) : source_default2.bgAnsi256(value)(str);
       }
       if (color.startsWith("rgb")) {
         const matches = rgbRegex.exec(color);
@@ -52692,7 +53762,7 @@ var init_colorize2 = __esm({
         const firstValue = Number(matches[1]);
         const secondValue = Number(matches[2]);
         const thirdValue = Number(matches[3]);
-        return type === "foreground" ? source_default.rgb(firstValue, secondValue, thirdValue)(str) : source_default.bgRgb(firstValue, secondValue, thirdValue)(str);
+        return type === "foreground" ? source_default2.rgb(firstValue, secondValue, thirdValue)(str) : source_default2.bgRgb(firstValue, secondValue, thirdValue)(str);
       }
       return str;
     };
@@ -52700,25 +53770,25 @@ var init_colorize2 = __esm({
   }
 });
 
-// node_modules/ink/build/render-border.js
+// ../node_modules/ink/build/render-border.js
 var import_cli_boxes2;
 var init_render_border2 = __esm({
-  "node_modules/ink/build/render-border.js"() {
+  "../node_modules/ink/build/render-border.js"() {
     import_cli_boxes2 = __toESM(require_cli_boxes(), 1);
     init_colorize2();
   }
 });
 
-// node_modules/ink/build/render-background.js
+// ../node_modules/ink/build/render-background.js
 var init_render_background = __esm({
-  "node_modules/ink/build/render-background.js"() {
+  "../node_modules/ink/build/render-background.js"() {
     init_colorize2();
   }
 });
 
-// node_modules/ink/build/render-node-to-output.js
+// ../node_modules/ink/build/render-node-to-output.js
 var init_render_node_to_output2 = __esm({
-  async "node_modules/ink/build/render-node-to-output.js"() {
+  async "../node_modules/ink/build/render-node-to-output.js"() {
     init_indent_string();
     await init_src();
     init_wrap_text2();
@@ -52729,18 +53799,209 @@ var init_render_node_to_output2 = __esm({
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js
+// ../node_modules/@alcalzone/ansi-tokenize/node_modules/ansi-styles/index.js
+function assembleStyles5() {
+  const codes = /* @__PURE__ */ new Map();
+  for (const [groupName, group] of Object.entries(styles9)) {
+    for (const [styleName, style] of Object.entries(group)) {
+      styles9[styleName] = {
+        open: `\x1B[${style[0]}m`,
+        close: `\x1B[${style[1]}m`
+      };
+      group[styleName] = styles9[styleName];
+      codes.set(style[0], style[1]);
+    }
+    Object.defineProperty(styles9, groupName, {
+      value: group,
+      enumerable: false
+    });
+  }
+  Object.defineProperty(styles9, "codes", {
+    value: codes,
+    enumerable: false
+  });
+  styles9.color.close = "\x1B[39m";
+  styles9.bgColor.close = "\x1B[49m";
+  styles9.color.ansi = wrapAnsi165();
+  styles9.color.ansi256 = wrapAnsi2565();
+  styles9.color.ansi16m = wrapAnsi16m5();
+  styles9.bgColor.ansi = wrapAnsi165(ANSI_BACKGROUND_OFFSET5);
+  styles9.bgColor.ansi256 = wrapAnsi2565(ANSI_BACKGROUND_OFFSET5);
+  styles9.bgColor.ansi16m = wrapAnsi16m5(ANSI_BACKGROUND_OFFSET5);
+  Object.defineProperties(styles9, {
+    rgbToAnsi256: {
+      value(red, green, blue) {
+        if (red === green && green === blue) {
+          if (red < 8) {
+            return 16;
+          }
+          if (red > 248) {
+            return 231;
+          }
+          return Math.round((red - 8) / 247 * 24) + 232;
+        }
+        return 16 + 36 * Math.round(red / 255 * 5) + 6 * Math.round(green / 255 * 5) + Math.round(blue / 255 * 5);
+      },
+      enumerable: false
+    },
+    hexToRgb: {
+      value(hex) {
+        const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+        if (!matches) {
+          return [0, 0, 0];
+        }
+        let [colorString] = matches;
+        if (colorString.length === 3) {
+          colorString = [...colorString].map((character) => character + character).join("");
+        }
+        const integer = Number.parseInt(colorString, 16);
+        return [
+          /* eslint-disable no-bitwise */
+          integer >> 16 & 255,
+          integer >> 8 & 255,
+          integer & 255
+          /* eslint-enable no-bitwise */
+        ];
+      },
+      enumerable: false
+    },
+    hexToAnsi256: {
+      value: (hex) => styles9.rgbToAnsi256(...styles9.hexToRgb(hex)),
+      enumerable: false
+    },
+    ansi256ToAnsi: {
+      value(code) {
+        if (code < 8) {
+          return 30 + code;
+        }
+        if (code < 16) {
+          return 90 + (code - 8);
+        }
+        let red;
+        let green;
+        let blue;
+        if (code >= 232) {
+          red = ((code - 232) * 10 + 8) / 255;
+          green = red;
+          blue = red;
+        } else {
+          code -= 16;
+          const remainder = code % 36;
+          red = Math.floor(code / 36) / 5;
+          green = Math.floor(remainder / 6) / 5;
+          blue = remainder % 6 / 5;
+        }
+        const value = Math.max(red, green, blue) * 2;
+        if (value === 0) {
+          return 30;
+        }
+        let result = 30 + (Math.round(blue) << 2 | Math.round(green) << 1 | Math.round(red));
+        if (value === 2) {
+          result += 60;
+        }
+        return result;
+      },
+      enumerable: false
+    },
+    rgbToAnsi: {
+      value: (red, green, blue) => styles9.ansi256ToAnsi(styles9.rgbToAnsi256(red, green, blue)),
+      enumerable: false
+    },
+    hexToAnsi: {
+      value: (hex) => styles9.ansi256ToAnsi(styles9.hexToAnsi256(hex)),
+      enumerable: false
+    }
+  });
+  return styles9;
+}
+var ANSI_BACKGROUND_OFFSET5, wrapAnsi165, wrapAnsi2565, wrapAnsi16m5, styles9, modifierNames5, foregroundColorNames5, backgroundColorNames5, colorNames5, ansiStyles5, ansi_styles_default5;
+var init_ansi_styles5 = __esm({
+  "../node_modules/@alcalzone/ansi-tokenize/node_modules/ansi-styles/index.js"() {
+    ANSI_BACKGROUND_OFFSET5 = 10;
+    wrapAnsi165 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
+    wrapAnsi2565 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
+    wrapAnsi16m5 = (offset = 0) => (red, green, blue) => `\x1B[${38 + offset};2;${red};${green};${blue}m`;
+    styles9 = {
+      modifier: {
+        reset: [0, 0],
+        // 21 isn't widely supported and 22 does the same thing
+        bold: [1, 22],
+        dim: [2, 22],
+        italic: [3, 23],
+        underline: [4, 24],
+        overline: [53, 55],
+        inverse: [7, 27],
+        hidden: [8, 28],
+        strikethrough: [9, 29]
+      },
+      color: {
+        black: [30, 39],
+        red: [31, 39],
+        green: [32, 39],
+        yellow: [33, 39],
+        blue: [34, 39],
+        magenta: [35, 39],
+        cyan: [36, 39],
+        white: [37, 39],
+        // Bright color
+        blackBright: [90, 39],
+        gray: [90, 39],
+        // Alias of `blackBright`
+        grey: [90, 39],
+        // Alias of `blackBright`
+        redBright: [91, 39],
+        greenBright: [92, 39],
+        yellowBright: [93, 39],
+        blueBright: [94, 39],
+        magentaBright: [95, 39],
+        cyanBright: [96, 39],
+        whiteBright: [97, 39]
+      },
+      bgColor: {
+        bgBlack: [40, 49],
+        bgRed: [41, 49],
+        bgGreen: [42, 49],
+        bgYellow: [43, 49],
+        bgBlue: [44, 49],
+        bgMagenta: [45, 49],
+        bgCyan: [46, 49],
+        bgWhite: [47, 49],
+        // Bright color
+        bgBlackBright: [100, 49],
+        bgGray: [100, 49],
+        // Alias of `bgBlackBright`
+        bgGrey: [100, 49],
+        // Alias of `bgBlackBright`
+        bgRedBright: [101, 49],
+        bgGreenBright: [102, 49],
+        bgYellowBright: [103, 49],
+        bgBlueBright: [104, 49],
+        bgMagentaBright: [105, 49],
+        bgCyanBright: [106, 49],
+        bgWhiteBright: [107, 49]
+      }
+    };
+    modifierNames5 = Object.keys(styles9.modifier);
+    foregroundColorNames5 = Object.keys(styles9.color);
+    backgroundColorNames5 = Object.keys(styles9.bgColor);
+    colorNames5 = [...foregroundColorNames5, ...backgroundColorNames5];
+    ansiStyles5 = assembleStyles5();
+    ansi_styles_default5 = ansiStyles5;
+  }
+});
+
+// ../node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js
 var CSI2, OSC3, endCodesSet2, endCodesMap2, linkCodePrefix, linkCodePrefixCharCodes, linkCodeSuffix2, linkCodeSuffixCharCode2, linkEndCode2;
 var init_ansiCodes2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js"() {
-    init_ansi_styles();
+  "../node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js"() {
+    init_ansi_styles5();
     CSI2 = "[".codePointAt(0);
     OSC3 = "]".codePointAt(0);
     endCodesSet2 = /* @__PURE__ */ new Set();
     endCodesMap2 = /* @__PURE__ */ new Map();
-    for (const [start, end] of ansi_styles_default.codes) {
-      endCodesSet2.add(ansi_styles_default.color.ansi(end));
-      endCodesMap2.set(ansi_styles_default.color.ansi(start), ansi_styles_default.color.ansi(end));
+    for (const [start, end] of ansi_styles_default5.codes) {
+      endCodesSet2.add(ansi_styles_default5.color.ansi(end));
+      endCodesMap2.set(ansi_styles_default5.color.ansi(start), ansi_styles_default5.color.ansi(end));
     }
     linkCodePrefix = "\x1B]8;";
     linkCodePrefixCharCodes = linkCodePrefix.split("").map((char) => char.charCodeAt(0));
@@ -52750,44 +54011,44 @@ var init_ansiCodes2 = __esm({
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/reduce.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/reduce.js
 var init_reduce2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/reduce.js"() {
-    init_ansi_styles();
+  "../node_modules/@alcalzone/ansi-tokenize/build/reduce.js"() {
+    init_ansi_styles5();
     init_ansiCodes2();
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/undo.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/undo.js
 var init_undo2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/undo.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/undo.js"() {
     init_reduce2();
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/diff.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/diff.js
 var init_diff2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/diff.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/diff.js"() {
     init_ansiCodes2();
     init_undo2();
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/styledChars.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/styledChars.js
 var init_styledChars2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/styledChars.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/styledChars.js"() {
     init_ansiCodes2();
     init_diff2();
     init_reduce2();
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/tokenize.js
-var segmenter3, CC_0, CC_9, CC_SEMI, CC_M;
+// ../node_modules/@alcalzone/ansi-tokenize/build/tokenize.js
+var segmenter5, CC_0, CC_9, CC_SEMI, CC_M;
 var init_tokenize3 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/tokenize.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/tokenize.js"() {
     init_ansiCodes2();
-    segmenter3 = new Intl.Segmenter(void 0, { granularity: "grapheme" });
+    segmenter5 = new Intl.Segmenter(void 0, { granularity: "grapheme" });
     CC_0 = "0".charCodeAt(0);
     CC_9 = "9".charCodeAt(0);
     CC_SEMI = ";".charCodeAt(0);
@@ -52795,9 +54056,9 @@ var init_tokenize3 = __esm({
   }
 });
 
-// node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/index.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/index.js
 var init_build2 = __esm({
-  "node_modules/ink/node_modules/@alcalzone/ansi-tokenize/build/index.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/index.js"() {
     init_ansiCodes2();
     init_diff2();
     init_reduce2();
@@ -52807,24 +54068,24 @@ var init_build2 = __esm({
   }
 });
 
-// node_modules/ink/build/output.js
+// ../node_modules/ink/build/output.js
 var init_output2 = __esm({
-  "node_modules/ink/build/output.js"() {
+  "../node_modules/ink/build/output.js"() {
     init_build2();
   }
 });
 
-// node_modules/ink/build/renderer.js
+// ../node_modules/ink/build/renderer.js
 var init_renderer2 = __esm({
-  async "node_modules/ink/build/renderer.js"() {
+  async "../node_modules/ink/build/renderer.js"() {
     await init_render_node_to_output2();
     init_output2();
   }
 });
 
-// node_modules/mimic-fn/index.js
+// ../node_modules/mimic-fn/index.js
 var require_mimic_fn = __commonJS({
-  "node_modules/mimic-fn/index.js"(exports, module) {
+  "../node_modules/mimic-fn/index.js"(exports, module) {
     "use strict";
     var mimicFn = (to, from) => {
       for (const prop of Reflect.ownKeys(from)) {
@@ -52837,9 +54098,9 @@ var require_mimic_fn = __commonJS({
   }
 });
 
-// node_modules/onetime/index.js
+// ../node_modules/onetime/index.js
 var require_onetime = __commonJS({
-  "node_modules/onetime/index.js"(exports, module) {
+  "../node_modules/onetime/index.js"(exports, module) {
     "use strict";
     var mimicFn = require_mimic_fn();
     var calledFunctions = /* @__PURE__ */ new WeakMap();
@@ -52875,234 +54136,38 @@ var require_onetime = __commonJS({
   }
 });
 
-// node_modules/restore-cursor/node_modules/signal-exit/signals.js
-var require_signals2 = __commonJS({
-  "node_modules/restore-cursor/node_modules/signal-exit/signals.js"(exports, module) {
-    module.exports = [
-      "SIGABRT",
-      "SIGALRM",
-      "SIGHUP",
-      "SIGINT",
-      "SIGTERM"
-    ];
-    if (process.platform !== "win32") {
-      module.exports.push(
-        "SIGVTALRM",
-        "SIGXCPU",
-        "SIGXFSZ",
-        "SIGUSR2",
-        "SIGTRAP",
-        "SIGSYS",
-        "SIGQUIT",
-        "SIGIOT"
-        // should detect profiler and enable/disable accordingly.
-        // see #21
-        // 'SIGPROF'
-      );
-    }
-    if (process.platform === "linux") {
-      module.exports.push(
-        "SIGIO",
-        "SIGPOLL",
-        "SIGPWR",
-        "SIGSTKFLT",
-        "SIGUNUSED"
-      );
-    }
-  }
-});
-
-// node_modules/restore-cursor/node_modules/signal-exit/index.js
-var require_signal_exit2 = __commonJS({
-  "node_modules/restore-cursor/node_modules/signal-exit/index.js"(exports, module) {
-    var process11 = global.process;
-    var processOk2 = function(process12) {
-      return process12 && typeof process12 === "object" && typeof process12.removeListener === "function" && typeof process12.emit === "function" && typeof process12.reallyExit === "function" && typeof process12.listeners === "function" && typeof process12.kill === "function" && typeof process12.pid === "number" && typeof process12.on === "function";
-    };
-    if (!processOk2(process11)) {
-      module.exports = function() {
-        return function() {
-        };
-      };
-    } else {
-      assert = __require("assert");
-      signals2 = require_signals2();
-      isWin = /^win/i.test(process11.platform);
-      EE = __require("events");
-      if (typeof EE !== "function") {
-        EE = EE.EventEmitter;
-      }
-      if (process11.__signal_exit_emitter__) {
-        emitter = process11.__signal_exit_emitter__;
-      } else {
-        emitter = process11.__signal_exit_emitter__ = new EE();
-        emitter.count = 0;
-        emitter.emitted = {};
-      }
-      if (!emitter.infinite) {
-        emitter.setMaxListeners(Infinity);
-        emitter.infinite = true;
-      }
-      module.exports = function(cb, opts) {
-        if (!processOk2(global.process)) {
-          return function() {
-          };
-        }
-        assert.equal(typeof cb, "function", "a callback must be provided for exit handler");
-        if (loaded === false) {
-          load3();
-        }
-        var ev = "exit";
-        if (opts && opts.alwaysLast) {
-          ev = "afterexit";
-        }
-        var remove = function() {
-          emitter.removeListener(ev, cb);
-          if (emitter.listeners("exit").length === 0 && emitter.listeners("afterexit").length === 0) {
-            unload2();
-          }
-        };
-        emitter.on(ev, cb);
-        return remove;
-      };
-      unload2 = function unload3() {
-        if (!loaded || !processOk2(global.process)) {
-          return;
-        }
-        loaded = false;
-        signals2.forEach(function(sig) {
-          try {
-            process11.removeListener(sig, sigListeners[sig]);
-          } catch (er) {
-          }
-        });
-        process11.emit = originalProcessEmit;
-        process11.reallyExit = originalProcessReallyExit;
-        emitter.count -= 1;
-      };
-      module.exports.unload = unload2;
-      emit2 = function emit3(event, code, signal) {
-        if (emitter.emitted[event]) {
-          return;
-        }
-        emitter.emitted[event] = true;
-        emitter.emit(event, code, signal);
-      };
-      sigListeners = {};
-      signals2.forEach(function(sig) {
-        sigListeners[sig] = function listener() {
-          if (!processOk2(global.process)) {
-            return;
-          }
-          var listeners = process11.listeners(sig);
-          if (listeners.length === emitter.count) {
-            unload2();
-            emit2("exit", null, sig);
-            emit2("afterexit", null, sig);
-            if (isWin && sig === "SIGHUP") {
-              sig = "SIGINT";
-            }
-            process11.kill(process11.pid, sig);
-          }
-        };
-      });
-      module.exports.signals = function() {
-        return signals2;
-      };
-      loaded = false;
-      load3 = function load4() {
-        if (loaded || !processOk2(global.process)) {
-          return;
-        }
-        loaded = true;
-        emitter.count += 1;
-        signals2 = signals2.filter(function(sig) {
-          try {
-            process11.on(sig, sigListeners[sig]);
-            return true;
-          } catch (er) {
-            return false;
-          }
-        });
-        process11.emit = processEmit;
-        process11.reallyExit = processReallyExit;
-      };
-      module.exports.load = load3;
-      originalProcessReallyExit = process11.reallyExit;
-      processReallyExit = function processReallyExit2(code) {
-        if (!processOk2(global.process)) {
-          return;
-        }
-        process11.exitCode = code || /* istanbul ignore next */
-        0;
-        emit2("exit", process11.exitCode, null);
-        emit2("afterexit", process11.exitCode, null);
-        originalProcessReallyExit.call(process11, process11.exitCode);
-      };
-      originalProcessEmit = process11.emit;
-      processEmit = function processEmit2(ev, arg) {
-        if (ev === "exit" && processOk2(global.process)) {
-          if (arg !== void 0) {
-            process11.exitCode = arg;
-          }
-          var ret = originalProcessEmit.apply(this, arguments);
-          emit2("exit", process11.exitCode, null);
-          emit2("afterexit", process11.exitCode, null);
-          return ret;
-        } else {
-          return originalProcessEmit.apply(this, arguments);
-        }
-      };
-    }
-    var assert;
-    var signals2;
-    var isWin;
-    var EE;
-    var emitter;
-    var unload2;
-    var emit2;
-    var sigListeners;
-    var loaded;
-    var load3;
-    var originalProcessReallyExit;
-    var processReallyExit;
-    var originalProcessEmit;
-    var processEmit;
-  }
-});
-
-// node_modules/restore-cursor/index.js
-import process5 from "node:process";
+// ../node_modules/restore-cursor/index.js
+import process6 from "node:process";
 var import_onetime, import_signal_exit2, restoreCursor, restore_cursor_default;
 var init_restore_cursor = __esm({
-  "node_modules/restore-cursor/index.js"() {
+  "../node_modules/restore-cursor/index.js"() {
     import_onetime = __toESM(require_onetime(), 1);
-    import_signal_exit2 = __toESM(require_signal_exit2(), 1);
+    import_signal_exit2 = __toESM(require_signal_exit(), 1);
     restoreCursor = (0, import_onetime.default)(() => {
       (0, import_signal_exit2.default)(() => {
-        process5.stderr.write("\x1B[?25h");
+        process6.stderr.write("\x1B[?25h");
       }, { alwaysLast: true });
     });
     restore_cursor_default = restoreCursor;
   }
 });
 
-// node_modules/cli-cursor/index.js
-import process6 from "node:process";
+// ../node_modules/cli-cursor/index.js
+import process7 from "node:process";
 var isHidden, cliCursor, cli_cursor_default;
 var init_cli_cursor = __esm({
-  "node_modules/cli-cursor/index.js"() {
+  "../node_modules/cli-cursor/index.js"() {
     init_restore_cursor();
     isHidden = false;
     cliCursor = {};
-    cliCursor.show = (writableStream = process6.stderr) => {
+    cliCursor.show = (writableStream = process7.stderr) => {
       if (!writableStream.isTTY) {
         return;
       }
       isHidden = false;
       writableStream.write("\x1B[?25h");
     };
-    cliCursor.hide = (writableStream = process6.stderr) => {
+    cliCursor.hide = (writableStream = process7.stderr) => {
       if (!writableStream.isTTY) {
         return;
       }
@@ -53124,36 +54189,36 @@ var init_cli_cursor = __esm({
   }
 });
 
-// node_modules/ink/build/cursor-helpers.js
+// ../node_modules/ink/build/cursor-helpers.js
 var init_cursor_helpers = __esm({
-  "node_modules/ink/build/cursor-helpers.js"() {
+  "../node_modules/ink/build/cursor-helpers.js"() {
   }
 });
 
-// node_modules/ink/build/log-update.js
+// ../node_modules/ink/build/log-update.js
 var init_log_update2 = __esm({
-  "node_modules/ink/build/log-update.js"() {
+  "../node_modules/ink/build/log-update.js"() {
     init_cli_cursor();
     init_cursor_helpers();
   }
 });
 
-// node_modules/ink/build/write-synchronized.js
+// ../node_modules/ink/build/write-synchronized.js
 var init_write_synchronized = __esm({
-  "node_modules/ink/build/write-synchronized.js"() {
+  "../node_modules/ink/build/write-synchronized.js"() {
   }
 });
 
-// node_modules/ink/build/instances.js
+// ../node_modules/ink/build/instances.js
 var init_instances2 = __esm({
-  "node_modules/ink/build/instances.js"() {
+  "../node_modules/ink/build/instances.js"() {
   }
 });
 
-// node_modules/ink/build/input-parser.js
+// ../node_modules/ink/build/input-parser.js
 var escape, isCsiParameterByte, isCsiIntermediateByte, isCsiFinalByte, parseCsiSequence, parseSs3Sequence, parseControlSequence, parseEscapedCodePoint, parseKeypresses, createInputParser;
 var init_input_parser = __esm({
-  "node_modules/ink/build/input-parser.js"() {
+  "../node_modules/ink/build/input-parser.js"() {
     escape = "\x1B";
     isCsiParameterByte = (byte) => {
       return byte >= 48 && byte <= 63;
@@ -53309,10 +54374,10 @@ var init_input_parser = __esm({
   }
 });
 
-// node_modules/ink/build/components/AppContext.js
+// ../node_modules/ink/build/components/AppContext.js
 var import_react28, AppContext2, AppContext_default2;
 var init_AppContext2 = __esm({
-  "node_modules/ink/build/components/AppContext.js"() {
+  "../node_modules/ink/build/components/AppContext.js"() {
     import_react28 = __toESM(require_react(), 1);
     AppContext2 = (0, import_react28.createContext)({
       exit() {
@@ -53323,15 +54388,15 @@ var init_AppContext2 = __esm({
   }
 });
 
-// node_modules/ink/build/components/StdinContext.js
+// ../node_modules/ink/build/components/StdinContext.js
 import { EventEmitter as EventEmitter3 } from "node:events";
-import process7 from "node:process";
+import process8 from "node:process";
 var import_react29, StdinContext2, StdinContext_default2;
 var init_StdinContext2 = __esm({
-  "node_modules/ink/build/components/StdinContext.js"() {
+  "../node_modules/ink/build/components/StdinContext.js"() {
     import_react29 = __toESM(require_react(), 1);
     StdinContext2 = (0, import_react29.createContext)({
-      stdin: process7.stdin,
+      stdin: process8.stdin,
       // eslint-disable-next-line @typescript-eslint/naming-convention
       internal_eventEmitter: new EventEmitter3(),
       setRawMode() {
@@ -53345,14 +54410,14 @@ var init_StdinContext2 = __esm({
   }
 });
 
-// node_modules/ink/build/components/StdoutContext.js
-import process8 from "node:process";
+// ../node_modules/ink/build/components/StdoutContext.js
+import process9 from "node:process";
 var import_react30, StdoutContext, StdoutContext_default;
 var init_StdoutContext = __esm({
-  "node_modules/ink/build/components/StdoutContext.js"() {
+  "../node_modules/ink/build/components/StdoutContext.js"() {
     import_react30 = __toESM(require_react(), 1);
     StdoutContext = (0, import_react30.createContext)({
-      stdout: process8.stdout,
+      stdout: process9.stdout,
       write() {
       }
     });
@@ -53361,14 +54426,14 @@ var init_StdoutContext = __esm({
   }
 });
 
-// node_modules/ink/build/components/StderrContext.js
-import process9 from "node:process";
+// ../node_modules/ink/build/components/StderrContext.js
+import process10 from "node:process";
 var import_react31, StderrContext, StderrContext_default;
 var init_StderrContext = __esm({
-  "node_modules/ink/build/components/StderrContext.js"() {
+  "../node_modules/ink/build/components/StderrContext.js"() {
     import_react31 = __toESM(require_react(), 1);
     StderrContext = (0, import_react31.createContext)({
-      stderr: process9.stderr,
+      stderr: process10.stderr,
       write() {
       }
     });
@@ -53377,10 +54442,10 @@ var init_StderrContext = __esm({
   }
 });
 
-// node_modules/ink/build/components/FocusContext.js
+// ../node_modules/ink/build/components/FocusContext.js
 var import_react32, FocusContext, FocusContext_default;
 var init_FocusContext = __esm({
-  "node_modules/ink/build/components/FocusContext.js"() {
+  "../node_modules/ink/build/components/FocusContext.js"() {
     import_react32 = __toESM(require_react(), 1);
     FocusContext = (0, import_react32.createContext)({
       activeId: void 0,
@@ -53408,10 +54473,10 @@ var init_FocusContext = __esm({
   }
 });
 
-// node_modules/ink/build/components/CursorContext.js
+// ../node_modules/ink/build/components/CursorContext.js
 var import_react33, CursorContext, CursorContext_default;
 var init_CursorContext = __esm({
-  "node_modules/ink/build/components/CursorContext.js"() {
+  "../node_modules/ink/build/components/CursorContext.js"() {
     import_react33 = __toESM(require_react(), 1);
     CursorContext = (0, import_react33.createContext)({
       setCursorPosition() {
@@ -53422,10 +54487,10 @@ var init_CursorContext = __esm({
   }
 });
 
-// node_modules/ink/build/components/AccessibilityContext.js
+// ../node_modules/ink/build/components/AccessibilityContext.js
 var import_react34, accessibilityContext;
 var init_AccessibilityContext = __esm({
-  "node_modules/ink/build/components/AccessibilityContext.js"() {
+  "../node_modules/ink/build/components/AccessibilityContext.js"() {
     import_react34 = __toESM(require_react(), 1);
     accessibilityContext = (0, import_react34.createContext)({
       isScreenReaderEnabled: false
@@ -53433,19 +54498,19 @@ var init_AccessibilityContext = __esm({
   }
 });
 
-// node_modules/ink/build/components/BackgroundContext.js
+// ../node_modules/ink/build/components/BackgroundContext.js
 var import_react35, backgroundContext;
 var init_BackgroundContext = __esm({
-  "node_modules/ink/build/components/BackgroundContext.js"() {
+  "../node_modules/ink/build/components/BackgroundContext.js"() {
     import_react35 = __toESM(require_react(), 1);
     backgroundContext = (0, import_react35.createContext)(void 0);
   }
 });
 
-// node_modules/ink/build/components/Box.js
+// ../node_modules/ink/build/components/Box.js
 var import_react36, Box2, Box_default2;
 var init_Box2 = __esm({
-  "node_modules/ink/build/components/Box.js"() {
+  "../node_modules/ink/build/components/Box.js"() {
     import_react36 = __toESM(require_react(), 1);
     init_AccessibilityContext();
     init_BackgroundContext();
@@ -53478,7 +54543,7 @@ var init_Box2 = __esm({
   }
 });
 
-// node_modules/ink/build/components/Text.js
+// ../node_modules/ink/build/components/Text.js
 function Text2({ color, backgroundColor, dimColor = false, bold = false, italic = false, underline = false, strikethrough = false, inverse = false, wrap = "wrap", children, "aria-label": ariaLabel, "aria-hidden": ariaHidden = false }) {
   const { isScreenReaderEnabled } = (0, import_react37.useContext)(accessibilityContext);
   const inheritedBackgroundColor = (0, import_react37.useContext)(backgroundContext);
@@ -53488,7 +54553,7 @@ function Text2({ color, backgroundColor, dimColor = false, bold = false, italic 
   }
   const transform = (children2) => {
     if (dimColor) {
-      children2 = source_default.dim(children2);
+      children2 = source_default2.dim(children2);
     }
     if (color) {
       children2 = colorize_default(children2, color, "foreground");
@@ -53498,19 +54563,19 @@ function Text2({ color, backgroundColor, dimColor = false, bold = false, italic 
       children2 = colorize_default(children2, effectiveBackgroundColor, "background");
     }
     if (bold) {
-      children2 = source_default.bold(children2);
+      children2 = source_default2.bold(children2);
     }
     if (italic) {
-      children2 = source_default.italic(children2);
+      children2 = source_default2.italic(children2);
     }
     if (underline) {
-      children2 = source_default.underline(children2);
+      children2 = source_default2.underline(children2);
     }
     if (strikethrough) {
-      children2 = source_default.strikethrough(children2);
+      children2 = source_default2.strikethrough(children2);
     }
     if (inverse) {
-      children2 = source_default.inverse(children2);
+      children2 = source_default2.inverse(children2);
     }
     return children2;
   };
@@ -53521,16 +54586,16 @@ function Text2({ color, backgroundColor, dimColor = false, bold = false, italic 
 }
 var import_react37;
 var init_Text2 = __esm({
-  "node_modules/ink/build/components/Text.js"() {
+  "../node_modules/ink/build/components/Text.js"() {
     import_react37 = __toESM(require_react(), 1);
-    init_source();
+    init_source2();
     init_colorize2();
     init_AccessibilityContext();
     init_BackgroundContext();
   }
 });
 
-// node_modules/ink/build/components/ErrorOverview.js
+// ../node_modules/ink/build/components/ErrorOverview.js
 import * as fs from "node:fs";
 import { cwd } from "node:process";
 function ErrorOverview2({ error }) {
@@ -53635,7 +54700,7 @@ function ErrorOverview2({ error }) {
 }
 var import_react38, import_stack_utils2, cleanupPath2, stackUtils2;
 var init_ErrorOverview2 = __esm({
-  "node_modules/ink/build/components/ErrorOverview.js"() {
+  "../node_modules/ink/build/components/ErrorOverview.js"() {
     import_react38 = __toESM(require_react(), 1);
     import_stack_utils2 = __toESM(require_stack_utils(), 1);
     init_dist3();
@@ -53651,10 +54716,10 @@ var init_ErrorOverview2 = __esm({
   }
 });
 
-// node_modules/ink/build/components/ErrorBoundary.js
+// ../node_modules/ink/build/components/ErrorBoundary.js
 var import_react39, ErrorBoundary;
 var init_ErrorBoundary = __esm({
-  "node_modules/ink/build/components/ErrorBoundary.js"() {
+  "../node_modules/ink/build/components/ErrorBoundary.js"() {
     import_react39 = __toESM(require_react(), 1);
     init_ErrorOverview2();
     ErrorBoundary = class extends import_react39.PureComponent {
@@ -53678,9 +54743,9 @@ var init_ErrorBoundary = __esm({
   }
 });
 
-// node_modules/ink/build/components/App.js
+// ../node_modules/ink/build/components/App.js
 import { EventEmitter as EventEmitter4 } from "node:events";
-import process10 from "node:process";
+import process11 from "node:process";
 function App2({ children, stdin, stdout, stderr, writeToStdout, writeToStderr, exitOnCtrlC, onExit: onExit2, setCursorPosition }) {
   const [isFocusEnabled, setIsFocusEnabled] = (0, import_react40.useState)(true);
   const [activeFocusId, setActiveFocusId] = (0, import_react40.useState)(void 0);
@@ -53765,7 +54830,7 @@ function App2({ children, stdin, stdout, stderr, writeToStdout, writeToStderr, e
   }, [stdin, emitInput, clearPendingInputFlush, schedulePendingInputFlush]);
   const handleSetRawMode = (0, import_react40.useCallback)((isEnabled) => {
     if (!isRawModeSupported) {
-      if (stdin === process10.stdin) {
+      if (stdin === process11.stdin) {
         throw new Error("Raw mode is not supported on the current process.stdin, which Ink uses as input stream by default.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported");
       } else {
         throw new Error("Raw mode is not supported on the stdin provided to Ink.\nRead about how to prevent this error on https://github.com/vadimdemedes/ink/#israwmodesupported");
@@ -54010,7 +55075,7 @@ function App2({ children, stdin, stdout, stderr, writeToStdout, writeToStderr, e
 }
 var import_react40, tab, shiftTab, escape2;
 var init_App2 = __esm({
-  "node_modules/ink/build/components/App.js"() {
+  "../node_modules/ink/build/components/App.js"() {
     import_react40 = __toESM(require_react(), 1);
     init_cli_cursor();
     init_input_parser();
@@ -54028,10 +55093,10 @@ var init_App2 = __esm({
   }
 });
 
-// node_modules/ink/build/kitty-keyboard.js
+// ../node_modules/ink/build/kitty-keyboard.js
 var kittyModifiers;
 var init_kitty_keyboard = __esm({
-  "node_modules/ink/build/kitty-keyboard.js"() {
+  "../node_modules/ink/build/kitty-keyboard.js"() {
     kittyModifiers = {
       shift: 1,
       alt: 2,
@@ -54045,17 +55110,17 @@ var init_kitty_keyboard = __esm({
   }
 });
 
-// node_modules/ink/build/ink.js
+// ../node_modules/ink/build/ink.js
 var import_react41, import_signal_exit3, import_constants7;
 var init_ink2 = __esm({
-  async "node_modules/ink/build/ink.js"() {
+  async "../node_modules/ink/build/ink.js"() {
     import_react41 = __toESM(require_react(), 1);
     init_auto_bind();
     import_signal_exit3 = __toESM(require_signal_exit(), 1);
     init_dist4();
     import_constants7 = __toESM(require_constants2(), 1);
     await init_src();
-    init_wrap_ansi();
+    init_wrap_ansi2();
     init_utils();
     await init_reconciler2();
     await init_renderer2();
@@ -54069,18 +55134,18 @@ var init_ink2 = __esm({
   }
 });
 
-// node_modules/ink/build/render.js
+// ../node_modules/ink/build/render.js
 var init_render = __esm({
-  async "node_modules/ink/build/render.js"() {
+  async "../node_modules/ink/build/render.js"() {
     await init_ink2();
     init_instances2();
   }
 });
 
-// node_modules/ink/build/render-to-string.js
+// ../node_modules/ink/build/render-to-string.js
 var import_constants8;
 var init_render_to_string = __esm({
-  async "node_modules/ink/build/render-to-string.js"() {
+  async "../node_modules/ink/build/render-to-string.js"() {
     await init_src();
     import_constants8 = __toESM(require_constants2(), 1);
     await init_reconciler2();
@@ -54089,41 +55154,41 @@ var init_render_to_string = __esm({
   }
 });
 
-// node_modules/ink/build/components/Static.js
+// ../node_modules/ink/build/components/Static.js
 var import_react42;
 var init_Static = __esm({
-  "node_modules/ink/build/components/Static.js"() {
+  "../node_modules/ink/build/components/Static.js"() {
     import_react42 = __toESM(require_react(), 1);
   }
 });
 
-// node_modules/ink/build/components/Transform.js
+// ../node_modules/ink/build/components/Transform.js
 var import_react43;
 var init_Transform = __esm({
-  "node_modules/ink/build/components/Transform.js"() {
+  "../node_modules/ink/build/components/Transform.js"() {
     import_react43 = __toESM(require_react(), 1);
     init_AccessibilityContext();
   }
 });
 
-// node_modules/ink/build/components/Newline.js
+// ../node_modules/ink/build/components/Newline.js
 var import_react44;
 var init_Newline2 = __esm({
-  "node_modules/ink/build/components/Newline.js"() {
+  "../node_modules/ink/build/components/Newline.js"() {
     import_react44 = __toESM(require_react(), 1);
   }
 });
 
-// node_modules/ink/build/components/Spacer.js
+// ../node_modules/ink/build/components/Spacer.js
 var import_react45;
 var init_Spacer2 = __esm({
-  "node_modules/ink/build/components/Spacer.js"() {
+  "../node_modules/ink/build/components/Spacer.js"() {
     import_react45 = __toESM(require_react(), 1);
     init_Box2();
   }
 });
 
-// node_modules/ink/build/parse-keypress.js
+// ../node_modules/ink/build/parse-keypress.js
 import { Buffer as Buffer4 } from "node:buffer";
 function resolveEventType(value) {
   if (value === 3)
@@ -54146,7 +55211,7 @@ function parseKittyModifiers(modifiers) {
 }
 var metaKeyCodeRe, fnKeyRe, keyName2, nonAlphanumericKeys2, isShiftKey2, isCtrlKey2, kittyKeyRe, kittySpecialKeyRe, kittySpecialLetterKeys, kittySpecialNumberKeys, kittyCodepointNames, isValidCodepoint, safeFromCodePoint, parseKittyKeypress, parseKittySpecialKey, parseKeypress2, parse_keypress_default;
 var init_parse_keypress2 = __esm({
-  "node_modules/ink/build/parse-keypress.js"() {
+  "../node_modules/ink/build/parse-keypress.js"() {
     init_kitty_keyboard();
     metaKeyCodeRe = /^(?:\x1b)([a-zA-Z0-9])$/;
     fnKeyRe = /^(?:\x1b+)(O|N|\[|\[\[)(?:(\d+)(?:;(\d+))?([~^$])|(?:1;)?(\d+)?([a-zA-Z]))/;
@@ -54558,10 +55623,10 @@ var init_parse_keypress2 = __esm({
   }
 });
 
-// node_modules/ink/build/hooks/use-stdin.js
+// ../node_modules/ink/build/hooks/use-stdin.js
 var import_react46, useStdin2, use_stdin_default2;
 var init_use_stdin2 = __esm({
-  "node_modules/ink/build/hooks/use-stdin.js"() {
+  "../node_modules/ink/build/hooks/use-stdin.js"() {
     import_react46 = __toESM(require_react(), 1);
     init_StdinContext2();
     useStdin2 = () => (0, import_react46.useContext)(StdinContext_default2);
@@ -54569,10 +55634,10 @@ var init_use_stdin2 = __esm({
   }
 });
 
-// node_modules/ink/build/hooks/use-input.js
+// ../node_modules/ink/build/hooks/use-input.js
 var import_react47, useInput2, use_input_default2;
 var init_use_input2 = __esm({
-  async "node_modules/ink/build/hooks/use-input.js"() {
+  async "../node_modules/ink/build/hooks/use-input.js"() {
     import_react47 = __toESM(require_react(), 1);
     init_parse_keypress2();
     await init_reconciler2();
@@ -54661,79 +55726,79 @@ var init_use_input2 = __esm({
   }
 });
 
-// node_modules/ink/build/hooks/use-app.js
+// ../node_modules/ink/build/hooks/use-app.js
 var import_react48;
 var init_use_app2 = __esm({
-  "node_modules/ink/build/hooks/use-app.js"() {
+  "../node_modules/ink/build/hooks/use-app.js"() {
     import_react48 = __toESM(require_react(), 1);
     init_AppContext2();
   }
 });
 
-// node_modules/ink/build/hooks/use-stdout.js
+// ../node_modules/ink/build/hooks/use-stdout.js
 var import_react49;
 var init_use_stdout2 = __esm({
-  "node_modules/ink/build/hooks/use-stdout.js"() {
+  "../node_modules/ink/build/hooks/use-stdout.js"() {
     import_react49 = __toESM(require_react(), 1);
     init_StdoutContext();
   }
 });
 
-// node_modules/ink/build/hooks/use-stderr.js
+// ../node_modules/ink/build/hooks/use-stderr.js
 var import_react50;
 var init_use_stderr2 = __esm({
-  "node_modules/ink/build/hooks/use-stderr.js"() {
+  "../node_modules/ink/build/hooks/use-stderr.js"() {
     import_react50 = __toESM(require_react(), 1);
     init_StderrContext();
   }
 });
 
-// node_modules/ink/build/hooks/use-focus.js
+// ../node_modules/ink/build/hooks/use-focus.js
 var import_react51;
 var init_use_focus = __esm({
-  "node_modules/ink/build/hooks/use-focus.js"() {
+  "../node_modules/ink/build/hooks/use-focus.js"() {
     import_react51 = __toESM(require_react(), 1);
     init_FocusContext();
     init_use_stdin2();
   }
 });
 
-// node_modules/ink/build/hooks/use-focus-manager.js
+// ../node_modules/ink/build/hooks/use-focus-manager.js
 var import_react52;
 var init_use_focus_manager = __esm({
-  "node_modules/ink/build/hooks/use-focus-manager.js"() {
+  "../node_modules/ink/build/hooks/use-focus-manager.js"() {
     import_react52 = __toESM(require_react(), 1);
     init_FocusContext();
   }
 });
 
-// node_modules/ink/build/hooks/use-is-screen-reader-enabled.js
+// ../node_modules/ink/build/hooks/use-is-screen-reader-enabled.js
 var import_react53;
 var init_use_is_screen_reader_enabled = __esm({
-  "node_modules/ink/build/hooks/use-is-screen-reader-enabled.js"() {
+  "../node_modules/ink/build/hooks/use-is-screen-reader-enabled.js"() {
     import_react53 = __toESM(require_react(), 1);
     init_AccessibilityContext();
   }
 });
 
-// node_modules/ink/build/hooks/use-cursor.js
+// ../node_modules/ink/build/hooks/use-cursor.js
 var import_react54;
 var init_use_cursor = __esm({
-  "node_modules/ink/build/hooks/use-cursor.js"() {
+  "../node_modules/ink/build/hooks/use-cursor.js"() {
     import_react54 = __toESM(require_react(), 1);
     init_CursorContext();
   }
 });
 
-// node_modules/ink/build/measure-element.js
+// ../node_modules/ink/build/measure-element.js
 var init_measure_element2 = __esm({
-  "node_modules/ink/build/measure-element.js"() {
+  "../node_modules/ink/build/measure-element.js"() {
   }
 });
 
-// node_modules/ink/build/index.js
+// ../node_modules/ink/build/index.js
 var init_build3 = __esm({
-  async "node_modules/ink/build/index.js"() {
+  async "../node_modules/ink/build/index.js"() {
     await init_render();
     await init_render_to_string();
     init_Box2();
@@ -54756,7 +55821,523 @@ var init_build3 = __esm({
   }
 });
 
-// node_modules/ink-text-input/build/index.js
+// ../node_modules/ink-text-input/node_modules/chalk/source/vendor/ansi-styles/index.js
+function assembleStyles6() {
+  const codes = /* @__PURE__ */ new Map();
+  for (const [groupName, group] of Object.entries(styles10)) {
+    for (const [styleName, style] of Object.entries(group)) {
+      styles10[styleName] = {
+        open: `\x1B[${style[0]}m`,
+        close: `\x1B[${style[1]}m`
+      };
+      group[styleName] = styles10[styleName];
+      codes.set(style[0], style[1]);
+    }
+    Object.defineProperty(styles10, groupName, {
+      value: group,
+      enumerable: false
+    });
+  }
+  Object.defineProperty(styles10, "codes", {
+    value: codes,
+    enumerable: false
+  });
+  styles10.color.close = "\x1B[39m";
+  styles10.bgColor.close = "\x1B[49m";
+  styles10.color.ansi = wrapAnsi166();
+  styles10.color.ansi256 = wrapAnsi2566();
+  styles10.color.ansi16m = wrapAnsi16m6();
+  styles10.bgColor.ansi = wrapAnsi166(ANSI_BACKGROUND_OFFSET6);
+  styles10.bgColor.ansi256 = wrapAnsi2566(ANSI_BACKGROUND_OFFSET6);
+  styles10.bgColor.ansi16m = wrapAnsi16m6(ANSI_BACKGROUND_OFFSET6);
+  Object.defineProperties(styles10, {
+    rgbToAnsi256: {
+      value(red, green, blue) {
+        if (red === green && green === blue) {
+          if (red < 8) {
+            return 16;
+          }
+          if (red > 248) {
+            return 231;
+          }
+          return Math.round((red - 8) / 247 * 24) + 232;
+        }
+        return 16 + 36 * Math.round(red / 255 * 5) + 6 * Math.round(green / 255 * 5) + Math.round(blue / 255 * 5);
+      },
+      enumerable: false
+    },
+    hexToRgb: {
+      value(hex) {
+        const matches = /[a-f\d]{6}|[a-f\d]{3}/i.exec(hex.toString(16));
+        if (!matches) {
+          return [0, 0, 0];
+        }
+        let [colorString] = matches;
+        if (colorString.length === 3) {
+          colorString = [...colorString].map((character) => character + character).join("");
+        }
+        const integer = Number.parseInt(colorString, 16);
+        return [
+          /* eslint-disable no-bitwise */
+          integer >> 16 & 255,
+          integer >> 8 & 255,
+          integer & 255
+          /* eslint-enable no-bitwise */
+        ];
+      },
+      enumerable: false
+    },
+    hexToAnsi256: {
+      value: (hex) => styles10.rgbToAnsi256(...styles10.hexToRgb(hex)),
+      enumerable: false
+    },
+    ansi256ToAnsi: {
+      value(code) {
+        if (code < 8) {
+          return 30 + code;
+        }
+        if (code < 16) {
+          return 90 + (code - 8);
+        }
+        let red;
+        let green;
+        let blue;
+        if (code >= 232) {
+          red = ((code - 232) * 10 + 8) / 255;
+          green = red;
+          blue = red;
+        } else {
+          code -= 16;
+          const remainder = code % 36;
+          red = Math.floor(code / 36) / 5;
+          green = Math.floor(remainder / 6) / 5;
+          blue = remainder % 6 / 5;
+        }
+        const value = Math.max(red, green, blue) * 2;
+        if (value === 0) {
+          return 30;
+        }
+        let result = 30 + (Math.round(blue) << 2 | Math.round(green) << 1 | Math.round(red));
+        if (value === 2) {
+          result += 60;
+        }
+        return result;
+      },
+      enumerable: false
+    },
+    rgbToAnsi: {
+      value: (red, green, blue) => styles10.ansi256ToAnsi(styles10.rgbToAnsi256(red, green, blue)),
+      enumerable: false
+    },
+    hexToAnsi: {
+      value: (hex) => styles10.ansi256ToAnsi(styles10.hexToAnsi256(hex)),
+      enumerable: false
+    }
+  });
+  return styles10;
+}
+var ANSI_BACKGROUND_OFFSET6, wrapAnsi166, wrapAnsi2566, wrapAnsi16m6, styles10, modifierNames6, foregroundColorNames6, backgroundColorNames6, colorNames6, ansiStyles6, ansi_styles_default6;
+var init_ansi_styles6 = __esm({
+  "../node_modules/ink-text-input/node_modules/chalk/source/vendor/ansi-styles/index.js"() {
+    ANSI_BACKGROUND_OFFSET6 = 10;
+    wrapAnsi166 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
+    wrapAnsi2566 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
+    wrapAnsi16m6 = (offset = 0) => (red, green, blue) => `\x1B[${38 + offset};2;${red};${green};${blue}m`;
+    styles10 = {
+      modifier: {
+        reset: [0, 0],
+        // 21 isn't widely supported and 22 does the same thing
+        bold: [1, 22],
+        dim: [2, 22],
+        italic: [3, 23],
+        underline: [4, 24],
+        overline: [53, 55],
+        inverse: [7, 27],
+        hidden: [8, 28],
+        strikethrough: [9, 29]
+      },
+      color: {
+        black: [30, 39],
+        red: [31, 39],
+        green: [32, 39],
+        yellow: [33, 39],
+        blue: [34, 39],
+        magenta: [35, 39],
+        cyan: [36, 39],
+        white: [37, 39],
+        // Bright color
+        blackBright: [90, 39],
+        gray: [90, 39],
+        // Alias of `blackBright`
+        grey: [90, 39],
+        // Alias of `blackBright`
+        redBright: [91, 39],
+        greenBright: [92, 39],
+        yellowBright: [93, 39],
+        blueBright: [94, 39],
+        magentaBright: [95, 39],
+        cyanBright: [96, 39],
+        whiteBright: [97, 39]
+      },
+      bgColor: {
+        bgBlack: [40, 49],
+        bgRed: [41, 49],
+        bgGreen: [42, 49],
+        bgYellow: [43, 49],
+        bgBlue: [44, 49],
+        bgMagenta: [45, 49],
+        bgCyan: [46, 49],
+        bgWhite: [47, 49],
+        // Bright color
+        bgBlackBright: [100, 49],
+        bgGray: [100, 49],
+        // Alias of `bgBlackBright`
+        bgGrey: [100, 49],
+        // Alias of `bgBlackBright`
+        bgRedBright: [101, 49],
+        bgGreenBright: [102, 49],
+        bgYellowBright: [103, 49],
+        bgBlueBright: [104, 49],
+        bgMagentaBright: [105, 49],
+        bgCyanBright: [106, 49],
+        bgWhiteBright: [107, 49]
+      }
+    };
+    modifierNames6 = Object.keys(styles10.modifier);
+    foregroundColorNames6 = Object.keys(styles10.color);
+    backgroundColorNames6 = Object.keys(styles10.bgColor);
+    colorNames6 = [...foregroundColorNames6, ...backgroundColorNames6];
+    ansiStyles6 = assembleStyles6();
+    ansi_styles_default6 = ansiStyles6;
+  }
+});
+
+// ../node_modules/ink-text-input/node_modules/chalk/source/vendor/supports-color/index.js
+import process12 from "node:process";
+import os3 from "node:os";
+import tty3 from "node:tty";
+function hasFlag3(flag, argv = globalThis.Deno ? globalThis.Deno.args : process12.argv) {
+  const prefix = flag.startsWith("-") ? "" : flag.length === 1 ? "-" : "--";
+  const position = argv.indexOf(prefix + flag);
+  const terminatorPosition = argv.indexOf("--");
+  return position !== -1 && (terminatorPosition === -1 || position < terminatorPosition);
+}
+function envForceColor3() {
+  if ("FORCE_COLOR" in env4) {
+    if (env4.FORCE_COLOR === "true") {
+      return 1;
+    }
+    if (env4.FORCE_COLOR === "false") {
+      return 0;
+    }
+    return env4.FORCE_COLOR.length === 0 ? 1 : Math.min(Number.parseInt(env4.FORCE_COLOR, 10), 3);
+  }
+}
+function translateLevel3(level) {
+  if (level === 0) {
+    return false;
+  }
+  return {
+    level,
+    hasBasic: true,
+    has256: level >= 2,
+    has16m: level >= 3
+  };
+}
+function _supportsColor3(haveStream, { streamIsTTY, sniffFlags = true } = {}) {
+  const noFlagForceColor = envForceColor3();
+  if (noFlagForceColor !== void 0) {
+    flagForceColor3 = noFlagForceColor;
+  }
+  const forceColor = sniffFlags ? flagForceColor3 : noFlagForceColor;
+  if (forceColor === 0) {
+    return 0;
+  }
+  if (sniffFlags) {
+    if (hasFlag3("color=16m") || hasFlag3("color=full") || hasFlag3("color=truecolor")) {
+      return 3;
+    }
+    if (hasFlag3("color=256")) {
+      return 2;
+    }
+  }
+  if ("TF_BUILD" in env4 && "AGENT_NAME" in env4) {
+    return 1;
+  }
+  if (haveStream && !streamIsTTY && forceColor === void 0) {
+    return 0;
+  }
+  const min = forceColor || 0;
+  if (env4.TERM === "dumb") {
+    return min;
+  }
+  if (process12.platform === "win32") {
+    const osRelease = os3.release().split(".");
+    if (Number(osRelease[0]) >= 10 && Number(osRelease[2]) >= 10586) {
+      return Number(osRelease[2]) >= 14931 ? 3 : 2;
+    }
+    return 1;
+  }
+  if ("CI" in env4) {
+    if (["GITHUB_ACTIONS", "GITEA_ACTIONS", "CIRCLECI"].some((key) => key in env4)) {
+      return 3;
+    }
+    if (["TRAVIS", "APPVEYOR", "GITLAB_CI", "BUILDKITE", "DRONE"].some((sign) => sign in env4) || env4.CI_NAME === "codeship") {
+      return 1;
+    }
+    return min;
+  }
+  if ("TEAMCITY_VERSION" in env4) {
+    return /^(9\.(0*[1-9]\d*)\.|\d{2,}\.)/.test(env4.TEAMCITY_VERSION) ? 1 : 0;
+  }
+  if (env4.COLORTERM === "truecolor") {
+    return 3;
+  }
+  if (env4.TERM === "xterm-kitty") {
+    return 3;
+  }
+  if (env4.TERM === "xterm-ghostty") {
+    return 3;
+  }
+  if (env4.TERM === "wezterm") {
+    return 3;
+  }
+  if ("TERM_PROGRAM" in env4) {
+    const version = Number.parseInt((env4.TERM_PROGRAM_VERSION || "").split(".")[0], 10);
+    switch (env4.TERM_PROGRAM) {
+      case "iTerm.app": {
+        return version >= 3 ? 3 : 2;
+      }
+      case "Apple_Terminal": {
+        return 2;
+      }
+    }
+  }
+  if (/-256(color)?$/i.test(env4.TERM)) {
+    return 2;
+  }
+  if (/^screen|^xterm|^vt100|^vt220|^rxvt|color|ansi|cygwin|linux/i.test(env4.TERM)) {
+    return 1;
+  }
+  if ("COLORTERM" in env4) {
+    return 1;
+  }
+  return min;
+}
+function createSupportsColor3(stream, options = {}) {
+  const level = _supportsColor3(stream, {
+    streamIsTTY: stream && stream.isTTY,
+    ...options
+  });
+  return translateLevel3(level);
+}
+var env4, flagForceColor3, supportsColor3, supports_color_default3;
+var init_supports_color3 = __esm({
+  "../node_modules/ink-text-input/node_modules/chalk/source/vendor/supports-color/index.js"() {
+    ({ env: env4 } = process12);
+    if (hasFlag3("no-color") || hasFlag3("no-colors") || hasFlag3("color=false") || hasFlag3("color=never")) {
+      flagForceColor3 = 0;
+    } else if (hasFlag3("color") || hasFlag3("colors") || hasFlag3("color=true") || hasFlag3("color=always")) {
+      flagForceColor3 = 1;
+    }
+    supportsColor3 = {
+      stdout: createSupportsColor3({ isTTY: tty3.isatty(1) }),
+      stderr: createSupportsColor3({ isTTY: tty3.isatty(2) })
+    };
+    supports_color_default3 = supportsColor3;
+  }
+});
+
+// ../node_modules/ink-text-input/node_modules/chalk/source/utilities.js
+function stringReplaceAll3(string, substring, replacer) {
+  let index = string.indexOf(substring);
+  if (index === -1) {
+    return string;
+  }
+  const substringLength = substring.length;
+  let endIndex = 0;
+  let returnValue = "";
+  do {
+    returnValue += string.slice(endIndex, index) + substring + replacer;
+    endIndex = index + substringLength;
+    index = string.indexOf(substring, endIndex);
+  } while (index !== -1);
+  returnValue += string.slice(endIndex);
+  return returnValue;
+}
+function stringEncaseCRLFWithFirstIndex3(string, prefix, postfix, index) {
+  let endIndex = 0;
+  let returnValue = "";
+  do {
+    const gotCR = string[index - 1] === "\r";
+    returnValue += string.slice(endIndex, gotCR ? index - 1 : index) + prefix + (gotCR ? "\r\n" : "\n") + postfix;
+    endIndex = index + 1;
+    index = string.indexOf("\n", endIndex);
+  } while (index !== -1);
+  returnValue += string.slice(endIndex);
+  return returnValue;
+}
+var init_utilities4 = __esm({
+  "../node_modules/ink-text-input/node_modules/chalk/source/utilities.js"() {
+  }
+});
+
+// ../node_modules/ink-text-input/node_modules/chalk/source/index.js
+function createChalk3(options) {
+  return chalkFactory3(options);
+}
+var stdoutColor3, stderrColor3, GENERATOR3, STYLER3, IS_EMPTY3, levelMapping3, styles11, applyOptions3, chalkFactory3, getModelAnsi3, usedModels3, proto3, createStyler3, createBuilder3, applyStyle3, chalk3, chalkStderr3, source_default3;
+var init_source3 = __esm({
+  "../node_modules/ink-text-input/node_modules/chalk/source/index.js"() {
+    init_ansi_styles6();
+    init_supports_color3();
+    init_utilities4();
+    ({ stdout: stdoutColor3, stderr: stderrColor3 } = supports_color_default3);
+    GENERATOR3 = /* @__PURE__ */ Symbol("GENERATOR");
+    STYLER3 = /* @__PURE__ */ Symbol("STYLER");
+    IS_EMPTY3 = /* @__PURE__ */ Symbol("IS_EMPTY");
+    levelMapping3 = [
+      "ansi",
+      "ansi",
+      "ansi256",
+      "ansi16m"
+    ];
+    styles11 = /* @__PURE__ */ Object.create(null);
+    applyOptions3 = (object, options = {}) => {
+      if (options.level && !(Number.isInteger(options.level) && options.level >= 0 && options.level <= 3)) {
+        throw new Error("The `level` option should be an integer from 0 to 3");
+      }
+      const colorLevel = stdoutColor3 ? stdoutColor3.level : 0;
+      object.level = options.level === void 0 ? colorLevel : options.level;
+    };
+    chalkFactory3 = (options) => {
+      const chalk4 = (...strings) => strings.join(" ");
+      applyOptions3(chalk4, options);
+      Object.setPrototypeOf(chalk4, createChalk3.prototype);
+      return chalk4;
+    };
+    Object.setPrototypeOf(createChalk3.prototype, Function.prototype);
+    for (const [styleName, style] of Object.entries(ansi_styles_default6)) {
+      styles11[styleName] = {
+        get() {
+          const builder = createBuilder3(this, createStyler3(style.open, style.close, this[STYLER3]), this[IS_EMPTY3]);
+          Object.defineProperty(this, styleName, { value: builder });
+          return builder;
+        }
+      };
+    }
+    styles11.visible = {
+      get() {
+        const builder = createBuilder3(this, this[STYLER3], true);
+        Object.defineProperty(this, "visible", { value: builder });
+        return builder;
+      }
+    };
+    getModelAnsi3 = (model, level, type, ...arguments_) => {
+      if (model === "rgb") {
+        if (level === "ansi16m") {
+          return ansi_styles_default6[type].ansi16m(...arguments_);
+        }
+        if (level === "ansi256") {
+          return ansi_styles_default6[type].ansi256(ansi_styles_default6.rgbToAnsi256(...arguments_));
+        }
+        return ansi_styles_default6[type].ansi(ansi_styles_default6.rgbToAnsi(...arguments_));
+      }
+      if (model === "hex") {
+        return getModelAnsi3("rgb", level, type, ...ansi_styles_default6.hexToRgb(...arguments_));
+      }
+      return ansi_styles_default6[type][model](...arguments_);
+    };
+    usedModels3 = ["rgb", "hex", "ansi256"];
+    for (const model of usedModels3) {
+      styles11[model] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler3(getModelAnsi3(model, levelMapping3[level], "color", ...arguments_), ansi_styles_default6.color.close, this[STYLER3]);
+            return createBuilder3(this, styler, this[IS_EMPTY3]);
+          };
+        }
+      };
+      const bgModel = "bg" + model[0].toUpperCase() + model.slice(1);
+      styles11[bgModel] = {
+        get() {
+          const { level } = this;
+          return function(...arguments_) {
+            const styler = createStyler3(getModelAnsi3(model, levelMapping3[level], "bgColor", ...arguments_), ansi_styles_default6.bgColor.close, this[STYLER3]);
+            return createBuilder3(this, styler, this[IS_EMPTY3]);
+          };
+        }
+      };
+    }
+    proto3 = Object.defineProperties(() => {
+    }, {
+      ...styles11,
+      level: {
+        enumerable: true,
+        get() {
+          return this[GENERATOR3].level;
+        },
+        set(level) {
+          this[GENERATOR3].level = level;
+        }
+      }
+    });
+    createStyler3 = (open, close, parent) => {
+      let openAll;
+      let closeAll;
+      if (parent === void 0) {
+        openAll = open;
+        closeAll = close;
+      } else {
+        openAll = parent.openAll + open;
+        closeAll = close + parent.closeAll;
+      }
+      return {
+        open,
+        close,
+        openAll,
+        closeAll,
+        parent
+      };
+    };
+    createBuilder3 = (self2, _styler, _isEmpty) => {
+      const builder = (...arguments_) => applyStyle3(builder, arguments_.length === 1 ? "" + arguments_[0] : arguments_.join(" "));
+      Object.setPrototypeOf(builder, proto3);
+      builder[GENERATOR3] = self2;
+      builder[STYLER3] = _styler;
+      builder[IS_EMPTY3] = _isEmpty;
+      return builder;
+    };
+    applyStyle3 = (self2, string) => {
+      if (self2.level <= 0 || !string) {
+        return self2[IS_EMPTY3] ? "" : string;
+      }
+      let styler = self2[STYLER3];
+      if (styler === void 0) {
+        return string;
+      }
+      const { openAll, closeAll } = styler;
+      if (string.includes("\x1B")) {
+        while (styler !== void 0) {
+          string = stringReplaceAll3(string, styler.close, styler.open);
+          styler = styler.parent;
+        }
+      }
+      const lfIndex = string.indexOf("\n");
+      if (lfIndex !== -1) {
+        string = stringEncaseCRLFWithFirstIndex3(string, closeAll, openAll, lfIndex);
+      }
+      return openAll + string + closeAll;
+    };
+    Object.defineProperties(createChalk3.prototype, styles11);
+    chalk3 = createChalk3();
+    chalkStderr3 = createChalk3({ level: stderrColor3 ? stderrColor3.level : 0 });
+    source_default3 = chalk3;
+  }
+});
+
+// ../node_modules/ink-text-input/build/index.js
 function TextInput({ value: originalValue, placeholder = "", focus = true, mask, highlightPastedText = false, showCursor = true, onChange, onSubmit }) {
   const [state, setState] = (0, import_react55.useState)({
     cursorOffset: (originalValue || "").length,
@@ -54781,17 +56362,17 @@ function TextInput({ value: originalValue, placeholder = "", focus = true, mask,
   const cursorActualWidth = highlightPastedText ? cursorWidth : 0;
   const value = mask ? mask.repeat(originalValue.length) : originalValue;
   let renderedValue = value;
-  let renderedPlaceholder = placeholder ? source_default.grey(placeholder) : void 0;
+  let renderedPlaceholder = placeholder ? source_default3.grey(placeholder) : void 0;
   if (showCursor && focus) {
-    renderedPlaceholder = placeholder.length > 0 ? source_default.inverse(placeholder[0]) + source_default.grey(placeholder.slice(1)) : source_default.inverse(" ");
-    renderedValue = value.length > 0 ? "" : source_default.inverse(" ");
+    renderedPlaceholder = placeholder.length > 0 ? source_default3.inverse(placeholder[0]) + source_default3.grey(placeholder.slice(1)) : source_default3.inverse(" ");
+    renderedValue = value.length > 0 ? "" : source_default3.inverse(" ");
     let i = 0;
     for (const char of value) {
-      renderedValue += i >= cursorOffset - cursorActualWidth && i <= cursorOffset ? source_default.inverse(char) : char;
+      renderedValue += i >= cursorOffset - cursorActualWidth && i <= cursorOffset ? source_default3.inverse(char) : char;
       i++;
     }
     if (value.length > 0 && cursorOffset === value.length) {
-      renderedValue += source_default.inverse(" ");
+      renderedValue += source_default3.inverse(" ");
     }
   }
   use_input_default2((input, key) => {
@@ -54849,10 +56430,10 @@ function UncontrolledTextInput({ initialValue = "", ...props }) {
 }
 var import_react55, build_default;
 var init_build4 = __esm({
-  async "node_modules/ink-text-input/build/index.js"() {
+  async "../node_modules/ink-text-input/build/index.js"() {
     import_react55 = __toESM(require_react(), 1);
     await init_build3();
-    init_source();
+    init_source3();
     build_default = TextInput;
   }
 });
@@ -54935,18 +56516,18 @@ var init_entry_exports = __esm({
   }
 });
 
-// node_modules/nanostores/clean-stores/index.js
+// ../node_modules/nanostores/clean-stores/index.js
 var clean;
 var init_clean_stores = __esm({
-  "node_modules/nanostores/clean-stores/index.js"() {
+  "../node_modules/nanostores/clean-stores/index.js"() {
     clean = /* @__PURE__ */ Symbol("clean");
   }
 });
 
-// node_modules/nanostores/atom/index.js
+// ../node_modules/nanostores/atom/index.js
 var listenerQueue, lqIndex, QUEUE_ITEMS_PER_LISTENER, nanostoresGlobal, atom;
 var init_atom = __esm({
-  "node_modules/nanostores/atom/index.js"() {
+  "../node_modules/nanostores/atom/index.js"() {
     init_clean_stores();
     listenerQueue = [];
     lqIndex = 0;
@@ -55028,10 +56609,10 @@ var init_atom = __esm({
   }
 });
 
-// node_modules/nanostores/lifecycle/index.js
+// ../node_modules/nanostores/lifecycle/index.js
 var MOUNT, UNMOUNT, REVERT_MUTATION, on, STORE_UNMOUNT_DELAY, onMount;
 var init_lifecycle = __esm({
-  "node_modules/nanostores/lifecycle/index.js"() {
+  "../node_modules/nanostores/lifecycle/index.js"() {
     init_clean_stores();
     MOUNT = 5;
     UNMOUNT = 6;
@@ -55104,7 +56685,7 @@ var init_lifecycle = __esm({
   }
 });
 
-// node_modules/nanostores/warn/index.js
+// ../node_modules/nanostores/warn/index.js
 function warn(text) {
   if (!warned2[text]) {
     warned2[text] = true;
@@ -55117,15 +56698,15 @@ function warn(text) {
 }
 var warned2;
 var init_warn2 = __esm({
-  "node_modules/nanostores/warn/index.js"() {
+  "../node_modules/nanostores/warn/index.js"() {
     warned2 = {};
   }
 });
 
-// node_modules/nanostores/computed/index.js
+// ../node_modules/nanostores/computed/index.js
 var computedStore, computed;
 var init_computed = __esm({
-  "node_modules/nanostores/computed/index.js"() {
+  "../node_modules/nanostores/computed/index.js"() {
     init_atom();
     init_lifecycle();
     init_warn2();
@@ -55181,7 +56762,7 @@ var init_computed = __esm({
   }
 });
 
-// node_modules/nanostores/listen-keys/index.js
+// ../node_modules/nanostores/listen-keys/index.js
 function listenKeys($store, keys, listener) {
   let keysSet = new Set(keys).add(void 0);
   return $store.listen((value, oldValue, changed) => {
@@ -55191,20 +56772,20 @@ function listenKeys($store, keys, listener) {
   });
 }
 var init_listen_keys = __esm({
-  "node_modules/nanostores/listen-keys/index.js"() {
+  "../node_modules/nanostores/listen-keys/index.js"() {
   }
 });
 
-// node_modules/nanostores/index.js
+// ../node_modules/nanostores/index.js
 var init_nanostores = __esm({
-  "node_modules/nanostores/index.js"() {
+  "../node_modules/nanostores/index.js"() {
     init_atom();
     init_computed();
     init_listen_keys();
   }
 });
 
-// node_modules/@nanostores/react/index.js
+// ../node_modules/@nanostores/react/index.js
 function useStore(store, { keys, deps = [store, keys], ssr } = {}) {
   let snapshotRef = (0, import_react56.useRef)();
   snapshotRef.current = store.get();
@@ -55221,7 +56802,7 @@ function useStore(store, { keys, deps = [store, keys], ssr } = {}) {
 }
 var import_react56, emit;
 var init_react = __esm({
-  "node_modules/@nanostores/react/index.js"() {
+  "../node_modules/@nanostores/react/index.js"() {
     init_nanostores();
     import_react56 = __toESM(require_react(), 1);
     emit = (snapshotRef, onChange) => (value) => {
@@ -55378,26 +56959,26 @@ function backgroundLuminance(raw) {
   }
   return (0.2126 * rgb2[0] + 0.7152 * rgb2[1] + 0.0722 * rgb2[2]) / 255;
 }
-function detectLightMode(env3 = process.env, lightDefaultTermPrograms = LIGHT_DEFAULT_TERM_PROGRAMS) {
-  const lightFlag = (env3.HERMES_TUI_LIGHT ?? "").trim().toLowerCase();
+function detectLightMode(env5 = process.env, lightDefaultTermPrograms = LIGHT_DEFAULT_TERM_PROGRAMS) {
+  const lightFlag = (env5.HERMES_TUI_LIGHT ?? "").trim().toLowerCase();
   if (TRUE_RE2.test(lightFlag)) {
     return true;
   }
   if (FALSE_RE2.test(lightFlag)) {
     return false;
   }
-  const themeFlag = (env3.HERMES_TUI_THEME ?? "").trim().toLowerCase();
+  const themeFlag = (env5.HERMES_TUI_THEME ?? "").trim().toLowerCase();
   if (themeFlag === "light") {
     return true;
   }
   if (themeFlag === "dark") {
     return false;
   }
-  const bgHint = backgroundLuminance(env3.HERMES_TUI_BACKGROUND ?? "");
+  const bgHint = backgroundLuminance(env5.HERMES_TUI_BACKGROUND ?? "");
   if (bgHint !== null) {
     return bgHint >= LUMA_LIGHT_THRESHOLD;
   }
-  const colorfgbg = (env3.COLORFGBG ?? "").trim();
+  const colorfgbg = (env5.COLORFGBG ?? "").trim();
   if (colorfgbg) {
     const lastField = colorfgbg.split(";").at(-1) ?? "";
     if (/^\d+$/.test(lastField)) {
@@ -55410,16 +56991,16 @@ function detectLightMode(env3 = process.env, lightDefaultTermPrograms = LIGHT_DE
       }
     }
   }
-  const termProgram = (env3.TERM_PROGRAM ?? "").trim();
+  const termProgram = (env5.TERM_PROGRAM ?? "").trim();
   return lightDefaultTermPrograms.has(termProgram);
 }
-function shouldNormalizeAnsiLightTheme(env3 = process.env, isLight = detectLightMode(env3)) {
-  const colorTerm = (env3.COLORTERM ?? "").trim().toLowerCase();
-  const termProgram = (env3.TERM_PROGRAM ?? "").trim();
+function shouldNormalizeAnsiLightTheme(env5 = process.env, isLight = detectLightMode(env5)) {
+  const colorTerm = (env5.COLORTERM ?? "").trim().toLowerCase();
+  const termProgram = (env5.TERM_PROGRAM ?? "").trim();
   return termProgram === "Apple_Terminal" && colorTerm !== "truecolor" && colorTerm !== "24bit" && isLight;
 }
-function normalizeThemeForAnsiLightTerminal(theme, env3 = process.env, isLight = detectLightMode(env3)) {
-  if (!shouldNormalizeAnsiLightTheme(env3, isLight)) {
+function normalizeThemeForAnsiLightTerminal(theme, env5 = process.env, isLight = detectLightMode(env5)) {
+  if (!shouldNormalizeAnsiLightTheme(env5, isLight)) {
     return theme;
   }
   const color = { ...theme.color };
@@ -55801,7 +57382,7 @@ var init_verbs = __esm({
 });
 
 // src/lib/text.ts
-var ESC2, BEL3, ANSI_CSI_RE, ANSI_CSI_WITH_CMD_RE, ANSI_INCOMPLETE_CSI_RE, ANSI_OSC_RE, ANSI_STRING_RE, ANSI_NON_CSI_ESC_SEQ_RE, ANSI_STRAY_ESC_RE, CONTROL_RE, WS_RE, stripAnsi2, sanitizeAnsiForRender, hasAnsi, compactPreview, estimateTokensRough, edgePreview, pasteTokenLabel, THINKING_STATUS_RE, THINKING_STATUS_CHUNK_RE, cleanThinkingText, thinkingPreview, boundedLiveRenderText, boundedRenderText, countNewlines, stripTrailingPasteNewlines, toolTrailLabel, formatToolCall, buildToolTrailLine, verboseToolBlock, buildVerboseToolTrailLine, isToolTrailResultLine, parseToolTrailResultLine, splitToolDuration, isTransientTrailLine, sameToolTrailGroup, formatAbandonedClarify, flat, COMPACT_NUMBER, fmtK, pick, isPasteBackedText;
+var ESC2, BEL3, ANSI_CSI_RE, ANSI_CSI_WITH_CMD_RE, ANSI_INCOMPLETE_CSI_RE, ANSI_OSC_RE, ANSI_STRING_RE, ANSI_NON_CSI_ESC_SEQ_RE, ANSI_STRAY_ESC_RE, CONTROL_RE, WS_RE, stripAnsi4, sanitizeAnsiForRender, hasAnsi, compactPreview, estimateTokensRough, edgePreview, pasteTokenLabel, THINKING_STATUS_RE, THINKING_STATUS_CHUNK_RE, cleanThinkingText, thinkingPreview, boundedLiveRenderText, boundedRenderText, countNewlines, stripTrailingPasteNewlines, toolTrailLabel, formatToolCall, buildToolTrailLine, verboseToolBlock, buildVerboseToolTrailLine, isToolTrailResultLine, parseToolTrailResultLine, splitToolDuration, isTransientTrailLine, sameToolTrailGroup, formatAbandonedClarify, flat, COMPACT_NUMBER, fmtK, pick, isPasteBackedText;
 var init_text = __esm({
   "src/lib/text.ts"() {
     "use strict";
@@ -55818,7 +57399,7 @@ var init_text = __esm({
     ANSI_STRAY_ESC_RE = new RegExp(`${ESC2}(?!\\[)[\\s\\S]?`, "g");
     CONTROL_RE = /[\x00-\x08\x0B\x0C\x0D\x0E-\x1A\x1C-\x1F\x7F]/g;
     WS_RE = /\s+/g;
-    stripAnsi2 = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
+    stripAnsi4 = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
     sanitizeAnsiForRender = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_WITH_CMD_RE, (seq, cmd) => cmd === "m" ? seq : "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
     hasAnsi = (s) => s.includes(ESC2);
     compactPreview = (s, max) => {
@@ -56599,8 +58180,8 @@ var init_platform = __esm({
     isActionMod = (key) => isMac ? key.meta || key.super === true : key.ctrl;
     isMacActionFallback = (key, ch, target) => isMac && key.ctrl && !key.meta && key.super !== true && ch.toLowerCase() === target;
     isAction = (key, ch, target) => isActionMod(key) && ch.toLowerCase() === target;
-    isRemoteShell = (env3 = process.env) => Boolean(env3.SSH_CONNECTION || env3.SSH_CLIENT || env3.SSH_TTY);
-    isCopyShortcut = (key, ch, env3 = process.env) => ch.toLowerCase() === "c" && (isAction(key, ch, "c") || isRemoteShell(env3) && (key.meta || key.super === true) || // VS Code/Cursor/Windsurf terminal setup forwards Cmd+C as a CSI-u
+    isRemoteShell = (env5 = process.env) => Boolean(env5.SSH_CONNECTION || env5.SSH_CLIENT || env5.SSH_TTY);
+    isCopyShortcut = (key, ch, env5 = process.env) => ch.toLowerCase() === "c" && (isAction(key, ch, "c") || isRemoteShell(env5) && (key.meta || key.super === true) || // VS Code/Cursor/Windsurf terminal setup forwards Cmd+C as a CSI-u
     // sequence with the super bit plus a benign ctrl bit. Accept that shape
     // even though raw Ctrl+C should remain interrupt on local macOS.
     isMac && key.ctrl && (key.meta || key.super === true));
@@ -56772,15 +58353,15 @@ var init_rpc = __esm({
 import { copyFile, mkdir as mkdir2, readFile as readFile2, writeFile as writeFile2 } from "node:fs/promises";
 import { homedir as homedir3 } from "node:os";
 import { join as join3 } from "node:path";
-function detectVSCodeLikeTerminal(env3 = process.env) {
-  const askpass = env3["VSCODE_GIT_ASKPASS_MAIN"]?.toLowerCase() ?? "";
-  if (env3["CURSOR_TRACE_ID"] || askpass.includes("cursor")) {
+function detectVSCodeLikeTerminal(env5 = process.env) {
+  const askpass = env5["VSCODE_GIT_ASKPASS_MAIN"]?.toLowerCase() ?? "";
+  if (env5["CURSOR_TRACE_ID"] || askpass.includes("cursor")) {
     return "cursor";
   }
   if (askpass.includes("windsurf")) {
     return "windsurf";
   }
-  if (env3["TERM_PROGRAM"] === "vscode" || env3["VSCODE_GIT_IPC_HANDLE"]) {
+  if (env5["TERM_PROGRAM"] === "vscode" || env5["VSCODE_GIT_IPC_HANDLE"]) {
     return "vscode";
   }
   return null;
@@ -56822,15 +58403,15 @@ function stripJsonComments(content) {
   }
   return result.replace(/,(\s*[}\]])/g, "$1");
 }
-function isRemoteShellSession(env3) {
-  return Boolean(env3["SSH_CONNECTION"] || env3["SSH_TTY"] || env3["SSH_CLIENT"]);
+function isRemoteShellSession(env5) {
+  return Boolean(env5["SSH_CONNECTION"] || env5["SSH_TTY"] || env5["SSH_CLIENT"]);
 }
-function getVSCodeStyleConfigDir(appName, platform2 = process.platform, env3 = process.env, homeDir = homedir3()) {
+function getVSCodeStyleConfigDir(appName, platform2 = process.platform, env5 = process.env, homeDir = homedir3()) {
   if (platform2 === "darwin") {
     return join3(homeDir, "Library", "Application Support", appName, "User");
   }
   if (platform2 === "win32") {
-    return env3["APPDATA"] ? join3(env3["APPDATA"], appName, "User") : null;
+    return env5["APPDATA"] ? join3(env5["APPDATA"], appName, "User") : null;
   }
   return join3(homeDir, ".config", appName, "User");
 }
@@ -56898,18 +58479,18 @@ async function backupFile(filePath, ops) {
   await ops.copyFile(filePath, `${filePath}.backup.${stamp}`);
 }
 async function configureTerminalKeybindings(terminal, options) {
-  const env3 = options?.env ?? process.env;
+  const env5 = options?.env ?? process.env;
   const platform2 = options?.platform ?? process.platform;
   const homeDir = options?.homeDir ?? homedir3();
   const ops = { ...DEFAULT_FILE_OPS, ...options?.fileOps ?? {} };
   const meta = TERMINAL_META[terminal];
-  if (isRemoteShellSession(env3)) {
+  if (isRemoteShellSession(env5)) {
     return {
       success: false,
       message: `${meta.label} terminal setup must be run on the local machine, not inside an SSH session.`
     };
   }
-  const configDir = getVSCodeStyleConfigDir(meta.appName, platform2, env3, homeDir);
+  const configDir = getVSCodeStyleConfigDir(meta.appName, platform2, env5, homeDir);
   if (!configDir) {
     return {
       success: false,
@@ -56993,16 +58574,16 @@ async function configureDetectedTerminalKeybindings(options) {
   return configureTerminalKeybindings(detected, options);
 }
 async function shouldPromptForTerminalSetup(options) {
-  const env3 = options?.env ?? process.env;
-  const detected = detectVSCodeLikeTerminal(env3);
-  if (!detected || isRemoteShellSession(env3)) {
+  const env5 = options?.env ?? process.env;
+  const detected = detectVSCodeLikeTerminal(env5);
+  if (!detected || isRemoteShellSession(env5)) {
     return false;
   }
   const platform2 = options?.platform ?? process.platform;
   const homeDir = options?.homeDir ?? homedir3();
   const ops = { ...DEFAULT_FILE_OPS, ...options?.fileOps ?? {} };
   const meta = TERMINAL_META[detected];
-  const configDir = getVSCodeStyleConfigDir(meta.appName, platform2, env3, homeDir);
+  const configDir = getVSCodeStyleConfigDir(meta.appName, platform2, env5, homeDir);
   if (!configDir) {
     return false;
   }
@@ -57075,19 +58656,19 @@ var init_terminalSetup = __esm({
 });
 
 // src/lib/terminalParity.ts
-function detectMacTerminalContext(env3 = process.env) {
-  const termProgram = env3["TERM_PROGRAM"] ?? "";
+function detectMacTerminalContext(env5 = process.env) {
+  const termProgram = env5["TERM_PROGRAM"] ?? "";
   return {
-    isAppleTerminal: termProgram === "Apple_Terminal" || !!env3["TERM_SESSION_ID"],
-    isRemote: isRemoteShellSession(env3),
-    isTmux: !!env3["TMUX"],
-    vscodeLike: detectVSCodeLikeTerminal(env3)
+    isAppleTerminal: termProgram === "Apple_Terminal" || !!env5["TERM_SESSION_ID"],
+    isRemote: isRemoteShellSession(env5),
+    isTmux: !!env5["TMUX"],
+    vscodeLike: detectVSCodeLikeTerminal(env5)
   };
 }
-async function terminalParityHints(env3 = process.env, options) {
-  const ctx = detectMacTerminalContext(env3);
+async function terminalParityHints(env5 = process.env, options) {
+  const ctx = detectMacTerminalContext(env5);
   const hints = [];
-  if (ctx.vscodeLike && await shouldPromptForTerminalSetup({ env: env3, fileOps: options?.fileOps, homeDir: options?.homeDir })) {
+  if (ctx.vscodeLike && await shouldPromptForTerminalSetup({ env: env5, fileOps: options?.fileOps, homeDir: options?.homeDir })) {
     hints.push({
       key: "ide-setup",
       tone: "info",
@@ -58852,15 +60433,15 @@ function createGatewayEventHandler(ctx) {
           ev.payload.tool_id,
           ev.payload.name ?? "tool",
           ev.payload.context ?? "",
-          ev.payload.args_text ? stripAnsi2(String(ev.payload.args_text)) : void 0
+          ev.payload.args_text ? stripAnsi4(String(ev.payload.args_text)) : void 0
         );
         return;
       case "tool.complete": {
         if (ev.payload.name === "clarify") {
           flushAbandonedClarify();
         }
-        const inlineDiffText = ev.payload.inline_diff && getUiState().inlineDiffs ? stripAnsi2(String(ev.payload.inline_diff)).trim() : "";
-        const resultText = ev.payload.result_text ? stripAnsi2(String(ev.payload.result_text)) : void 0;
+        const inlineDiffText = ev.payload.inline_diff && getUiState().inlineDiffs ? stripAnsi4(String(ev.payload.inline_diff)).trim() : "";
+        const resultText = ev.payload.result_text ? stripAnsi4(String(ev.payload.result_text)) : void 0;
         if (inlineDiffText) {
           turnController.recordInlineDiffToolComplete(
             inlineDiffText,
@@ -59179,7 +60760,7 @@ function isUsableClipboardText(text) {
   }
   return suspicious <= Math.max(2, Math.floor(text.length * 0.02));
 }
-function readClipboardCommands(platform2, env3) {
+function readClipboardCommands(platform2, env5) {
   if (platform2 === "darwin") {
     return [{ cmd: "pbpaste", args: [] }];
   }
@@ -59187,17 +60768,17 @@ function readClipboardCommands(platform2, env3) {
     return [{ cmd: "powershell", args: POWERSHELL_ARGS }];
   }
   const attempts = [];
-  if (env3.WSL_INTEROP || env3.WSL_DISTRO_NAME) {
+  if (env5.WSL_INTEROP || env5.WSL_DISTRO_NAME) {
     attempts.push({ cmd: "powershell.exe", args: POWERSHELL_ARGS });
   }
-  if (env3.WAYLAND_DISPLAY) {
+  if (env5.WAYLAND_DISPLAY) {
     attempts.push({ cmd: "wl-paste", args: ["--type", "text"] });
   }
   attempts.push({ cmd: "xclip", args: ["-selection", "clipboard", "-out"] });
   return attempts;
 }
-async function readClipboardText(platform2 = process.platform, run = execFileAsync, env3 = process.env) {
-  for (const attempt of readClipboardCommands(platform2, env3)) {
+async function readClipboardText(platform2 = process.platform, run = execFileAsync, env5 = process.env) {
+  for (const attempt of readClipboardCommands(platform2, env5)) {
     try {
       const result = await run(attempt.cmd, [...attempt.args], {
         encoding: "utf8",
@@ -59215,7 +60796,7 @@ async function readClipboardText(platform2 = process.platform, run = execFileAsy
 function _powershellWriteScript(b64) {
   return `Set-Clipboard -Value ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String('${b64}')))`;
 }
-function writeClipboardCommands(platform2, env3) {
+function writeClipboardCommands(platform2, env5) {
   if (platform2 === "darwin") {
     return [{ cmd: "pbcopy", args: [], stdin: true }];
   }
@@ -59223,18 +60804,18 @@ function writeClipboardCommands(platform2, env3) {
     return [{ cmd: "powershell", args: ["-NoProfile", "-NonInteractive"], stdin: false }];
   }
   const attempts = [];
-  if (env3.WSL_INTEROP || env3.WSL_DISTRO_NAME) {
+  if (env5.WSL_INTEROP || env5.WSL_DISTRO_NAME) {
     attempts.push({ cmd: "powershell.exe", args: ["-NoProfile", "-NonInteractive"], stdin: false });
   }
-  if (env3.WAYLAND_DISPLAY) {
+  if (env5.WAYLAND_DISPLAY) {
     attempts.push({ cmd: "wl-copy", args: ["--type", "text/plain"], stdin: true });
   }
   attempts.push({ cmd: "xclip", args: ["-selection", "clipboard", "-in"], stdin: true });
   attempts.push({ cmd: "xsel", args: ["--clipboard", "--input"], stdin: true });
   return attempts;
 }
-async function writeClipboardText(text, platform2 = process.platform, start = spawn4, env3 = process.env) {
-  const candidates = writeClipboardCommands(platform2, env3);
+async function writeClipboardText(text, platform2 = process.platform, start = spawn4, env5 = process.env) {
+  const candidates = writeClipboardCommands(platform2, env5);
   for (const cmdEntry of candidates) {
     try {
       const ok = await new Promise((resolve3) => {
@@ -61293,15 +62874,15 @@ var init_editor = __esm({
         return false;
       }
     };
-    resolveEditor = (env3 = process.env, platform2 = process.platform) => {
-      const explicit = env3.VISUAL ?? env3.EDITOR;
+    resolveEditor = (env5 = process.env, platform2 = process.platform) => {
+      const explicit = env5.VISUAL ?? env5.EDITOR;
       if (explicit?.trim()) {
         return explicit.trim().split(/\s+/);
       }
       if (platform2 === "win32") {
         return ["notepad.exe"];
       }
-      const dirs = (env3.PATH ?? "").split(delimiter2).filter(Boolean);
+      const dirs = (env5.PATH ?? "").split(delimiter2).filter(Boolean);
       const found = FALLBACKS.flatMap((name) => dirs.map((d) => join5(d, name))).find(isExecutable);
       return [found ?? "vi"];
     };
@@ -63239,7 +64820,10 @@ function useMainApp(gw2) {
       gw2.request("session.active_list", { current_session_id: getUiState().sid }).then((raw) => {
         const result = asRpcResult(raw);
         if (!stopped && result?.sessions) {
-          patchUiState({ liveSessionCount: result.sessions.length });
+          const liveSessionCount = result.sessions.length;
+          if (getUiState().liveSessionCount !== liveSessionCount) {
+            patchUiState({ liveSessionCount });
+          }
         }
       }).catch(() => {
       });
@@ -64570,7 +66154,7 @@ var init_agentsOverlay = __esm({
   }
 });
 
-// node_modules/unicode-animations/dist/chunk-F2BWZODB.js
+// ../node_modules/unicode-animations/dist/chunk-F2BWZODB.js
 function gridToBraille(grid) {
   const rows = grid.length;
   const cols = grid[0] ? grid[0].length : 0;
@@ -64864,7 +66448,7 @@ function genDiagonalSwipe() {
 }
 var BRAILLE_DOT_MAP, spinners, braille_default;
 var init_chunk_F2BWZODB = __esm({
-  "node_modules/unicode-animations/dist/chunk-F2BWZODB.js"() {
+  "../node_modules/unicode-animations/dist/chunk-F2BWZODB.js"() {
     BRAILLE_DOT_MAP = [
       [1, 8],
       // row 0
@@ -64932,9 +66516,9 @@ var init_chunk_F2BWZODB = __esm({
   }
 });
 
-// node_modules/unicode-animations/dist/index.js
+// ../node_modules/unicode-animations/dist/index.js
 var init_dist5 = __esm({
-  "node_modules/unicode-animations/dist/index.js"() {
+  "../node_modules/unicode-animations/dist/index.js"() {
     init_chunk_F2BWZODB();
   }
 });
@@ -66165,23 +67749,23 @@ function applyPrintableInsert(value, cursor, text, range) {
     value: value.slice(0, cursor) + text + value.slice(cursor)
   };
 }
-function shouldPreserveCtrlJNewline(env3 = process.env) {
-  if (env3.WT_SESSION) {
+function shouldPreserveCtrlJNewline(env5 = process.env) {
+  if (env5.WT_SESSION) {
     return true;
   }
-  if (env3.SSH_CONNECTION || env3.SSH_CLIENT || env3.SSH_TTY) {
+  if (env5.SSH_CONNECTION || env5.SSH_CLIENT || env5.SSH_TTY) {
     return true;
   }
-  if (env3.GHOSTTY_RESOURCES_DIR || env3.GHOSTTY_BIN_DIR) {
+  if (env5.GHOSTTY_RESOURCES_DIR || env5.GHOSTTY_BIN_DIR) {
     return true;
   }
-  if ((env3.TERM ?? "").toLowerCase() === "xterm-ghostty") {
+  if ((env5.TERM ?? "").toLowerCase() === "xterm-ghostty") {
     return true;
   }
-  if ((env3.TERM_PROGRAM ?? "").toLowerCase() === "ghostty") {
+  if ((env5.TERM_PROGRAM ?? "").toLowerCase() === "ghostty") {
     return true;
   }
-  return (env3.WSL_DISTRO_NAME ?? "").toLowerCase().includes("microsoft");
+  return (env5.WSL_DISTRO_NAME ?? "").toLowerCase().includes("microsoft");
 }
 function prevPos(s, p) {
   const pos = snapPos(s, p);
@@ -66276,12 +67860,12 @@ function canFastBackspaceShape(current, cursor, columns) {
   const removed = current.slice(prevPos(current, cursor), cursor);
   return ASCII_PRINTABLE_RE.test(removed);
 }
-function supportsFastEchoTerminal(env3 = process.env) {
-  if ((env3.TERM_PROGRAM ?? "").trim() === "Apple_Terminal") {
+function supportsFastEchoTerminal(env5 = process.env) {
+  if ((env5.TERM_PROGRAM ?? "").trim() === "Apple_Terminal") {
     return false;
   }
-  if (isTermuxTuiMode(env3)) {
-    const override = String(env3.HERMES_TUI_TERMUX_FAST_ECHO ?? "").trim().toLowerCase();
+  if (isTermuxTuiMode(env5)) {
+    const override = String(env5.HERMES_TUI_TERMUX_FAST_ECHO ?? "").trim().toLowerCase();
     if (override) {
       return /^(?:1|true|yes|on)$/i.test(override);
     }
@@ -66354,7 +67938,7 @@ function TextInput2({
   const parentChangeTimer = (0, import_react81.useRef)(null);
   const pendingParentValue = (0, import_react81.useRef)(null);
   const localRenderTimer = (0, import_react81.useRef)(null);
-  const lineWidthRef = (0, import_react81.useRef)(stringWidth4(value.includes("\n") ? value.slice(value.lastIndexOf("\n") + 1) : value));
+  const lineWidthRef = (0, import_react81.useRef)(stringWidth6(value.includes("\n") ? value.slice(value.lastIndexOf("\n") + 1) : value));
   const mouseAnchorRef = (0, import_react81.useRef)(null);
   const lastClickRef = (0, import_react81.useRef)({ at: 0, offset: -1 });
   const undo = (0, import_react81.useRef)([]);
@@ -66409,7 +67993,7 @@ function TextInput2({
       curRef.current = value.length;
       selRef.current = null;
       vRef.current = value;
-      lineWidthRef.current = stringWidth4(value.includes("\n") ? value.slice(value.lastIndexOf("\n") + 1) : value);
+      lineWidthRef.current = stringWidth6(value.includes("\n") ? value.slice(value.lastIndexOf("\n") + 1) : value);
       undo.current = [];
       redo.current = [];
     }
@@ -66512,7 +68096,7 @@ function TextInput2({
     }
     curRef.current = c;
     vRef.current = next;
-    lineWidthRef.current = nextLineWidth ?? stringWidth4(next.includes("\n") ? next.slice(next.lastIndexOf("\n") + 1) : next);
+    lineWidthRef.current = nextLineWidth ?? stringWidth6(next.includes("\n") ? next.slice(next.lastIndexOf("\n") + 1) : next);
     if (next !== prev) {
       if (syncParent) {
         flushParentChange();
@@ -66868,7 +68452,7 @@ function TextInput2({
             if (simpleAppend) {
               stdout.write(text);
               noteCursorAdvance(text.length);
-              commit(v, c, true, false, false, lineWidthRef.current + stringWidth4(text));
+              commit(v, c, true, false, false, lineWidthRef.current + stringWidth6(text));
               return;
             }
           }
@@ -66945,7 +68529,7 @@ function decideRightClickAction(value, range) {
   }
   return { action: "paste" };
 }
-var import_react81, import_jsx_runtime22, ink, Box3, Text3, useStdin3, useInput3, useStdout2, stringWidth4, useCursorAdvance2, useDeclaredCursor2, useTerminalFocus2, ESC4, INV, INV_OFF, DIM, DIM_OFF, FWD_DEL_RE, PRINTABLE, BRACKET_PASTE, FRAME_BATCH_MS, MULTI_CLICK_MS, invert, dim, _seg2, seg2, STOP_CACHE_MAX, stopCache, shouldRouteMultiCharInputAsPaste, ASCII_PRINTABLE_RE, isPasteResultPromise, shouldPassThroughToGlobalHandler;
+var import_react81, import_jsx_runtime22, ink, Box3, Text3, useStdin3, useInput3, useStdout2, stringWidth6, useCursorAdvance2, useDeclaredCursor2, useTerminalFocus2, ESC4, INV, INV_OFF, DIM, DIM_OFF, FWD_DEL_RE, PRINTABLE, BRACKET_PASTE, FRAME_BATCH_MS, MULTI_CLICK_MS, invert, dim, _seg2, seg2, STOP_CACHE_MAX, stopCache, shouldRouteMultiCharInputAsPaste, ASCII_PRINTABLE_RE, isPasteResultPromise, shouldPassThroughToGlobalHandler;
 var init_textInput = __esm({
   async "src/components/textInput.tsx"() {
     "use strict";
@@ -66958,7 +68542,7 @@ var init_textInput = __esm({
     init_termux();
     import_jsx_runtime22 = __toESM(require_jsx_runtime(), 1);
     ink = entry_exports_exports;
-    ({ Box: Box3, Text: Text3, useStdin: useStdin3, useInput: useInput3, useStdout: useStdout2, stringWidth: stringWidth4, useCursorAdvance: useCursorAdvance2, useDeclaredCursor: useDeclaredCursor2, useTerminalFocus: useTerminalFocus2 } = ink);
+    ({ Box: Box3, Text: Text3, useStdin: useStdin3, useInput: useInput3, useStdout: useStdout2, stringWidth: stringWidth6, useCursorAdvance: useCursorAdvance2, useDeclaredCursor: useDeclaredCursor2, useTerminalFocus: useTerminalFocus2 } = ink);
     ESC4 = "\x1B";
     INV = `${ESC4}[7m`;
     INV_OFF = `${ESC4}[27m`;
@@ -68456,7 +70040,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, {}),
       /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(Text, { color: t.color.accent, children: [
         info.model.split("/").pop(),
-        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+        /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
       sid && /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(Text, { children: [
@@ -68475,7 +70059,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
         /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
           /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
             info.model.split("/").pop(),
-            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+            /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime28.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
           sid && /* @__PURE__ */ (0, import_jsx_runtime28.jsxs)(Text, { wrap: "truncate-end", children: [
@@ -68593,9 +70177,9 @@ var init_branding = __esm({
     init_text();
     import_jsx_runtime28 = __toESM(require_jsx_runtime(), 1);
     LOADER_TICK_MS = 120;
-    TAG_FULL = "Nous Research \xB7 Messenger of the Digital Gods";
-    TAG_MID = "Messenger of the Digital Gods";
-    TAG_TINY = "Nous Research";
+    TAG_FULL = "Hermes Client";
+    TAG_MID = "Hermes Client";
+    TAG_TINY = "Hermes";
     HIDE_BELOW = 34;
     COMPACT_FROM = 58;
     clip = (s, w) => w <= 0 ? "" : s.length > w ? `${s.slice(0, Math.max(0, w - 1))}\u2026` : s;
@@ -70464,8 +72048,8 @@ var init_markdown = __esm({
           remainder--;
         }
       }
-      const segmenter4 = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(void 0, { granularity: "grapheme" }) : null;
-      const graphemes2 = (s) => segmenter4 ? [...segmenter4.segment(s)].map((seg3) => seg3.segment) : [...s];
+      const segmenter6 = typeof Intl !== "undefined" && "Segmenter" in Intl ? new Intl.Segmenter(void 0, { granularity: "grapheme" }) : null;
+      const graphemes2 = (s) => segmenter6 ? [...segmenter6.segment(s)].map((seg3) => seg3.segment) : [...s];
       const wrapCell = (raw, width, hard) => {
         const text = stripInlineMarkup(raw);
         if (width <= 0) return [text];
@@ -71682,7 +73266,7 @@ var init_messageLine = __esm({
       }
       if (msg.role === "tool") {
         const maxChars = Math.max(24, cols - 14);
-        const stripped = hasAnsi(msg.text) ? stripAnsi2(msg.text) : msg.text;
+        const stripped = hasAnsi(msg.text) ? stripAnsi4(msg.text) : msg.text;
         const safeAnsi = hasAnsi(msg.text) ? sanitizeAnsiForRender(msg.text) : msg.text;
         const preview = compactPreview(stripped, maxChars) || "(empty tool result)";
         return /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Box_default, { alignSelf: "flex-start", borderColor: t.color.muted, borderStyle: "round", marginLeft: 3, paddingX: 1, children: hasAnsi(msg.text) ? /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { wrap: "truncate-end", children: /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Ansi, { children: safeAnsi }) }) : /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: preview }) });
@@ -72274,27 +73858,27 @@ var init_app = __esm({
 // src/lib/forceTruecolor.ts
 var TRUE_RE = /^(?:1|true|yes|on)$/i;
 var FALSE_RE = /^(?:0|false|no|off)$/i;
-function shouldForceTruecolor(env3 = process.env) {
-  const override = (env3.HERMES_TUI_TRUECOLOR ?? "").trim();
-  if (FALSE_RE.test(override) || "NO_COLOR" in env3) {
+function shouldForceTruecolor(env5 = process.env) {
+  const override = (env5.HERMES_TUI_TRUECOLOR ?? "").trim();
+  if (FALSE_RE.test(override) || "NO_COLOR" in env5) {
     return false;
   }
   return TRUE_RE.test(override);
 }
-var isAppleTerminal = (env3 = process.env) => (env3.TERM_PROGRAM ?? "").trim() === "Apple_Terminal";
-var isAdvertisedTruecolor = (env3 = process.env) => {
-  const colorTerm = (env3.COLORTERM ?? "").trim().toLowerCase();
-  const forceColor = (env3.FORCE_COLOR ?? "").trim();
+var isAppleTerminal = (env5 = process.env) => (env5.TERM_PROGRAM ?? "").trim() === "Apple_Terminal";
+var isAdvertisedTruecolor = (env5 = process.env) => {
+  const colorTerm = (env5.COLORTERM ?? "").trim().toLowerCase();
+  const forceColor = (env5.FORCE_COLOR ?? "").trim();
   return colorTerm === "truecolor" || colorTerm === "24bit" || forceColor === "3";
 };
-function shouldDowngradeAppleTerminalTruecolor(env3 = process.env) {
-  if (!isAppleTerminal(env3)) {
+function shouldDowngradeAppleTerminalTruecolor(env5 = process.env) {
+  if (!isAppleTerminal(env5)) {
     return false;
   }
-  if (shouldForceTruecolor(env3)) {
+  if (shouldForceTruecolor(env5)) {
     return false;
   }
-  return isAdvertisedTruecolor(env3);
+  return isAdvertisedTruecolor(env5);
 }
 if (shouldForceTruecolor()) {
   if (!process.env.COLORTERM) {
@@ -72605,11 +74189,11 @@ var GatewayClient = class extends EventEmitter {
   startSpawnedGateway(root2) {
     const python = resolvePython(root2);
     const cwd2 = process.env.HERMES_CWD || root2;
-    const env3 = { ...process.env };
-    const pyPath = env3.PYTHONPATH?.trim();
-    env3.PYTHONPATH = pyPath ? `${root2}${delimiter}${pyPath}` : root2;
+    const env5 = { ...process.env };
+    const pyPath = env5.PYTHONPATH?.trim();
+    env5.PYTHONPATH = pyPath ? `${root2}${delimiter}${pyPath}` : root2;
     this.startReadyTimer(python, cwd2);
-    this.proc = spawn(python, ["-m", "tui_gateway.entry"], { cwd: cwd2, env: env3, stdio: ["pipe", "pipe", "pipe"] });
+    this.proc = spawn(python, ["-m", "tui_gateway.entry"], { cwd: cwd2, env: env5, stdio: ["pipe", "pipe", "pipe"] });
     this.lifecycle(`[lifecycle] spawned gateway child ${describeChild(this.proc)} python=${python} cwd=${cwd2}`);
     this.stdoutRl = createInterface({ input: this.proc.stdout });
     this.stdoutRl.on("line", (raw) => {
