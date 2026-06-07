@@ -11,7 +11,7 @@ if ! command -v "$UV" >/dev/null 2>&1; then
   if command -v uv >/dev/null 2>&1; then
     UV="$(command -v uv)"
   else
-    echo "installing uv so hermes-client gets its own Python and survives stock Hermes uninstall..."
+    echo "installing uv so hermes-client gets its own Python..."
     curl -LsSf https://astral.sh/uv/install.sh | sh
   fi
 fi
@@ -22,8 +22,16 @@ fi
 
 "$UV" venv --python 3.11 "$PREFIX/venv"
 "$UV" pip install --python "$PREFIX/venv/bin/python" --upgrade 'git+https://github.com/sbbu/hermes-client.git[worker]'
+
+if ! command -v node >/dev/null 2>&1 && [ ! -x "$PREFIX/nodeenv/bin/node" ]; then
+  echo "installing local Node.js runtime for the TUI..."
+  "$UV" pip install --python "$PREFIX/venv/bin/python" --upgrade nodeenv
+  "$PREFIX/venv/bin/python" -m nodeenv --node=lts --prebuilt "$PREFIX/nodeenv"
+fi
+
 ln -sf "$PREFIX/venv/bin/hermes-client" "$BIN_DIR/hermes-client"
 "$BIN_DIR/hermes-client" install-autoupdate || true
+"$BIN_DIR/hermes-client" install-worker || true
 
 case ":$PATH:" in
   *":$BIN_DIR:"*) ;;

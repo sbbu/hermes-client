@@ -47,7 +47,7 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
     allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*", f"{host}:*"]
     allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*", f"http://{host}:*"]
     mcp = FastMCP(
-        "hermes-client-macbook",
+        "hermes-client-local-worker",
         host=host,
         port=port,
         streamable_http_path="/mcp",
@@ -58,19 +58,19 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
     )
 
     @mcp.tool()
-    def macbook_info() -> dict:
+    def local_info() -> dict:
         """Return worker identity and allowed roots."""
         return {"cwd": os.getcwd(), "allowed_roots": [str(r) for r in roots], "mutating_shell": allow_mutating_shell}
 
     @mcp.tool()
-    def macbook_read_file(path: str, max_bytes: int = 120000) -> str:
+    def local_read_file(path: str, max_bytes: int = 120000) -> str:
         """Read a UTF-8-ish text file under the worker's allowed roots."""
         p = assert_under_roots(path, roots)
         data = p.read_bytes()[: max(1, int(max_bytes))]
         return data.decode("utf-8", errors="replace")
 
     @mcp.tool()
-    def macbook_write_file(path: str, content: str) -> dict:
+    def local_write_file(path: str, content: str) -> dict:
         """Overwrite a file under the worker's allowed roots."""
         p = assert_under_roots(path, roots)
         p.parent.mkdir(parents=True, exist_ok=True)
@@ -78,7 +78,7 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
         return {"ok": True, "path": str(p), "bytes": len(content.encode())}
 
     @mcp.tool()
-    def macbook_search_files(pattern: str, root: str | None = None, max_results: int = 100) -> list[str]:
+    def local_search_files(pattern: str, root: str | None = None, max_results: int = 100) -> list[str]:
         """Find files by glob under an allowed root."""
         base = assert_under_roots(root or roots[0], roots)
         limit = max(1, min(int(max_results), 500))
@@ -94,8 +94,8 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
         return hits
 
     @mcp.tool()
-    def macbook_run(command: str, cwd: str | None = None, timeout: int = 120) -> dict:
-        """Run a shell command on the MacBook under an allowed cwd. Mutating-looking commands are blocked by default."""
+    def local_run(command: str, cwd: str | None = None, timeout: int = 120) -> dict:
+        """Run a shell command on the local machine under an allowed cwd. Mutating-looking commands are blocked by default."""
         if not command_allowed(command, allow_mutating_shell):
             raise ValueError("blocked mutating/destructive-looking shell command; restart worker with --allow-mutating-shell if you really want this")
         wd = assert_under_roots(cwd or roots[0], roots)
@@ -111,7 +111,7 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
         return {"exit_code": proc.returncode, "stdout": proc.stdout[-20000:], "stderr": proc.stderr[-20000:], "cwd": str(wd)}
 
     @mcp.tool()
-    def macbook_computer_use_status() -> dict:
+    def local_computer_use_status() -> dict:
         """Check whether cua-driver is installed locally for future GUI-control bridging."""
         from shutil import which
         cmd = which("cua-driver")
@@ -126,7 +126,7 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
 def mcp_config_text(host: str, port: int) -> str:
     return (
         "mcp_servers:\n"
-        "  macbook:\n"
+        "  local_worker:\n"
         f"    url: \"http://{host}:{port}/mcp\"\n"
         "    enabled: true\n"
         "    timeout: 120\n"

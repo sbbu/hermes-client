@@ -1,6 +1,12 @@
 import pytest
 
-from hermes_client.worker import assert_under_roots, command_allowed
+from hermes_client.worker import assert_under_roots, command_allowed, mcp_config_text
+
+
+def test_mcp_config_uses_generic_local_worker_name():
+    cfg = mcp_config_text("100.1.2.3", 8766)
+    assert "local_worker:" in cfg
+    assert "http://100.1.2.3:8766/mcp" in cfg
 
 
 def test_assert_under_roots_allows_nested(tmp_path):
