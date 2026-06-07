@@ -7,10 +7,12 @@ curl -fsSL https://raw.githubusercontent.com/sbbu/hermes-client/main/scripts/ins
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+The installer uses `uv` to create a standalone Python 3.11 venv under `~/.local/share/hermes-client`, symlinks `~/.local/bin/hermes-client`, and installs a 6-hour launchd self-updater. It does not depend on stock Hermes surviving.
+
 2. Configure remote mini dashboard:
 
 ```bash
-hermes-client configure --url http://100.79.212.87:9119
+hermes-client configure --url http://<mini-tailscale-ip>:9119
 hermes-client status
 hermes-client open
 ```

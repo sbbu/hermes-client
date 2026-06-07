@@ -9,32 +9,40 @@ from .dashboard import DashboardClient
 from .rpc import Event, JsonRpcWebSocket
 
 
-def _print_event(ev: Event) -> bool:
-    if ev.type == "message.delta":
-        text = str(ev.payload.get("text") or "")
-        if text:
-            print(text, end="", flush=True)
-    elif ev.type == "message.complete":
-        final = str(ev.payload.get("text") or "")
-        if final and not ev.payload.get("rendered"):
-            print(final, end="", flush=True)
-        print("", flush=True)
-        return True
-    elif ev.type == "error":
-        print(f"\n[error] {ev.payload.get('message') or ev.payload}", file=sys.stderr)
-        return True
-    elif ev.type == "status.update":
-        text = ev.payload.get("text")
-        if text:
-            print(f"\n[{ev.payload.get('kind') or 'status'}] {text}", file=sys.stderr)
-    elif ev.type == "tool.start":
-        name = ev.payload.get("name") or ev.payload.get("tool") or "tool"
-        print(f"\n→ {name}", file=sys.stderr)
-    elif ev.type == "tool.complete":
-        name = ev.payload.get("name") or ev.payload.get("tool") or "tool"
-        status = ev.payload.get("status") or "done"
-        print(f"✓ {name} {status}", file=sys.stderr)
-    return False
+class EventPrinter:
+    def __init__(self) -> None:
+        self._printed_delta = False
+
+    def print_event(self, ev: Event) -> bool:
+        """Print event. Return True when a prompt turn is complete."""
+        if ev.type == "message.start":
+            self._printed_delta = False
+        elif ev.type == "message.delta":
+            text = str(ev.payload.get("text") or "")
+            if text:
+                self._printed_delta = True
+                print(text, end="", flush=True)
+        elif ev.type == "message.complete":
+            final = str(ev.payload.get("text") or "")
+            if final and not self._printed_delta:
+                print(final, end="", flush=True)
+            print("", flush=True)
+            return True
+        elif ev.type == "error":
+            print(f"\n[error] {ev.payload.get('message') or ev.payload}", file=sys.stderr)
+            return True
+        elif ev.type == "status.update":
+            text = ev.payload.get("text")
+            if text:
+                print(f"\n[{ev.payload.get('kind') or 'status'}] {text}", file=sys.stderr)
+        elif ev.type == "tool.start":
+            name = ev.payload.get("name") or ev.payload.get("tool") or "tool"
+            print(f"\n→ {name}", file=sys.stderr)
+        elif ev.type == "tool.complete":
+            name = ev.payload.get("name") or ev.payload.get("tool") or "tool"
+            status = ev.payload.get("status") or "done"
+            print(f"✓ {name} {status}", file=sys.stderr)
+        return False
 
 
 async def run_one_prompt(base_url: str, prompt: str, *, cwd: str | None = None) -> None:
@@ -47,9 +55,10 @@ async def run_one_prompt(base_url: str, prompt: str, *, cwd: str | None = None) 
             payload["cwd"] = cwd
         res: dict[str, Any] = await rpc.request("session.create", payload)
         sid = res["session_id"]
+        printer = EventPrinter()
         await rpc.request("prompt.submit", {"session_id": sid, "text": prompt}, timeout=10)
         async for ev in rpc.events():
-            if _print_event(ev):
+            if printer.print_event(ev):
                 break
         await rpc.request("session.close", {"session_id": sid}, timeout=10)
 
@@ -74,9 +83,10 @@ async def repl(base_url: str) -> None:
                 break
             if not prompt.strip():
                 continue
+            printer = EventPrinter()
             await rpc.request("prompt.submit", {"session_id": sid, "text": prompt}, timeout=10)
             async for ev in rpc.events():
-                if _print_event(ev):
+                if printer.print_event(ev):
                     break
         await rpc.request("session.close", {"session_id": sid}, timeout=10)
 

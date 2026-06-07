@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/sbbu/hermes-client/main/scripts/ins
 Then configure it to the Mac mini dashboard:
 
 ```bash
-hermes-client configure --url http://100.79.212.87:9119
+hermes-client configure --url http://<mini-tailscale-ip>:9119
 hermes-client status
 hermes-client open
 ```
@@ -32,7 +32,7 @@ If the remote dashboard has username/password auth enabled:
 hermes-client login --provider basic --username <username>
 ```
 
-For Jeremy's current mini dashboard (`auth_required=false` on Tailscale), login is not needed; the client discovers the dashboard session token from the served SPA exactly like the browser does.
+If the mini dashboard has `auth_required=false` on Tailscale, login is not needed; the client discovers the dashboard session token from the served SPA exactly like the browser does.
 
 ## terminal chat
 
@@ -73,10 +73,17 @@ hermes-client install-desktop-shortcut
 open ~/Applications/Hermes\ Client.app
 ```
 
-This is a tiny native macOS launcher around the remote dashboard. It has no updater yet because there is nothing agent-side to update locally; the client CLI updates with:
+This is a tiny native macOS launcher around the remote dashboard. The installer also creates a LaunchAgent that self-updates the client every 6h. Manual update:
 
 ```bash
 hermes-client self-update
+```
+
+Manage the updater:
+
+```bash
+hermes-client install-autoupdate --interval 21600
+hermes-client uninstall-autoupdate
 ```
 
 ## uninstall stock Hermes from the MacBook

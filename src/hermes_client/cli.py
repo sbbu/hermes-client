@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import os
 import subprocess
 import sys
 import webbrowser
@@ -81,7 +82,59 @@ def cmd_install_desktop_shortcut(args) -> None:
 
 def cmd_self_update(args) -> None:
     exe = Path(sys.executable)
-    subprocess.run([str(exe), "-m", "pip", "install", "-U", "git+https://github.com/sbbu/hermes-client.git"], check=True)
+    subprocess.run([str(exe), "-m", "pip", "install", "-U", "git+https://github.com/sbbu/hermes-client.git[worker]"], check=True)
+
+
+def _autoupdate_plist_path() -> Path:
+    return Path.home() / "Library" / "LaunchAgents" / "com.sbbu.hermes-client.updater.plist"
+
+
+def cmd_install_autoupdate(args) -> None:
+    plist = _autoupdate_plist_path()
+    plist.parent.mkdir(parents=True, exist_ok=True)
+    python = Path(sys.executable)
+    log_dir = Path.home() / ".local" / "state" / "hermes-client"
+    log_dir.mkdir(parents=True, exist_ok=True)
+    interval = max(3600, int(args.interval))
+    content = f'''<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.sbbu.hermes-client.updater</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>{python}</string>
+    <string>-m</string>
+    <string>pip</string>
+    <string>install</string>
+    <string>-U</string>
+    <string>git+https://github.com/sbbu/hermes-client.git[worker]</string>
+  </array>
+  <key>StartInterval</key><integer>{interval}</integer>
+  <key>StandardOutPath</key><string>{log_dir / 'autoupdate.log'}</string>
+  <key>StandardErrorPath</key><string>{log_dir / 'autoupdate.err'}</string>
+  <key>RunAtLoad</key><false/>
+</dict>
+</plist>
+'''
+    plist.write_text(content)
+    try:
+        plist.chmod(0o644)
+    except OSError:
+        pass
+    uid = os.getuid()
+    subprocess.run(["launchctl", "bootout", f"gui/{uid}", str(plist)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["launchctl", "bootstrap", f"gui/{uid}", str(plist)], check=False)
+    print(f"installed launchd autoupdater: {plist}")
+
+
+def cmd_uninstall_autoupdate(args) -> None:
+    plist = _autoupdate_plist_path()
+    uid = os.getuid()
+    subprocess.run(["launchctl", "bootout", f"gui/{uid}", str(plist)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    if plist.exists():
+        plist.unlink()
+    print("removed hermes-client autoupdater")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -94,18 +147,22 @@ def build_parser() -> argparse.ArgumentParser:
     c.set_defaults(func=cmd_configure)
 
     c = sub.add_parser("status")
+    c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.set_defaults(func=cmd_status)
 
     c = sub.add_parser("login")
+    c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.add_argument("--provider", default="basic")
     c.add_argument("--username")
     c.set_defaults(func=cmd_login)
 
     c = sub.add_parser("open")
+    c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.add_argument("--chat", action="store_true", default=True)
     c.set_defaults(func=cmd_open)
 
     c = sub.add_parser("chat")
+    c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.add_argument("prompt", nargs="?")
     c.set_defaults(func=cmd_chat)
 
@@ -122,10 +179,18 @@ def build_parser() -> argparse.ArgumentParser:
     c.set_defaults(func=cmd_mcp_config)
 
     c = sub.add_parser("install-desktop-shortcut")
+    c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")
     c.set_defaults(func=cmd_install_desktop_shortcut)
 
     c = sub.add_parser("self-update")
     c.set_defaults(func=cmd_self_update)
+
+    c = sub.add_parser("install-autoupdate")
+    c.add_argument("--interval", type=int, default=21600, help="update interval in seconds; default 21600 (6h)")
+    c.set_defaults(func=cmd_install_autoupdate)
+
+    c = sub.add_parser("uninstall-autoupdate")
+    c.set_defaults(func=cmd_uninstall_autoupdate)
 
     return p
 

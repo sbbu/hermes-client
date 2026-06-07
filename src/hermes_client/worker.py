@@ -42,8 +42,20 @@ def command_allowed(command: str, allow_mutating: bool = False) -> bool:
 
 def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = "127.0.0.1", port: int = 8766):
     from mcp.server.fastmcp import FastMCP
+    from mcp.server.fastmcp.server import TransportSecuritySettings
 
-    mcp = FastMCP("hermes-client-macbook", host=host, port=port, streamable_http_path="/mcp")
+    allowed_hosts = ["127.0.0.1:*", "localhost:*", "[::1]:*", f"{host}:*"]
+    allowed_origins = ["http://127.0.0.1:*", "http://localhost:*", "http://[::1]:*", f"http://{host}:*"]
+    mcp = FastMCP(
+        "hermes-client-macbook",
+        host=host,
+        port=port,
+        streamable_http_path="/mcp",
+        transport_security=TransportSecuritySettings(
+            allowed_hosts=allowed_hosts,
+            allowed_origins=allowed_origins,
+        ),
+    )
 
     @mcp.tool()
     def macbook_info() -> dict:
