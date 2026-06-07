@@ -34,3 +34,18 @@ def test_install_worker_writes_launchd_plist(tmp_path, monkeypatch, capsys):
     assert "auto" in argv
     assert str(home / "Documents") in argv
     assert "local_worker:" in capsys.readouterr().out
+
+
+def test_autoupdater_uses_valid_direct_reference(tmp_path, monkeypatch):
+    home = tmp_path / "home"
+    home.mkdir()
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setattr(cli, "_load_plist", lambda label, plist: None)
+
+    args = cli.build_parser().parse_args(["install-autoupdate"])
+    args.func(args)
+
+    plist = home / "Library" / "LaunchAgents" / "com.sbbu.hermes-client.updater.plist"
+    data = plistlib.loads(plist.read_bytes())
+    argv = data["ProgramArguments"]
+    assert "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git" in argv

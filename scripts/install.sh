@@ -21,7 +21,7 @@ if ! command -v "$UV" >/dev/null 2>&1; then
 fi
 
 "$UV" venv --python 3.11 "$PREFIX/venv"
-"$UV" pip install --python "$PREFIX/venv/bin/python" --upgrade 'git+https://github.com/sbbu/hermes-client.git[worker]'
+"$UV" pip install --python "$PREFIX/venv/bin/python" --upgrade 'hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git'
 
 if ! command -v node >/dev/null 2>&1 && [ ! -x "$PREFIX/nodeenv/bin/node" ]; then
   echo "installing local Node.js runtime for the TUI..."

@@ -15,6 +15,8 @@ from .dashboard import DashboardClient, normalize_base_url
 from .tui import run_tui
 from .worker import mcp_config_text, run_worker
 
+INSTALL_SPEC = "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git"
+
 
 def _configured_url(args) -> str:
     raw = getattr(args, "url", None) or load_config().base_url
@@ -173,7 +175,7 @@ def cmd_install_desktop_shortcut(args) -> None:
 
 
 def cmd_self_update(args) -> None:
-    subprocess.run([str(Path(sys.executable)), "-m", "pip", "install", "-U", "git+https://github.com/sbbu/hermes-client.git[worker]"], check=True)
+    subprocess.run([str(Path(sys.executable)), "-m", "pip", "install", "-U", INSTALL_SPEC], check=True)
 
 
 def _autoupdate_plist_path() -> Path:
@@ -190,7 +192,7 @@ def cmd_install_autoupdate(args) -> None:
     interval = max(3600, int(args.interval))
     data = {
         "Label": "com.sbbu.hermes-client.updater",
-        "ProgramArguments": [str(Path(sys.executable)), "-m", "pip", "install", "-U", "git+https://github.com/sbbu/hermes-client.git[worker]"],
+        "ProgramArguments": [str(Path(sys.executable)), "-m", "pip", "install", "-U", INSTALL_SPEC],
         "StartInterval": interval,
         "RunAtLoad": False,
         "StandardOutPath": str(log_dir / "autoupdate.log"),
