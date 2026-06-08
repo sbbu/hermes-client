@@ -101,7 +101,7 @@ var init_env = __esm({
 
 // src/lib/memory.ts
 import { createWriteStream } from "node:fs";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import { homedir as homedir2, tmpdir } from "node:os";
 import { join as join2 } from "node:path";
 import { pipeline } from "node:stream/promises";
@@ -183,10 +183,41 @@ async function performHeapDump(trigger = "manual") {
     const heapPath = join2(dir2, `${base}.heapsnapshot`);
     const diagPath = join2(dir2, `${base}.diagnostics.json`);
     await writeFile(diagPath, JSON.stringify(diagnostics, null, 2), { mode: 384 });
+    const isAuto = trigger === "auto-critical" || trigger === "auto-high";
+    const autoEnabled = /^(?:1|true|yes|on)$/i.test((process.env.HERMES_AUTO_HEAPDUMP ?? "").trim());
+    if (isAuto && !autoEnabled) {
+      await pruneHeapdumps(dir2).catch(() => void 0);
+      return { diagPath, suppressed: true, success: true };
+    }
     await pipeline(getHeapSnapshot(), createWriteStream(heapPath, { mode: 384 }));
+    await pruneHeapdumps(dir2).catch(() => void 0);
     return { diagPath, heapPath, success: true };
   } catch (e) {
     return { error: e instanceof Error ? e.message : String(e), success: false };
+  }
+}
+async function pruneHeapdumps(dir2) {
+  const raw = process.env.HERMES_HEAPDUMP_MAX_BYTES?.trim();
+  const parsed = raw ? Number(raw) : NaN;
+  const cap = Number.isFinite(parsed) && parsed > 0 ? parsed : 2 * 1024 ** 3;
+  const names = await readdir(dir2);
+  const stats = await Promise.all(
+    names.map(async (name) => {
+      const path = join2(dir2, name);
+      const s = await stat(path).catch(() => null);
+      return s && s.isFile() ? { mtimeMs: s.mtimeMs, path, size: s.size } : null;
+    })
+  );
+  const valid = stats.filter((s) => s !== null);
+  valid.sort((a, b) => b.mtimeMs - a.mtimeMs);
+  let total = valid.reduce((acc, s) => acc + s.size, 0);
+  while (total > cap && valid.length > 1) {
+    const oldest = valid.pop();
+    if (!oldest) {
+      break;
+    }
+    await unlink(oldest.path).catch(() => void 0);
+    total -= oldest.size;
   }
 }
 function formatBytes(bytes) {
@@ -74572,6 +74603,10 @@ function startMemoryMonitor({
   let lastHeap = -1;
   let warned3 = false;
   const WARN_GROWTH_STEP = 150 * MB;
+  const cooldownRaw = process.env.HERMES_AUTO_HEAPDUMP_COOLDOWN_MS?.trim();
+  const cooldownParsed = cooldownRaw ? Number(cooldownRaw) : NaN;
+  const cooldownMs = Number.isFinite(cooldownParsed) && cooldownParsed >= 0 ? cooldownParsed : 6e5;
+  let lastAutoDumpAt = 0;
   const tick = async () => {
     const { heapUsed, rss } = process.memoryUsage();
     if (heapUsed < high && lastHeap >= 0) {
@@ -74591,7 +74626,11 @@ function startMemoryMonitor({
     if (dumped.has(level) || inFlight.has(level)) {
       return;
     }
+    if (Date.now() - lastAutoDumpAt < cooldownMs) {
+      return;
+    }
     inFlight.add(level);
+    lastAutoDumpAt = Date.now();
     try {
       try {
         const evictInkCaches2 = await _ensureEvictInkCaches();
@@ -74703,6 +74742,9 @@ if (!process.stdin.isTTY) {
   process.exit(0);
 }
 resetTerminalModes();
+process.on("exit", () => {
+  resetTerminalModes();
+});
 if (TERMUX_TUI_MODE) {
   process.stdout.write("\n");
 } else {
@@ -74710,7 +74752,7 @@ if (TERMUX_TUI_MODE) {
 }
 var gw = new GatewayClient();
 gw.start();
-var dumpNotice = (snap, dump) => `hermes-tui: ${snap.level} memory (${formatBytes(snap.heapUsed)}) \u2014 auto heap dump \u2192 ${dump?.heapPath ?? "(failed)"}
+var dumpNotice = (snap, dump) => `hermes-tui: ${snap.level} memory (${formatBytes(snap.heapUsed)}) \u2014 auto heap dump \u2192 ${dump?.heapPath ?? dump?.diagPath ?? "(failed)"}
 `;
 setupGracefulExit({
   cleanups: [
