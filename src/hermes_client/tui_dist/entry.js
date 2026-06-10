@@ -57269,6 +57269,7 @@ var init_uiStore = __esm({
       pasteCollapseLines: 5,
       pasteCollapseChars: 2e3,
       sections: {},
+      sessionTitle: "",
       showCost: false,
       showReasoning: false,
       sid: null,
@@ -57628,7 +57629,7 @@ var init_messages = __esm({
 });
 
 // src/domain/paths.ts
-var shortCwd, fmtCwdBranch;
+var shortCwd, fmtCwdBranch, composeTabTitle;
 var init_paths = __esm({
   "src/domain/paths.ts"() {
     "use strict";
@@ -57643,6 +57644,12 @@ var init_paths = __esm({
       }
       const tag = ` (${branch.length > 16 ? `\u2026${branch.slice(-15)}` : branch})`;
       return `${shortCwd(cwd2, Math.max(8, max - tag.length))}${tag}`;
+    };
+    composeTabTitle = (marker, sessionName, model, cwd2, maxName = 28) => {
+      const name = sessionName.trim();
+      const shortName = name.length > maxName ? `${name.slice(0, maxName - 1)}\u2026` : name;
+      const segments = [shortName, model, cwd2].filter(Boolean);
+      return segments.length ? `${marker} ${segments.join(" \xB7 ")}` : marker;
     };
   }
 });
@@ -62033,8 +62040,21 @@ var init_session = __esm({
           if (!arg.trim()) {
             return patchOverlayState({ modelPicker: true });
           }
-          ctx.gateway.rpc("config.set", { key: "model", session_id: ctx.sid, value: modelValueForConfigSet(arg) }).then(
+          const switchModel = (confirmExpensiveModel = false) => ctx.gateway.rpc("config.set", { confirm_expensive_model: confirmExpensiveModel, key: "model", session_id: ctx.sid, value: modelValueForConfigSet(arg) }).then(
             ctx.guarded((r) => {
+              if (r.confirm_required) {
+                patchOverlayState({
+                  confirm: {
+                    cancelLabel: "Cancel",
+                    confirmLabel: "Switch anyway",
+                    danger: true,
+                    detail: r.confirm_message || r.warning || "This model has unusually high known pricing.",
+                    onConfirm: () => switchModel(true),
+                    title: "Expensive model selection"
+                  }
+                });
+                return;
+              }
               if (!r.value) {
                 return ctx.transcript.sys("error: invalid response: model switch");
               }
@@ -62046,6 +62066,7 @@ var init_session = __esm({
               }));
             })
           );
+          switchModel();
         }
       },
       {
@@ -64883,8 +64904,11 @@ function useMainApp(gw2) {
         const result = asRpcResult(raw);
         if (!stopped && result?.sessions) {
           const liveSessionCount = result.sessions.length;
-          if (getUiState().liveSessionCount !== liveSessionCount) {
-            patchUiState({ liveSessionCount });
+          const currentSid = getUiState().sid;
+          const sessionTitle = result.sessions.find((s) => s.current || s.id === currentSid)?.title?.trim() ?? "";
+          const prev = getUiState();
+          if (prev.liveSessionCount !== liveSessionCount || prev.sessionTitle !== sessionTitle) {
+            patchUiState({ liveSessionCount, sessionTitle });
           }
         }
       }).catch(() => {
@@ -64900,7 +64924,9 @@ function useMainApp(gw2) {
   const model = ui.info?.model?.replace(/^.*\//, "") ?? "";
   const marker = overlay.approval || overlay.sudo || overlay.secret || overlay.clarify ? "\u26A0" : ui.busy ? "\u23F3" : "\u2713";
   const tabCwd = ui.info?.cwd;
-  useTerminalTitle(model ? `${marker} ${model}${tabCwd ? ` \xB7 ${shortCwd(tabCwd, 24)}` : ""}` : "Hermes");
+  useTerminalTitle(
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : "") : "Hermes"
+  );
   (0, import_react73.useEffect)(() => {
     if (!ui.sid || !stdout) {
       return;
@@ -74252,10 +74278,7 @@ var asWireText = (raw) => {
   if (typeof raw === "string") {
     return raw;
   }
-  if (raw instanceof ArrayBuffer) {
-    return _wireDecoder.decode(raw);
-  }
-  if (ArrayBuffer.isView(raw)) {
+  if (raw instanceof ArrayBuffer || ArrayBuffer.isView(raw)) {
     return _wireDecoder.decode(raw);
   }
   return null;
