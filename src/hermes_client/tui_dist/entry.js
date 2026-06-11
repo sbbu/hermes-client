@@ -64647,6 +64647,7 @@ function useMainApp(gw2) {
   const [voiceRecordKey, setVoiceRecordKey] = (0, import_react73.useState)(DEFAULT_VOICE_RECORD_KEY);
   const [sessionStartedAt, setSessionStartedAt] = (0, import_react73.useState)(() => Date.now());
   const [turnStartedAt, setTurnStartedAt] = (0, import_react73.useState)(null);
+  const [lastTurnEndedAt, setLastTurnEndedAt] = (0, import_react73.useState)(null);
   const [goodVibesTick, setGoodVibesTick] = (0, import_react73.useState)(0);
   const [bellOnComplete, setBellOnComplete] = (0, import_react73.useState)(false);
   const ui = useStore($uiState);
@@ -64888,10 +64889,11 @@ function useMainApp(gw2) {
   (0, import_react73.useEffect)(() => {
     if (ui.busy) {
       setTurnStartedAt((prev) => prev ?? Date.now());
-    } else {
+    } else if (turnStartedAt != null) {
+      setLastTurnEndedAt(Date.now());
       setTurnStartedAt(null);
     }
-  }, [ui.busy]);
+  }, [ui.busy, turnStartedAt]);
   useConfigSync({ gw: gw2, setBellOnComplete, setVoiceEnabled, setVoiceRecordKey, sid: ui.sid });
   (0, import_react73.useEffect)(() => {
     if (!ui.sid) {
@@ -65324,6 +65326,7 @@ function useMainApp(gw2) {
       // essentials and truncates this further on narrow terminals.
       cwdLabel: fmtCwdBranch(cwd2, gitBranch, 28),
       goodVibesTick,
+      lastTurnEndedAt: ui.sid ? lastTurnEndedAt : null,
       sessionStartedAt: ui.sid ? sessionStartedAt : null,
       showStickyPrompt: !!stickyPrompt,
       statusColor: statusColorOf(ui.status, ui.theme.color),
@@ -65337,6 +65340,7 @@ function useMainApp(gw2) {
       cwd2,
       gitBranch,
       goodVibesTick,
+      lastTurnEndedAt,
       sessionStartedAt,
       stickyPrompt,
       turnStartedAt,
@@ -66910,6 +66914,15 @@ function SessionDuration({ startedAt }) {
   }, [startedAt]);
   return fmtDuration(now2 - startedAt);
 }
+function IdleSince({ endedAt }) {
+  const [now2, setNow] = (0, import_react79.useState)(() => Date.now());
+  (0, import_react79.useEffect)(() => {
+    setNow(Date.now());
+    const id = setInterval(() => setNow(Date.now()), 1e3);
+    return () => clearInterval(id);
+  }, [endedAt]);
+  return `\u2713 ${fmtDuration(now2 - endedAt)}`;
+}
 function GoodVibesHeart({ tick, t }) {
   const [active, setActive] = (0, import_react79.useState)(false);
   const [color, setColor] = (0, import_react79.useState)(t.color.accent);
@@ -66941,6 +66954,7 @@ function StatusRule({
   notice,
   usage,
   bgCount,
+  lastTurnEndedAt,
   liveSessionCount,
   sessionStartedAt,
   showCost,
@@ -66976,6 +66990,7 @@ function StatusRule({
   const devCreditsText = typeof usage.dev_credits_spent_micros === "number" ? `\u0394 ${(usage.dev_credits_spent_micros / 1e4).toFixed(1)}\xA2` : "";
   const showBar = !!bar && fits(SEP2 + stringWidth(`[${bar}] ${pct != null ? `${pct}%` : ""}`));
   const showDuration = segs.duration && !!sessionStartedAt && fits(SEP2 + MAX_DURATION_WIDTH);
+  const showIdle = segs.duration && !busy && lastTurnEndedAt != null && fits(SEP2 + stringWidth("\u2713 ") + MAX_DURATION_WIDTH);
   const showCompressions = segs.compressions && compressions > 0 && fits(SEP2 + stringWidth(`cmp ${compressions}`));
   const showVoice = segs.voice && !!voiceLabel && fits(SEP2 + stringWidth(voiceLabel));
   const showSessionCount = !!sessionCountText && fits(SEP2 + stringWidth(sessionCountText));
@@ -67024,6 +67039,10 @@ function StatusRule({
       showDuration ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(Text, { color: t.color.muted, wrap: "truncate-end", children: [
         " \u2502 ",
         /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(SessionDuration, { startedAt: sessionStartedAt })
+      ] }) : null,
+      showIdle ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(Text, { color: t.color.muted, wrap: "truncate-end", children: [
+        " \u2502 ",
+        /* @__PURE__ */ (0, import_jsx_runtime19.jsx)(IdleSince, { endedAt: lastTurnEndedAt })
       ] }) : null,
       showCompressions ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(Text, { color: t.color.muted, wrap: "truncate-end", children: [
         " \u2502 ",
@@ -70285,7 +70304,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       s.tools,
       " tool",
       s.tools === 1 ? "" : "s"
-    ] }) : /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.error, children: "failed" })
+    ] }) : s.disabled || s.status === "disabled" ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.muted, children: "disabled" }) : s.status === "connecting" ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.warn, children: "connecting" }) : s.status === "configured" ? /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.muted, children: "configured" }) : /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.error, children: "failed" })
   ] }, s.name)) });
   const sysPromptLen = (info.system_prompt ?? "").length;
   const systemBody = () => {
@@ -74032,6 +74051,7 @@ var init_appLayout = __esm({
           cols: composer.cols,
           cwdLabel: status.cwdLabel,
           indicatorStyle: ui.indicatorStyle,
+          lastTurnEndedAt: status.lastTurnEndedAt,
           liveSessionCount: ui.liveSessionCount,
           model: ui.info?.model ?? "",
           modelFast: ui.info?.fast || ui.info?.service_tier === "priority",
