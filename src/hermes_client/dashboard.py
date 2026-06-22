@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ipaddress
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -10,6 +11,11 @@ import httpx
 from .config import load_cookies, save_cookies
 
 TOKEN_RE = re.compile(r'window\.__HERMES_SESSION_TOKEN__="([^"]+)"')
+TAILSCALE_NET = ipaddress.ip_network("100.64.0.0/10")
+
+
+class DashboardConnectionError(RuntimeError):
+    """Raised when the remote Hermes dashboard cannot be reached."""
 
 
 def normalize_base_url(raw: str) -> str:
@@ -48,6 +54,39 @@ def extract_session_token(html: str) -> str | None:
     return m.group(1) if m else None
 
 
+def _host_hint(base_url: str) -> str:
+    parts = urlsplit(base_url)
+    host = parts.hostname or parts.netloc or "remote host"
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        ip = None
+
+    if ip and ip in TAILSCALE_NET:
+        return (
+            "- this is a Tailscale IP; make sure Tailscale is running and logged in on this machine, "
+            "and that the remote Hermes machine is online on the tailnet"
+        )
+    if host in {"127.0.0.1", "::1", "localhost"}:
+        return "- localhost points at this machine; use the remote Hermes machine's Tailscale/LAN URL instead"
+    return "- if this host is only reachable through a VPN/tailnet, make sure that network is connected"
+
+
+def _connection_error_message(base_url: str, exc: httpx.HTTPError) -> str:
+    status_url = base_url.rstrip("/") + "/api/status"
+    lines = [
+        f"could not reach Hermes dashboard at {base_url}",
+        f"httpx: {type(exc).__name__}: {exc}",
+        "",
+        "check:",
+        f"- configured remote URL is correct: {base_url}",
+        "- the remote dashboard service is running and listening on that host/port",
+        _host_hint(base_url),
+        f"- try: curl --connect-timeout 5 {status_url}",
+    ]
+    return "\n".join(lines)
+
+
 @dataclass
 class DashboardClient:
     base_url: str
@@ -76,7 +115,10 @@ class DashboardClient:
         return dumped
 
     def status(self) -> dict[str, Any]:
-        r = self.client.get("/api/status")
+        try:
+            r = self.client.get("/api/status")
+        except (httpx.ConnectError, httpx.TimeoutException, httpx.NetworkError) as exc:
+            raise DashboardConnectionError(_connection_error_message(self.base_url, exc)) from exc
         r.raise_for_status()
         return r.json()
 

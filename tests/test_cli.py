@@ -4,7 +4,10 @@ import plistlib
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from hermes_client import cli
+from hermes_client.dashboard import DashboardConnectionError
 
 
 def test_worker_service_defaults_to_waiting_for_tailscale():
@@ -16,6 +19,25 @@ def test_worker_service_defaults_to_waiting_for_tailscale():
 def test_update_command_and_legacy_alias():
     assert cli.build_parser().parse_args(["update"]).func is cli.cmd_update
     assert cli.build_parser().parse_args(["self-update"]).func is cli.cmd_update
+
+
+def test_main_prints_connection_errors_without_traceback(monkeypatch, capsys):
+    def fail(args):
+        raise DashboardConnectionError("cannot reach remote")
+
+    monkeypatch.setattr(
+        cli,
+        "build_parser",
+        lambda: SimpleNamespace(parse_args=lambda argv: SimpleNamespace(func=fail)),
+    )
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.main([])
+
+    assert excinfo.value.code == 2
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == "error: cannot reach remote\n"
 
 
 def test_update_uses_uv_not_venv_pip(tmp_path, monkeypatch):

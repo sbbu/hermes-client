@@ -12,7 +12,7 @@ from pathlib import Path
 
 from .chat import chat_sync
 from .config import load_config, save_config
-from .dashboard import DashboardClient, normalize_base_url
+from .dashboard import DashboardClient, DashboardConnectionError, normalize_base_url
 from .tui import run_tui
 from .worker import mcp_config_text, run_worker
 
@@ -389,7 +389,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     args = build_parser().parse_args(argv)
-    args.func(args)
+    try:
+        args.func(args)
+    except DashboardConnectionError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
 
 
 if __name__ == "__main__":
