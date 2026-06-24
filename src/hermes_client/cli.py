@@ -66,6 +66,33 @@ def _load_plist(label: str, plist: Path) -> None:
     _launchctl("kickstart", "-k", f"gui/{uid}/{label}")
 
 
+def _defer_load_plist(label: str, plist: Path) -> None:
+    """Reload launchd after this process returns.
+
+    Remote worker calls run inside the worker service; booting out the plist
+    synchronously kills the MCP server mid-request. Schedule the reload in a
+    detached shell instead so Hermes can update/reconfigure the MacBook worker
+    from the remote brain without stranding itself.
+    """
+    if sys.platform != "darwin":
+        return
+    uid = os.getuid()
+    script = _state_dir() / f"reload-{label}.sh"
+    script.write_text(
+        "#!/bin/sh\n"
+        "sleep 2\n"
+        f"/bin/launchctl bootout gui/{uid} {str(plist)!r} >/dev/null 2>&1 || true\n"
+        f"/bin/launchctl bootstrap gui/{uid} {str(plist)!r} >/dev/null 2>&1 || true\n"
+        f"/bin/launchctl kickstart -k gui/{uid}/{label} >/dev/null 2>&1 || true\n"
+    )
+    script.chmod(0o755)
+    subprocess.Popen(["/bin/sh", str(script)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def _called_from_worker_service() -> bool:
+    return os.environ.get("HERMES_CLIENT_WORKER_SERVICE") == "1"
+
+
 def _unload_plist(plist: Path) -> None:
     if sys.platform != "darwin":
         return
@@ -273,10 +300,15 @@ def cmd_install_worker(args) -> None:
         "ThrottleInterval": 30,
         "StandardOutPath": str(log_dir / "worker.log"),
         "StandardErrorPath": str(log_dir / "worker.err"),
+        "EnvironmentVariables": {"HERMES_CLIENT_WORKER_SERVICE": "1"},
     }
     _write_launchd_plist(plist, data)
-    _load_plist("com.sbbu.hermes-client.worker", plist)
-    print(f"installed launchd worker: {plist}")
+    if _called_from_worker_service():
+        _defer_load_plist("com.sbbu.hermes-client.worker", plist)
+        print(f"installed launchd worker: {plist} (reload scheduled after current MCP request)")
+    else:
+        _load_plist("com.sbbu.hermes-client.worker", plist)
+        print(f"installed launchd worker: {plist}")
     print("endpoint:")
     print(mcp_config_text(_resolve_worker_host(args.host, wait_seconds=0), args.port))
 
