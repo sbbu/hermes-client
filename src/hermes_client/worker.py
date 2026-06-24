@@ -50,6 +50,12 @@ DESKTOP_WINDOW_NAMES = ("finder", "desktop", "dock", "progman", "workerw", "prog
 CUA_SESSION_ID = f"hermes-client-{uuid.uuid4().hex[:12]}"
 CUA_STATE: dict[str, Any] = {"pid": None, "window_id": None, "app": None, "title": None}
 
+
+def _reset_cua_session() -> None:
+    global CUA_SESSION_ID
+    CUA_SESSION_ID = f"hermes-client-{uuid.uuid4().hex[:12]}"
+    CUA_STATE.update({"pid": None, "window_id": None, "app": None, "title": None})
+
 BLOCKED_KEY_COMBOS = {
     frozenset({"cmd", "shift", "backspace"}),
     frozenset({"cmd", "option", "backspace"}),
@@ -120,21 +126,31 @@ def _run_cua(tool: str, args: dict[str, Any] | None = None, timeout: int = 30) -
     driver = resolve_cua_driver()
     if not driver:
         raise RuntimeError("cua-driver not found; run `hermes-client install-computer-use` on this Mac")
-    proc = subprocess.run(
-        [driver, "call", tool, json.dumps(args or {})],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        timeout=max(1, min(int(timeout), 120)),
-    )
-    out = (proc.stdout or "").strip()
-    if proc.returncode != 0:
-        raise RuntimeError((proc.stderr or out or f"cua-driver {tool} failed").strip())
-    try:
-        parsed = json.loads(out) if out else {}
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"cua-driver {tool} returned non-JSON output: {out[:500]}") from exc
-    return parsed if isinstance(parsed, dict) else {"data": parsed}
+    payload = dict(args or {})
+    for attempt in range(2):
+        proc = subprocess.run(
+            [driver, "call", tool, json.dumps(payload)],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=max(1, min(int(timeout), 120)),
+        )
+        out = (proc.stdout or "").strip()
+        err = (proc.stderr or "").strip()
+        combined = f"{out}\n{err}".lower()
+        if "session ended" in combined and attempt == 0:
+            _reset_cua_session()
+            if "session" in payload:
+                payload["session"] = CUA_SESSION_ID
+            continue
+        if proc.returncode != 0:
+            raise RuntimeError((err or out or f"cua-driver {tool} failed").strip())
+        try:
+            parsed = json.loads(out) if out else {}
+        except json.JSONDecodeError as exc:
+            raise RuntimeError(f"cua-driver {tool} returned non-JSON output: {out[:500]}") from exc
+        return parsed if isinstance(parsed, dict) else {"data": parsed}
+    raise RuntimeError(f"cua-driver {tool} failed after resetting session")
 
 
 def _window_name(window: dict[str, Any]) -> str:
