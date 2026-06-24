@@ -10,6 +10,7 @@ This repo deliberately does **not** install or run a local Hermes agent. A remot
 - `hermes-client chat` — small non-TUI terminal chat over `/api/ws`.
 - `hermes-client install-worker` — launchd service exposing scoped local file/shell MCP tools to the remote Hermes host.
 - `hermes-client install-desktop-shortcut` — tiny macOS `.app` launcher for the remote dashboard.
+- `apps/desktop` / `Hermes Client` — native Electron shell for the same remote backend, without bundling or spawning a local agent.
 
 No local agent checkout. No local gateway brain. No `hermes update` path.
 
@@ -98,6 +99,22 @@ The worker exposes:
 - `local_computer_use_status`
 
 Shell commands run without `sudo`; mutating/destructive-looking shell commands are blocked unless the worker is installed with `--allow-mutating-shell`. File writes are allowed inside configured roots.
+
+## local Mac access from the remote brain
+
+For a full "brain on the server, hands on this Mac" setup:
+
+```bash
+hermes-client setup-local-access --full-home --allow-mutating-shell --computer-use
+```
+
+This installs the local worker as a launchd service, allows the remote Hermes host to read/write/run commands under your home directory, and installs/checks `cua-driver` for background GUI control. If macOS permissions are missing, run:
+
+```bash
+hermes-client install-computer-use --grant
+```
+
+Then add the printed `mcp_servers.local_worker` block to the remote Hermes host and restart the remote gateway. Once registered, the Mac is available from any Hermes surface attached to that server: desktop app, TUI, Discord, cron, etc.
 
 ## desktop launcher
 

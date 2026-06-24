@@ -7,3 +7,11 @@ dist/
 build/
 *.egg-info/
 .DS_Store
+# Node / Electron desktop
+node_modules/
+apps/*/node_modules/
+apps/desktop/release/
+apps/desktop/dist/
+apps/desktop/build/
+
+*.tsbuildinfo

@@ -7,6 +7,7 @@ import plistlib
 import shutil
 import subprocess
 import sys
+import tempfile
 import webbrowser
 from pathlib import Path
 
@@ -14,7 +15,7 @@ from .chat import chat_sync
 from .config import load_config, save_config
 from .dashboard import DashboardClient, DashboardConnectionError, normalize_base_url
 from .tui import run_tui
-from .worker import mcp_config_text, run_worker
+from .worker import mcp_config_text, resolve_cua_driver, run_worker
 
 INSTALL_SPEC = "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git"
 
@@ -297,6 +298,44 @@ def cmd_worker_status(args) -> None:
     print(mcp_config_text(host, args.port))
 
 
+def cmd_install_computer_use(args) -> None:
+    driver = resolve_cua_driver()
+    if not driver:
+        url = "https://raw.githubusercontent.com/trycua/cua/main/libs/cua-driver/scripts/install.sh"
+        with tempfile.TemporaryDirectory(prefix="hermes-cua-") as tmp:
+            script = Path(tmp) / "install-cua-driver.sh"
+            subprocess.run(["curl", "-fsSL", url, "-o", str(script)], check=True)
+            subprocess.run(["/bin/bash", str(script)], check=True)
+        driver = resolve_cua_driver()
+    if not driver:
+        raise SystemExit("cua-driver install finished but binary was not found")
+    print(f"cua-driver: {driver}")
+    status = subprocess.run([driver, "call", "check_permissions", "{}"], text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+    if status.stdout.strip():
+        print(status.stdout.strip())
+    if args.grant:
+        subprocess.run([driver, "permissions", "grant"], check=False)
+    else:
+        print("if permissions are not granted, run: hermes-client install-computer-use --grant")
+
+
+def cmd_setup_local_access(args) -> None:
+    roots = args.allow_root or ([str(Path.home())] if args.full_home else load_config().worker_roots or _default_worker_roots())
+    worker_args = argparse.Namespace(
+        host=args.host,
+        port=args.port,
+        allow_root=roots,
+        allow_mutating_shell=args.allow_mutating_shell,
+    )
+    cmd_install_worker(worker_args)
+    if args.computer_use:
+        cmd_install_computer_use(argparse.Namespace(grant=args.grant_computer_use))
+    host = _resolve_worker_host(args.host, wait_seconds=0)
+    print("remote Hermes MCP config:")
+    print(mcp_config_text(host, args.port))
+    print("restart the remote Hermes gateway after adding/updating that config so every surface can use this Mac.")
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(prog="hermes-client")
     p.add_argument("--url", help="remote dashboard base URL; overrides saved config")
@@ -369,6 +408,20 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--host", default="auto")
     c.add_argument("--port", type=int, default=8766)
     c.set_defaults(func=cmd_worker_status)
+
+    c = sub.add_parser("install-computer-use")
+    c.add_argument("--grant", action="store_true", help="open the native macOS permission flow after installing")
+    c.set_defaults(func=cmd_install_computer_use)
+
+    c = sub.add_parser("setup-local-access")
+    c.add_argument("--host", default="auto")
+    c.add_argument("--port", type=int, default=8766)
+    c.add_argument("--allow-root", action="append")
+    c.add_argument("--full-home", action="store_true", help="allow the worker to read/write the whole home directory")
+    c.add_argument("--allow-mutating-shell", action="store_true")
+    c.add_argument("--computer-use", action="store_true", help="install/check cua-driver for local GUI control")
+    c.add_argument("--grant-computer-use", action="store_true", help="open the macOS permission flow for cua-driver")
+    c.set_defaults(func=cmd_setup_local_access)
 
     c = sub.add_parser("install-desktop-shortcut")
     c.add_argument("--url", default=argparse.SUPPRESS, help="remote dashboard base URL; overrides saved config")

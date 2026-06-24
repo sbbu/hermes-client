@@ -1,0 +1,25 @@
+{
+  "name": "hermes-client",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Remote-only Hermes client, desktop shell, and local tool worker.",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "desktop:dev": "npm --workspace apps/desktop run dev",
+    "desktop:build": "npm --workspace apps/desktop run build",
+    "desktop:pack": "npm --workspace apps/desktop run pack",
+    "desktop:dist:mac": "npm --workspace apps/desktop run dist:mac",
+    "desktop:test:platforms": "npm --workspace apps/desktop run test:desktop:platforms",
+    "desktop:test:ui": "npm --workspace apps/desktop run test:ui"
+  },
+  "overrides": {
+    "lodash": "4.18.1",
+    "@assistant-ui/store": "0.2.13",
+    "yauzl": "^3.3.1"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
