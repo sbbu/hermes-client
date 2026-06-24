@@ -12,6 +12,7 @@ const {
   powerMonitor,
   protocol,
   safeStorage,
+  screen,
   session,
   shell,
   systemPreferences
@@ -67,6 +68,13 @@ const {
   uninstallArgsForMode
 } = require('./desktop-uninstall.cjs')
 const { isPackagedInstallPath: isPackagedInstallPathUnderRoots } = require('./workspace-cwd.cjs')
+const {
+  MIN_WIDTH: WINDOW_MIN_WIDTH,
+  MIN_HEIGHT: WINDOW_MIN_HEIGHT,
+  sanitizeWindowState,
+  computeWindowOptions,
+  debounce
+} = require('./window-state.cjs')
 const {
   authModeFromStatus,
   buildGatewayWsUrl,
@@ -341,6 +349,7 @@ const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
 const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'connection.json')
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
+const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
 // active-profile.json records which Hermes profile the desktop launches its
 // local backend as. When set, startHermes() passes `hermes --profile <name>
 // dashboard …`, which deterministically pins HERMES_HOME (see
@@ -1551,8 +1560,38 @@ function writeDesktopUpdateConfig(config) {
   writeFileAtomic(DESKTOP_UPDATE_CONFIG_PATH, JSON.stringify(config, null, 2))
 }
 
+// ─── Main-window geometry persistence (window-state.json) ──────────────────
+
+function readWindowState() {
+  try {
+    return sanitizeWindowState(JSON.parse(fs.readFileSync(DESKTOP_WINDOW_STATE_PATH, 'utf8')))
+  } catch {
+    return null
+  }
+}
+
+// Persist the window's restored (non-maximized) bounds plus its maximized flag.
+// getNormalBounds() keeps the pre-maximize size, so un-maximizing next session
+// lands back where the user actually sized the window.
+function persistWindowState() {
+  if (!mainWindow || mainWindow.isDestroyed() || mainWindow.isMinimized()) return
+  try {
+    const { x, y, width, height } = mainWindow.getNormalBounds()
+    fs.mkdirSync(path.dirname(DESKTOP_WINDOW_STATE_PATH), { recursive: true })
+    writeFileAtomic(
+      DESKTOP_WINDOW_STATE_PATH,
+      JSON.stringify({ x, y, width, height, isMaximized: mainWindow.isMaximized() }, null, 2)
+    )
+  } catch (err) {
+    rememberLog(`[window-state] persist failed: ${err?.message || err}`)
+  }
+}
+
+// resized/moved fire many times mid-drag on Linux; debounce to one write.
+const schedulePersistWindowState = debounce(persistWindowState, 250)
+
 // Hermes Client updates target the thin-client repository, never the full
-// Hermes Agent checkout. This keeps the desktop updater away from Jeremy's fork
+// Hermes Agent checkout. This keeps the desktop updater away from a local fork
 // and avoids the official first-launch reinstall loop entirely.
 function resolveUpdateRoot() {
   const candidates = [
@@ -5525,11 +5564,11 @@ function closePetOverlay() {
 
 function createWindow() {
   const icon = getAppIconPath()
+  const savedWindowState = readWindowState()
   mainWindow = new BrowserWindow({
-    width: 1220,
-    height: 800,
-    minWidth: 400,
-    minHeight: 620,
+    ...computeWindowOptions(savedWindowState, screen.getAllDisplays()),
+    minWidth: WINDOW_MIN_WIDTH,
+    minHeight: WINDOW_MIN_HEIGHT,
     title: 'Hermes',
     // Frameless title bar on every platform so the renderer can paint the
     // "hide sidebar" button (and other left-side titlebar tools) flush with
@@ -5571,6 +5610,8 @@ function createWindow() {
     }
   }
 
+  if (savedWindowState?.isMaximized) mainWindow.maximize()
+
   mainWindow.once('ready-to-show', () => {
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
   })
@@ -5579,6 +5620,14 @@ function createWindow() {
   mainWindow.on('enter-full-screen', () => sendWindowStateChanged(true))
   mainWindow.on('will-leave-full-screen', () => sendWindowStateChanged(false))
   mainWindow.on('leave-full-screen', () => sendWindowStateChanged(false))
+
+  // Reopen where the user left off. resized/moved settle once per drag; close is
+  // the cross-platform backstop, flushed synchronously before the window is gone.
+  mainWindow.on('resized', schedulePersistWindowState)
+  mainWindow.on('moved', schedulePersistWindowState)
+  mainWindow.on('maximize', schedulePersistWindowState)
+  mainWindow.on('unmaximize', schedulePersistWindowState)
+  mainWindow.on('close', () => schedulePersistWindowState.flush())
 
   // The overlay rides the main window — closing the app's primary window must
   // tear it down too (otherwise it strands as an orphan that blocks

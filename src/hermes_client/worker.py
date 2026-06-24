@@ -352,7 +352,7 @@ def make_mcp(roots: list[Path], allow_mutating_shell: bool = False, host: str = 
         """Drive this Mac's desktop in the background via cua-driver.
 
         Preferred workflow: action='capture' mode='som', then click by element.
-        This controls the local client MacBook while the Hermes brain runs remotely.
+        This controls the local client machine while the Hermes brain runs remotely.
         """
         from mcp.server.fastmcp import Image
 

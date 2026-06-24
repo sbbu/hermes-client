@@ -71,7 +71,7 @@ def _defer_load_plist(label: str, plist: Path) -> None:
 
     Remote worker calls run inside the worker service; booting out the plist
     synchronously kills the MCP server mid-request. Schedule the reload in a
-    detached shell instead so Hermes can update/reconfigure the MacBook worker
+    detached shell instead so Hermes can update/reconfigure the local worker
     from the remote brain without stranding itself.
     """
     if sys.platform != "darwin":
