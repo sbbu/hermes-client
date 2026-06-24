@@ -56,10 +56,12 @@ def run_tui(
     env = os.environ.copy()
     env["HERMES_TUI_GATEWAY_URL"] = ws_url
     env["HERMES_TUI_ACTIVE_SESSION_FILE"] = active_session.name
-    env.setdefault("HERMES_HOME", str(local_home))
-    env.setdefault("HERMES_CWD", os.getcwd())
+    # Force thin-client runtime boundaries even when launched from a shell that
+    # already has a full local Hermes environment exported.
+    env["HERMES_HOME"] = str(local_home)
+    env["HERMES_CWD"] = os.getcwd()
     env.setdefault("NODE_ENV", "production")
-    env.setdefault("HERMES_BIN", shutil.which("hermes-client") or sys.argv[0] or "hermes-client")
+    env["HERMES_BIN"] = shutil.which("hermes-client") or sys.argv[0] or "hermes-client"
     if query:
         env["HERMES_TUI_QUERY"] = query
     if resume:
