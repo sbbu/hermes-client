@@ -26392,9 +26392,7 @@ function AlternateScreen(t0) {
         return;
       }
       const enableMouse = enableMouseTrackingFor(mouseTracking);
-      writeRaw(
-        ENTER_ALT_SCREEN + ERASE_SCROLLBACK + ERASE_SCREEN + CURSOR_HOME + DISABLE_MOUSE_TRACKING + enableMouse
-      );
+      writeRaw(ENTER_ALT_SCREEN + ERASE_SCROLLBACK + ERASE_SCREEN + CURSOR_HOME + DISABLE_MOUSE_TRACKING + enableMouse);
       ink3?.setAltScreenActive(true, mouseTracking);
       return () => {
         ink3?.setAltScreenActive(false);
@@ -56372,7 +56370,10 @@ function renderNodeToOutput(node, output, {
           for (const child of content.childNodes) {
             const childYoga = child.yogaNode;
             if (childYoga) {
-              scrollHeight = Math.max(scrollHeight, Math.ceil(childYoga.getComputedTop() + childYoga.getComputedHeight()));
+              scrollHeight = Math.max(
+                scrollHeight,
+                Math.ceil(childYoga.getComputedTop() + childYoga.getComputedHeight())
+              );
             }
           }
         }
@@ -73459,8 +73460,8 @@ var init_entry_exports = __esm({
     init_render_node_to_output();
     init_root2();
     init_stringWidth();
-    init_wrapAnsi();
     init_terminal();
+    init_wrapAnsi();
     await init_build4();
   }
 });
@@ -74039,49 +74040,53 @@ function fromSkin(colors, branding, bannerLogo = "", bannerHero = "", toolPrefix
   const completionCurrentBg = c("completion_menu_current_bg") ?? (hasSkinColors ? mix(completionBg, bannerAccent, 0.25) : d.color.completionCurrentBg);
   const completionMetaBg = c("completion_menu_meta_bg") ?? completionBg;
   const completionMetaCurrentBg = c("completion_menu_meta_current_bg") ?? completionCurrentBg;
-  return normalizeThemeForAnsiLightTerminal({
-    color: {
-      primary: c("ui_primary") ?? c("banner_title") ?? d.color.primary,
-      accent,
-      border: c("ui_border") ?? c("banner_border") ?? d.color.border,
-      text: c("ui_text") ?? c("banner_text") ?? d.color.text,
-      muted,
-      completionBg,
-      completionCurrentBg,
-      completionMetaBg,
-      completionMetaCurrentBg,
-      label: c("ui_label") ?? d.color.label,
-      ok: c("ui_ok") ?? d.color.ok,
-      error: c("ui_error") ?? d.color.error,
-      warn: c("ui_warn") ?? d.color.warn,
-      prompt: c("prompt") ?? c("banner_text") ?? d.color.prompt,
-      sessionLabel: c("session_label") ?? muted,
-      sessionBorder: c("session_border") ?? muted,
-      statusBg: d.color.statusBg,
-      statusFg: d.color.statusFg,
-      statusGood: c("ui_ok") ?? d.color.statusGood,
-      statusWarn: c("ui_warn") ?? d.color.statusWarn,
-      statusBad: d.color.statusBad,
-      statusCritical: d.color.statusCritical,
-      selectionBg: c("selection_bg") ?? c("completion_menu_current_bg") ?? (hasSkinColors ? completionCurrentBg : d.color.selectionBg),
-      diffAdded: d.color.diffAdded,
-      diffRemoved: d.color.diffRemoved,
-      diffAddedWord: d.color.diffAddedWord,
-      diffRemovedWord: d.color.diffRemovedWord,
-      shellDollar: c("shell_dollar") ?? d.color.shellDollar
+  return normalizeThemeForAnsiLightTerminal(
+    {
+      color: {
+        primary: c("ui_primary") ?? c("banner_title") ?? d.color.primary,
+        accent,
+        border: c("ui_border") ?? c("banner_border") ?? d.color.border,
+        text: c("ui_text") ?? c("banner_text") ?? d.color.text,
+        muted,
+        completionBg,
+        completionCurrentBg,
+        completionMetaBg,
+        completionMetaCurrentBg,
+        label: c("ui_label") ?? d.color.label,
+        ok: c("ui_ok") ?? d.color.ok,
+        error: c("ui_error") ?? d.color.error,
+        warn: c("ui_warn") ?? d.color.warn,
+        prompt: c("prompt") ?? c("banner_text") ?? d.color.prompt,
+        sessionLabel: c("session_label") ?? muted,
+        sessionBorder: c("session_border") ?? muted,
+        statusBg: d.color.statusBg,
+        statusFg: d.color.statusFg,
+        statusGood: c("ui_ok") ?? d.color.statusGood,
+        statusWarn: c("ui_warn") ?? d.color.statusWarn,
+        statusBad: d.color.statusBad,
+        statusCritical: d.color.statusCritical,
+        selectionBg: c("selection_bg") ?? c("completion_menu_current_bg") ?? (hasSkinColors ? completionCurrentBg : d.color.selectionBg),
+        diffAdded: d.color.diffAdded,
+        diffRemoved: d.color.diffRemoved,
+        diffAddedWord: d.color.diffAddedWord,
+        diffRemovedWord: d.color.diffRemovedWord,
+        shellDollar: c("shell_dollar") ?? d.color.shellDollar
+      },
+      brand: {
+        name: branding.agent_name ?? d.brand.name,
+        icon: d.brand.icon,
+        prompt: cleanPromptSymbol(branding.prompt_symbol, d.brand.prompt),
+        welcome: branding.welcome ?? d.brand.welcome,
+        goodbye: branding.goodbye ?? d.brand.goodbye,
+        tool: toolPrefix || d.brand.tool,
+        helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
+      },
+      bannerLogo,
+      bannerHero
     },
-    brand: {
-      name: branding.agent_name ?? d.brand.name,
-      icon: d.brand.icon,
-      prompt: cleanPromptSymbol(branding.prompt_symbol, d.brand.prompt),
-      welcome: branding.welcome ?? d.brand.welcome,
-      goodbye: branding.goodbye ?? d.brand.goodbye,
-      tool: toolPrefix || d.brand.tool,
-      helpHeader: branding.help_header ?? (helpHeader || d.brand.helpHeader)
-    },
-    bannerLogo,
-    bannerHero
-  }, process.env, DEFAULT_LIGHT_MODE);
+    process.env,
+    DEFAULT_LIGHT_MODE
+  );
 }
 var XTERM_6_LEVELS, ANSI_LIGHT_MAX_LUMINANCE, ANSI_LIGHT_TARGET_LUMINANCE, ANSI_LIGHT_MIN_SATURATION, ANSI_MUTED_BUCKET, ANSI_NORMALIZED_FOREGROUNDS, ANSI_MUTED_FOREGROUNDS, BRAND, cleanPromptSymbol, DARK_THEME, LIGHT_THEME, TRUE_RE2, FALSE_RE2, LIGHT_DEFAULT_TERM_PROGRAMS, LUMA_LIGHT_THRESHOLD, HEX_3_RE, HEX_6_RE, DEFAULT_LIGHT_MODE, DEFAULT_THEME;
 var init_theme = __esm({
@@ -76145,7 +76150,21 @@ var init_overlayStore = __esm({
     $overlayState = atom(buildOverlayState());
     $isBlocked = computed(
       $overlayState,
-      ({ agents, approval, billing, clarify, confirm, modelPicker, pager, petPicker, pluginsHub, secret, sessions, skillsHub, sudo }) => Boolean(
+      ({
+        agents,
+        approval,
+        billing,
+        clarify,
+        confirm,
+        modelPicker,
+        pager,
+        petPicker,
+        pluginsHub,
+        secret,
+        sessions,
+        skillsHub,
+        sudo
+      }) => Boolean(
         agents || approval || billing || clarify || confirm || modelPicker || pager || petPicker || pluginsHub || secret || sessions || skillsHub || sudo
       )
     );
@@ -76908,7 +76927,13 @@ ${stripped}
           duration ?? fallbackDuration,
           done?.verboseArgs,
           error || resultText || summary || ""
-        ) : buildToolTrailLine(name, done?.context || "", Boolean(error), error || summary || "", duration ?? fallbackDuration);
+        ) : buildToolTrailLine(
+          name,
+          done?.context || "",
+          Boolean(error),
+          error || summary || "",
+          duration ?? fallbackDuration
+        );
         this.activeTools = this.activeTools.filter((tool) => tool.id !== toolId);
         const next = this.turnTools.filter((item) => !sameToolTrailGroup(label, item));
         if (!this.activeTools.length) {
@@ -77652,8 +77677,8 @@ var init_createGatewayEventHandler = __esm({
     init_timing();
     init_setup();
     init_liveProgress();
-    init_rpc();
     init_openExternalUrl();
+    init_rpc();
     init_subagentTree();
     init_text();
     init_theme();
@@ -77725,6 +77750,229 @@ var init_slash = __esm({
       const next = applyCompletion(value, rowText, compReplace);
       return next !== value && next.trimEnd() !== value.trimEnd() ? next : null;
     };
+  }
+});
+
+// src/app/slash/commands/billing.ts
+var POLL_INTERVAL_MS, POLL_CAP_MS, renderBillingError, armStepUp, pollCharge, renderChargeFailed, validateAmount, buildOverlayCtx, billingCommands;
+var init_billing = __esm({
+  "src/app/slash/commands/billing.ts"() {
+    "use strict";
+    init_openExternalUrl();
+    init_overlayStore();
+    POLL_INTERVAL_MS = 2e3;
+    POLL_CAP_MS = 5 * 60 * 1e3;
+    renderBillingError = (sys, ctx, env3) => {
+      const portal = env3.portal_url;
+      switch (env3.error) {
+        case "insufficient_scope":
+          armStepUp(sys, ctx);
+          return;
+        case "no_payment_method":
+          sys(
+            "\u{1F4B3} No saved card for terminal charges yet. Set one up on the portal (one-time credit buys don't save a reusable card)."
+          );
+          break;
+        case "cli_billing_disabled":
+          sys("\u{1F534} Terminal billing is turned off for this org \u2014 an admin must enable it on the portal.");
+          break;
+        case "monthly_cap_exceeded": {
+          const remaining = env3.payload?.remainingUsd;
+          sys(
+            remaining != null ? `\u{1F534} Monthly spend cap reached \u2014 $${remaining} headroom left.` : "\u{1F534} Monthly spend cap reached."
+          );
+          break;
+        }
+        case "rate_limited": {
+          const mins = env3.retry_after ? ` (try again in ~${Math.max(1, Math.round(env3.retry_after / 60))} min)` : "";
+          sys(`\u{1F7E1} Too many charges right now${mins}. This isn't a payment failure.`);
+          break;
+        }
+        default:
+          sys(`\u{1F534} ${env3.message || env3.error || "Billing request failed."}`);
+      }
+      if (portal) {
+        sys(`Portal: ${portal}`);
+      }
+    };
+    armStepUp = (sys, ctx) => {
+      sys("\u{1F4B3} Terminal billing needs an extra permission (billing:manage).");
+      patchOverlayState({
+        confirm: {
+          cancelLabel: "Not now",
+          confirmLabel: "Re-authorize",
+          detail: 'An org admin/owner must tick "Allow terminal billing" in the portal.',
+          onConfirm: () => {
+            ctx.gateway.rpc("billing.step_up", { session_id: ctx.sid ?? void 0 }).then(
+              ctx.guarded((r) => {
+                if (r.ok && r.granted) {
+                  sys("\u2705 Billing permission granted.");
+                  ctx.gateway.rpc("billing.state", {}).then(
+                    ctx.guarded((s) => {
+                      if (s.cli_billing_enabled) {
+                        sys("Run /billing again to continue.");
+                      } else {
+                        sys(
+                          "\u{1F7E1} Permission granted, but terminal billing is still turned off for this org. Enable it in the portal, then run /billing again."
+                        );
+                        if (s.portal_url) {
+                          sys(`Portal: ${s.portal_url}`);
+                        }
+                      }
+                    })
+                  ).catch(() => {
+                    sys("Run /billing again to continue.");
+                  });
+                } else {
+                  sys("\u{1F7E1} Terminal billing was not granted (an admin must tick the box).");
+                }
+              })
+            ).catch(() => {
+              sys("\u{1F7E1} Still waiting on approval \u2014 finish in the browser, then run /billing again.");
+            });
+          },
+          title: "Grant terminal billing access?"
+        }
+      });
+    };
+    pollCharge = (sys, ctx, chargeId, portalUrl) => {
+      const start = Date.now();
+      const tick = () => {
+        if (ctx.stale()) {
+          return;
+        }
+        ctx.gateway.rpc("billing.charge_status", { charge_id: chargeId }).then(
+          ctx.guarded((r) => {
+            if (!r.ok) {
+              if (r.error === "rate_limited") {
+                const wait = (r.retry_after ?? 5) * 1e3;
+                setTimeout(tick, Math.min(wait, 3e4));
+                return;
+              }
+              sys(`\u{1F534} Could not check the charge: ${r.message || r.error || "error"}`);
+              return;
+            }
+            if (r.status === "settled") {
+              sys(`\u2705 ${r.amount_usd ? `$${r.amount_usd}` : "Credits"} added.`);
+              return;
+            }
+            if (r.status === "failed") {
+              renderChargeFailed(sys, r.reason, portalUrl);
+              return;
+            }
+            if (Date.now() - start >= POLL_CAP_MS) {
+              sys(
+                "\u{1F7E1} Still processing after 5 minutes \u2014 this is a timeout, not a failure. Check /billing or the portal shortly."
+              );
+              if (portalUrl) {
+                sys(`Portal: ${portalUrl}`);
+              }
+              return;
+            }
+            setTimeout(tick, POLL_INTERVAL_MS);
+          })
+        ).catch(ctx.guardedErr);
+      };
+      tick();
+    };
+    renderChargeFailed = (sys, reason, portalUrl) => {
+      switch ((reason || "").trim()) {
+        case "authentication_required":
+          sys("\u{1F534} Your bank requires verification (3DS). Complete it on the portal to finish this purchase.");
+          break;
+        case "payment_method_expired":
+          sys("\u{1F534} Your card has expired. Update it on the portal.");
+          break;
+        case "card_declined":
+          sys("\u{1F534} Your card was declined. Try another card on the portal.");
+          break;
+        default:
+          sys(`\u{1F534} The charge didn't go through (${reason || "processing_error"}).`);
+      }
+      if (portalUrl) {
+        sys(`Portal: ${portalUrl}`);
+      }
+    };
+    validateAmount = (raw, s) => {
+      const cleaned = raw.trim().replace(/^\$/, "").trim();
+      if (!cleaned || !/^\d+(\.\d{1,2})?$/.test(cleaned)) {
+        return { error: "Enter a dollar amount, e.g. 100 (max 2 decimal places)." };
+      }
+      const value = Number(cleaned);
+      if (!(value > 0)) {
+        return { error: "Amount must be greater than $0." };
+      }
+      if (s.min_usd != null && value < Number(s.min_usd)) {
+        return { error: `Minimum is $${s.min_usd}.` };
+      }
+      if (s.max_usd != null && value > Number(s.max_usd)) {
+        return { error: `Maximum is $${s.max_usd}.` };
+      }
+      return { amount: cleaned };
+    };
+    buildOverlayCtx = (ctx, sys, s) => ({
+      applyAutoReload: (enabled2, threshold, topUp) => ctx.gateway.rpc("billing.auto_reload", {
+        enabled: enabled2,
+        ...threshold != null ? { threshold } : {},
+        ...topUp != null ? { top_up_amount: topUp } : {}
+      }).then((r) => {
+        if (r && r.ok) {
+          return true;
+        }
+        if (r) {
+          renderBillingError(sys, ctx, r);
+        }
+        return false;
+      }).catch((e) => {
+        ctx.guardedErr(e);
+        return false;
+      }),
+      charge: (amount) => {
+        sys("\u{1F4B3} Charge submitted \u2014 confirming settlement\u2026");
+        ctx.gateway.rpc("billing.charge", { amount_usd: amount }).then(
+          ctx.guarded((r) => {
+            if (r.ok && r.charge_id) {
+              pollCharge(sys, ctx, r.charge_id, s.portal_url);
+            } else {
+              renderBillingError(sys, ctx, r);
+            }
+          })
+        ).catch(ctx.guardedErr);
+      },
+      openPortal: (url) => {
+        openExternalUrl(url);
+        sys(`Opening portal: ${url}`);
+      },
+      sys,
+      validate: (raw) => validateAmount(raw, s)
+    });
+    billingCommands = [
+      {
+        help: "Manage Nous terminal billing \u2014 buy credits, auto-reload, limits",
+        name: "billing",
+        // ZERO sub-commands (plan §0.4): any arg is ignored. Bare `/billing`
+        // fetches state and opens the interactive overlay (CLI/TUI parity).
+        run: (_arg, ctx) => {
+          const sys = ctx.transcript.sys;
+          ctx.gateway.rpc("billing.state", {}).then(
+            ctx.guarded((s) => {
+              if (!s.logged_in) {
+                sys("\u{1F4B3} Not logged into Nous Portal \u2014 run /portal to log in, then /billing.");
+                return;
+              }
+              patchOverlayState({
+                billing: {
+                  ctx: buildOverlayCtx(ctx, sys, s),
+                  pendingCharge: null,
+                  screen: "overview",
+                  state: s
+                }
+              });
+            })
+          ).catch(ctx.guardedErr);
+        }
+      }
+    ];
   }
 });
 
@@ -77879,14 +78127,20 @@ async function writeClipboardText(text, platform2 = process.platform, start = sp
     try {
       const ok = await new Promise((resolve3) => {
         if (cmdEntry.stdin) {
-          const child = start(cmdEntry.cmd, [...cmdEntry.args], { stdio: ["pipe", "ignore", "ignore"], windowsHide: true });
+          const child = start(cmdEntry.cmd, [...cmdEntry.args], {
+            stdio: ["pipe", "ignore", "ignore"],
+            windowsHide: true
+          });
           child.once("error", () => resolve3(false));
           child.once("close", (code) => resolve3(code === 0));
           child.stdin?.end(text);
         } else {
           const b64 = Buffer.from(text, "utf8").toString("base64");
           const script = _powershellWriteScript(b64);
-          const child = start(cmdEntry.cmd, [...cmdEntry.args, "-Command", script], { stdio: ["ignore", "ignore", "ignore"], windowsHide: true });
+          const child = start(cmdEntry.cmd, [...cmdEntry.args, "-Command", script], {
+            stdio: ["ignore", "ignore", "ignore"],
+            windowsHide: true
+          });
           child.once("error", () => resolve3(false));
           child.once("close", (code) => resolve3(code === 0));
         }
@@ -78246,9 +78500,7 @@ var init_core = __esm({
             if (text) {
               return sys(`copied ${text.length} characters`);
             } else {
-              return sys(
-                "clipboard copy failed \u2014 try HERMES_TUI_FORCE_OSC52=1 to force the escape sequence"
-              );
+              return sys("clipboard copy failed \u2014 try HERMES_TUI_FORCE_OSC52=1 to force the escape sequence");
             }
           }
           if (arg && Number.isNaN(parseInt(arg, 10))) {
@@ -78464,227 +78716,6 @@ ${clipped}`;
               ctx.transcript.send(last);
             })
           );
-        }
-      }
-    ];
-  }
-});
-
-// src/app/slash/commands/billing.ts
-var POLL_INTERVAL_MS, POLL_CAP_MS, renderBillingError, armStepUp, pollCharge, renderChargeFailed, validateAmount, buildOverlayCtx, billingCommands;
-var init_billing = __esm({
-  "src/app/slash/commands/billing.ts"() {
-    "use strict";
-    init_openExternalUrl();
-    init_overlayStore();
-    POLL_INTERVAL_MS = 2e3;
-    POLL_CAP_MS = 5 * 60 * 1e3;
-    renderBillingError = (sys, ctx, env3) => {
-      const portal = env3.portal_url;
-      switch (env3.error) {
-        case "insufficient_scope":
-          armStepUp(sys, ctx);
-          return;
-        case "no_payment_method":
-          sys(
-            "\u{1F4B3} No saved card for terminal charges yet. Set one up on the portal (one-time credit buys don't save a reusable card)."
-          );
-          break;
-        case "cli_billing_disabled":
-          sys("\u{1F534} Terminal billing is turned off for this org \u2014 an admin must enable it on the portal.");
-          break;
-        case "monthly_cap_exceeded": {
-          const remaining = env3.payload?.remainingUsd;
-          sys(remaining != null ? `\u{1F534} Monthly spend cap reached \u2014 $${remaining} headroom left.` : "\u{1F534} Monthly spend cap reached.");
-          break;
-        }
-        case "rate_limited": {
-          const mins = env3.retry_after ? ` (try again in ~${Math.max(1, Math.round(env3.retry_after / 60))} min)` : "";
-          sys(`\u{1F7E1} Too many charges right now${mins}. This isn't a payment failure.`);
-          break;
-        }
-        default:
-          sys(`\u{1F534} ${env3.message || env3.error || "Billing request failed."}`);
-      }
-      if (portal) {
-        sys(`Portal: ${portal}`);
-      }
-    };
-    armStepUp = (sys, ctx) => {
-      sys("\u{1F4B3} Terminal billing needs an extra permission (billing:manage).");
-      patchOverlayState({
-        confirm: {
-          cancelLabel: "Not now",
-          confirmLabel: "Re-authorize",
-          detail: 'An org admin/owner must tick "Allow terminal billing" in the portal.',
-          onConfirm: () => {
-            ctx.gateway.rpc("billing.step_up", { session_id: ctx.sid ?? void 0 }).then(
-              ctx.guarded((r) => {
-                if (r.ok && r.granted) {
-                  sys("\u2705 Billing permission granted.");
-                  ctx.gateway.rpc("billing.state", {}).then(
-                    ctx.guarded((s) => {
-                      if (s.cli_billing_enabled) {
-                        sys("Run /billing again to continue.");
-                      } else {
-                        sys(
-                          "\u{1F7E1} Permission granted, but terminal billing is still turned off for this org. Enable it in the portal, then run /billing again."
-                        );
-                        if (s.portal_url) {
-                          sys(`Portal: ${s.portal_url}`);
-                        }
-                      }
-                    })
-                  ).catch(() => {
-                    sys("Run /billing again to continue.");
-                  });
-                } else {
-                  sys("\u{1F7E1} Terminal billing was not granted (an admin must tick the box).");
-                }
-              })
-            ).catch(() => {
-              sys("\u{1F7E1} Still waiting on approval \u2014 finish in the browser, then run /billing again.");
-            });
-          },
-          title: "Grant terminal billing access?"
-        }
-      });
-    };
-    pollCharge = (sys, ctx, chargeId, portalUrl) => {
-      const start = Date.now();
-      const tick = () => {
-        if (ctx.stale()) {
-          return;
-        }
-        ctx.gateway.rpc("billing.charge_status", { charge_id: chargeId }).then(
-          ctx.guarded((r) => {
-            if (!r.ok) {
-              if (r.error === "rate_limited") {
-                const wait = (r.retry_after ?? 5) * 1e3;
-                setTimeout(tick, Math.min(wait, 3e4));
-                return;
-              }
-              sys(`\u{1F534} Could not check the charge: ${r.message || r.error || "error"}`);
-              return;
-            }
-            if (r.status === "settled") {
-              sys(`\u2705 ${r.amount_usd ? `$${r.amount_usd}` : "Credits"} added.`);
-              return;
-            }
-            if (r.status === "failed") {
-              renderChargeFailed(sys, r.reason, portalUrl);
-              return;
-            }
-            if (Date.now() - start >= POLL_CAP_MS) {
-              sys(
-                "\u{1F7E1} Still processing after 5 minutes \u2014 this is a timeout, not a failure. Check /billing or the portal shortly."
-              );
-              if (portalUrl) {
-                sys(`Portal: ${portalUrl}`);
-              }
-              return;
-            }
-            setTimeout(tick, POLL_INTERVAL_MS);
-          })
-        ).catch(ctx.guardedErr);
-      };
-      tick();
-    };
-    renderChargeFailed = (sys, reason, portalUrl) => {
-      switch ((reason || "").trim()) {
-        case "authentication_required":
-          sys("\u{1F534} Your bank requires verification (3DS). Complete it on the portal to finish this purchase.");
-          break;
-        case "payment_method_expired":
-          sys("\u{1F534} Your card has expired. Update it on the portal.");
-          break;
-        case "card_declined":
-          sys("\u{1F534} Your card was declined. Try another card on the portal.");
-          break;
-        default:
-          sys(`\u{1F534} The charge didn't go through (${reason || "processing_error"}).`);
-      }
-      if (portalUrl) {
-        sys(`Portal: ${portalUrl}`);
-      }
-    };
-    validateAmount = (raw, s) => {
-      const cleaned = raw.trim().replace(/^\$/, "").trim();
-      if (!cleaned || !/^\d+(\.\d{1,2})?$/.test(cleaned)) {
-        return { error: "Enter a dollar amount, e.g. 100 (max 2 decimal places)." };
-      }
-      const value = Number(cleaned);
-      if (!(value > 0)) {
-        return { error: "Amount must be greater than $0." };
-      }
-      if (s.min_usd != null && value < Number(s.min_usd)) {
-        return { error: `Minimum is $${s.min_usd}.` };
-      }
-      if (s.max_usd != null && value > Number(s.max_usd)) {
-        return { error: `Maximum is $${s.max_usd}.` };
-      }
-      return { amount: cleaned };
-    };
-    buildOverlayCtx = (ctx, sys, s) => ({
-      applyAutoReload: (enabled2, threshold, topUp) => ctx.gateway.rpc("billing.auto_reload", {
-        enabled: enabled2,
-        ...threshold != null ? { threshold } : {},
-        ...topUp != null ? { top_up_amount: topUp } : {}
-      }).then((r) => {
-        if (r && r.ok) {
-          return true;
-        }
-        if (r) {
-          renderBillingError(sys, ctx, r);
-        }
-        return false;
-      }).catch((e) => {
-        ctx.guardedErr(e);
-        return false;
-      }),
-      charge: (amount) => {
-        sys("\u{1F4B3} Charge submitted \u2014 confirming settlement\u2026");
-        ctx.gateway.rpc("billing.charge", { amount_usd: amount }).then(
-          ctx.guarded((r) => {
-            if (r.ok && r.charge_id) {
-              pollCharge(sys, ctx, r.charge_id, s.portal_url);
-            } else {
-              renderBillingError(sys, ctx, r);
-            }
-          })
-        ).catch(ctx.guardedErr);
-      },
-      openPortal: (url) => {
-        openExternalUrl(url);
-        sys(`Opening portal: ${url}`);
-      },
-      sys,
-      validate: (raw) => validateAmount(raw, s)
-    });
-    billingCommands = [
-      {
-        help: "Manage Nous terminal billing \u2014 buy credits, auto-reload, limits",
-        name: "billing",
-        // ZERO sub-commands (plan §0.4): any arg is ignored. Bare `/billing`
-        // fetches state and opens the interactive overlay (CLI/TUI parity).
-        run: (_arg, ctx) => {
-          const sys = ctx.transcript.sys;
-          ctx.gateway.rpc("billing.state", {}).then(
-            ctx.guarded((s) => {
-              if (!s.logged_in) {
-                sys("\u{1F4B3} Not logged into Nous Portal \u2014 run /portal to log in, then /billing.");
-                return;
-              }
-              patchOverlayState({
-                billing: {
-                  ctx: buildOverlayCtx(ctx, sys, s),
-                  pendingCharge: null,
-                  screen: "overview",
-                  state: s
-                }
-              });
-            })
-          ).catch(ctx.guardedErr);
         }
       }
     ];
@@ -79349,7 +79380,12 @@ var init_session = __esm({
           if (!arg.trim()) {
             return patchOverlayState({ modelPicker: true });
           }
-          const switchModel = (confirmExpensiveModel = false) => ctx.gateway.rpc("config.set", { confirm_expensive_model: confirmExpensiveModel, key: "model", session_id: ctx.sid, value: modelValueForConfigSet(arg) }).then(
+          const switchModel = (confirmExpensiveModel = false) => ctx.gateway.rpc("config.set", {
+            confirm_expensive_model: confirmExpensiveModel,
+            key: "model",
+            session_id: ctx.sid,
+            value: modelValueForConfigSet(arg)
+          }).then(
             ctx.guarded((r) => {
               if (r.confirm_required) {
                 patchOverlayState({
@@ -79822,8 +79858,8 @@ var SLASH_COMMANDS, byName, findSlashCommand;
 var init_registry = __esm({
   async "src/app/slash/registry.ts"() {
     "use strict";
-    await init_core();
     init_billing();
+    await init_core();
     init_credits();
     init_debug2();
     init_ops();
@@ -80714,22 +80750,34 @@ var init_useConfigSync = __esm({
       return raw ? parseVoiceRecordKey(raw) : DEFAULT_VOICE_RECORD_KEY;
     };
     _pasteCollapseLinesFromConfig = (cfg) => {
-      if (!cfg?.config) return 5;
+      if (!cfg?.config) {
+        return 5;
+      }
       const raw = cfg.config.paste_collapse_threshold;
-      if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) return Math.round(raw);
+      if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
+        return Math.round(raw);
+      }
       if (typeof raw === "string") {
         const n = parseInt(raw, 10);
-        if (Number.isFinite(n) && n >= 0) return n;
+        if (Number.isFinite(n) && n >= 0) {
+          return n;
+        }
       }
       return 5;
     };
     _pasteCollapseCharsFromConfig = (cfg) => {
-      if (!cfg?.config) return 2e3;
+      if (!cfg?.config) {
+        return 2e3;
+      }
       const raw = cfg.config.paste_collapse_char_threshold;
-      if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) return Math.round(raw);
+      if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) {
+        return Math.round(raw);
+      }
       if (typeof raw === "string") {
         const n = parseInt(raw, 10);
-        if (Number.isFinite(n) && n >= 0) return n;
+        if (Number.isFinite(n) && n >= 0) {
+          return n;
+        }
       }
       return 2e3;
     };
@@ -81373,7 +81421,10 @@ function useSessionLifecycle(opts) {
     (targetSid) => targetSid ? rpc("session.close", { session_id: targetSid }) : Promise.resolve(null),
     [rpc]
   );
+  const cancelResumeScrollRef = (0, import_react70.useRef)(null);
   const resetSession = (0, import_react70.useCallback)(() => {
+    cancelResumeScrollRef.current?.();
+    cancelResumeScrollRef.current = null;
     turnController.fullReset();
     setVoiceRecording(false);
     setVoiceProcessing(false);
@@ -81384,6 +81435,13 @@ function useSessionLifecycle(opts) {
     composerActions.setPasteSnips([]);
     evictInkCaches("half");
   }, [composerActions, setHistoryItems, setLastUserMsg, setStickyPrompt, setVoiceProcessing, setVoiceRecording]);
+  (0, import_react70.useEffect)(
+    () => () => {
+      cancelResumeScrollRef.current?.();
+      cancelResumeScrollRef.current = null;
+    },
+    []
+  );
   const resetVisibleHistory = (0, import_react70.useCallback)(
     (info = null) => {
       turnController.idle();
@@ -81497,7 +81555,8 @@ function useSessionLifecycle(opts) {
           usage: usageFrom(info)
         });
         hydrateLiveSessionInflight(r.inflight);
-        setTimeout(() => scrollRef.current?.scrollToBottom(), 0);
+        cancelResumeScrollRef.current?.();
+        cancelResumeScrollRef.current = scheduleResumeScrollToBottom(scrollRef);
       }).catch((e) => {
         sys(`error: ${e.message}`);
         patchUiState({ status: "ready" });
@@ -81537,10 +81596,11 @@ function useSessionLifecycle(opts) {
             usage: usageFrom(info)
           });
           hydrateLiveSessionInflight(r.inflight);
+          cancelResumeScrollRef.current?.();
+          cancelResumeScrollRef.current = scheduleResumeScrollToBottom(scrollRef);
           if (previousSid && previousSid !== r.session_id) {
             void closeSession(previousSid);
           }
-          setTimeout(() => scrollRef.current?.scrollToBottom(), 0);
         }).catch((e) => {
           sys(`error: ${e.message}`);
           patchUiState({ status: "ready" });
@@ -81571,7 +81631,7 @@ function useSessionLifecycle(opts) {
     trimLastExchange: trimTail
   };
 }
-var import_react70, usageFrom, statusFromLiveSession, writeActiveSessionFile, liveSessionInflightMessages, hydrateLiveSessionInflight, trimTail;
+var import_react70, usageFrom, statusFromLiveSession, writeActiveSessionFile, liveSessionInflightMessages, hydrateLiveSessionInflight, scheduleResumeScrollToBottom, trimTail;
 var init_useSessionLifecycle = __esm({
   async "src/app/useSessionLifecycle.ts"() {
     "use strict";
@@ -81614,6 +81674,26 @@ var init_useSessionLifecycle = __esm({
         return;
       }
       turnController.hydrateStreamingText(assistant);
+    };
+    scheduleResumeScrollToBottom = (scrollRef, delays = [0, 80, 240]) => {
+      const startedAt = Date.now();
+      const timers = delays.map(
+        (delay, index) => setTimeout(() => {
+          const scroll = scrollRef.current;
+          if (!scroll) {
+            return;
+          }
+          const manuallyScrolledAfterResume = scroll.getLastManualScrollAt() > startedAt;
+          if (!manuallyScrolledAfterResume && (index === 0 || scroll.isSticky())) {
+            scroll.scrollToBottom();
+          }
+        }, delay)
+      );
+      return () => {
+        for (const timer of timers) {
+          clearTimeout(timer);
+        }
+      };
     };
     trimTail = (items) => {
       const q = [...items];
@@ -82220,11 +82300,14 @@ function useMainApp(gw2) {
     exit();
     process.exit(0);
   }, [exit, gw2]);
-  const dieWithCode = (0, import_react73.useCallback)((code) => {
-    gw2.kill(`app.dieWithCode:${code}`);
-    exit();
-    process.exit(code);
-  }, [exit, gw2]);
+  const dieWithCode = (0, import_react73.useCallback)(
+    (code) => {
+      gw2.kill(`app.dieWithCode:${code}`);
+      exit();
+      process.exit(code);
+    },
+    [exit, gw2]
+  );
   const session = useSessionLifecycle({
     colsRef,
     composerActions,
@@ -82426,7 +82509,6 @@ function useMainApp(gw2) {
     [
       appendMessage,
       bellOnComplete,
-      clearSelection2,
       composerActions.setInput,
       gateway,
       panel,
@@ -82508,6 +82590,7 @@ function useMainApp(gw2) {
       composerActions,
       composerRefs,
       die,
+      dieWithCode,
       gateway,
       hasSelection2,
       maybeWarn,
@@ -82647,10 +82730,7 @@ function useMainApp(gw2) {
       closeLiveSession,
       newPromptSession,
       onModelSelect,
-      session.activateLiveSession,
-      session.guardBusySessionSwitch,
-      session.newLiveSession,
-      session.resumeById
+      session
     ]
   );
   const appComposer = (0, import_react73.useMemo)(
@@ -84462,7 +84542,7 @@ function GoodVibesHeart({ tick, t }) {
     setActive(true);
     const id = setTimeout(() => setActive(false), 650);
     return () => clearTimeout(id);
-  }, [t.color.accent, tick]);
+  }, [t.color.accent, t.color.error, t.color.warn, tick]);
   if (!active) {
     return null;
   }
@@ -84522,6 +84602,8 @@ function StatusRule({
   const showBg = segs.bg && bgCount > 0 && fits(SEP2 + stringWidth(`${bgCount} bg`));
   const subagentCount = typeof usage.active_subagents === "number" ? usage.active_subagents : 0;
   const showSubagents = segs.subagents && subagentCount > 0 && fits(SEP2 + stringWidth(`\u26D3 ${subagentCount}`));
+  const resumeHintText = subagentCount === 1 ? "\u21A9 resumes when subagent finishes" : `\u21A9 resumes when ${subagentCount} subagents finish`;
+  const showResumeHint = !busy && subagentCount > 0 && fits(SEP2 + stringWidth(resumeHintText));
   const showDevCredits = !!devCreditsText && fits(SEP2 + stringWidth(devCreditsText));
   const handleSessionCountClick = (event) => {
     event.stopImmediatePropagation?.();
@@ -84598,6 +84680,10 @@ function StatusRule({
         " \u2502 ",
         "\u26D3 ",
         subagentCount
+      ] }) : null,
+      showResumeHint ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(Text, { color: t.color.muted, dim: true, wrap: "truncate-end", children: [
+        " \u2502 ",
+        resumeHintText
       ] }) : null,
       showDevCredits ? /* @__PURE__ */ (0, import_jsx_runtime19.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
         " \u2502 ",
@@ -84908,6 +84994,12 @@ var init_overlayControls = __esm({
 });
 
 // src/components/modelPicker.tsx
+function providerIndexAfterClearingFilter(providerRows, provider) {
+  if (!provider) {
+    return -1;
+  }
+  return providerRows.findIndex((row) => row.provider.slug === provider.slug);
+}
 function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, sessionId, t }) {
   const [providers, setProviders] = (0, import_react81.useState)([]);
   const [currentModel, setCurrentModel] = (0, import_react81.useState)("");
@@ -84985,8 +85077,13 @@ function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, s
   }, [models.length, modelIdx]);
   const back = () => {
     if ((stage === "provider" || stage === "model") && filter.trim()) {
+      const fullProviderIdx = providerIndexAfterClearingFilter(providerRows, provider);
+      if (fullProviderIdx >= 0) {
+        setProviderIdx(fullProviderIdx);
+      } else if (stage === "provider") {
+        setProviderIdx(0);
+      }
       setFilter("");
-      setProviderIdx(stage === "provider" ? 0 : providerIdx);
       setModelIdx(0);
       return;
     }
@@ -85114,12 +85211,20 @@ function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, s
         }
         if (provider.authenticated === false) {
           if (provider.auth_type === "api_key" && provider.key_env) {
+            const fullProviderIdx2 = providerIndexAfterClearingFilter(providerRows, provider);
+            if (fullProviderIdx2 >= 0) {
+              setProviderIdx(fullProviderIdx2);
+            }
             setStage("key");
             setKeyInput("");
             setKeyError("");
             setFilter("");
           }
           return;
+        }
+        const fullProviderIdx = providerIndexAfterClearingFilter(providerRows, provider);
+        if (fullProviderIdx >= 0) {
+          setProviderIdx(fullProviderIdx);
         }
         setStage("model");
         setModelIdx(0);
@@ -85151,7 +85256,12 @@ function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, s
       return;
     }
     if (key.ctrl && ch === "d" && stage === "provider" && provider?.authenticated !== false) {
+      const fullProviderIdx = providerIndexAfterClearingFilter(providerRows, provider);
+      if (fullProviderIdx >= 0) {
+        setProviderIdx(fullProviderIdx);
+      }
       setStage("disconnect");
+      setFilter("");
       return;
     }
     if (ch && !key.ctrl && !key.meta && ch.length === 1 && ch >= " ") {
@@ -86514,23 +86624,14 @@ function ActiveSessionSwitcher({
       "error: ",
       err
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(
-      Box_default,
-      {
-        backgroundColor: newRowStyle?.backgroundColor,
-        flexDirection: "row",
-        onClick: handleRowClick(0),
-        width: "100%",
-        children: [
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowTextColor ?? t.color.muted, children: newSelectedRow ? "\u25B8 " : "  " }),
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 5, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowMarkerColor, children: "+".padStart(2) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 11, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowMarkerColor, wrap: "truncate-end", children: "new" }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 11, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: "\u270E draft" }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 18, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: draftModelDisplayLabel(draftModel) }) }),
-          /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { flexGrow: 1, flexShrink: 1, minWidth: 0, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: promptTitle }) })
-        ]
-      }
-    ),
+    /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(Box_default, { backgroundColor: newRowStyle?.backgroundColor, flexDirection: "row", onClick: handleRowClick(0), width: "100%", children: [
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowTextColor ?? t.color.muted, children: newSelectedRow ? "\u25B8 " : "  " }),
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 5, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowMarkerColor, children: "+".padStart(2) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 11, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowMarkerColor, wrap: "truncate-end", children: "new" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 11, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: "\u270E draft" }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { ...fixedSessionColumnStyle(), width: 18, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: draftModelDisplayLabel(draftModel) }) }),
+      /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Box_default, { flexGrow: 1, flexShrink: 1, minWidth: 0, children: /* @__PURE__ */ (0, import_jsx_runtime23.jsx)(Text, { bold: newSelectedRow, color: newRowTextColor ?? t.color.muted, wrap: "truncate-end", children: promptTitle }) })
+    ] }),
     offset > 0 && /* @__PURE__ */ (0, import_jsx_runtime23.jsxs)(Text, { color: t.color.muted, children: [
       " \u2191 ",
       offset,
@@ -88501,15 +88602,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
         ] })
       ),
       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(Box_default, { flexDirection: "column", marginTop: 1, children: [
-        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(
-          CollapseToggle,
-          {
-            onToggle: () => setToolsOpen((v) => !v),
-            open: toolsOpen,
-            t,
-            title: "Available Tools"
-          }
-        ),
+        /* @__PURE__ */ (0, import_jsx_runtime31.jsx)(CollapseToggle, { onToggle: () => setToolsOpen((v) => !v), open: toolsOpen, t, title: "Available Tools" }),
         toolsOpen && toolsBody()
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime31.jsxs)(Box_default, { flexDirection: "column", marginTop: 1, children: [
@@ -88701,10 +88794,7 @@ var init_fpsOverlay = __esm({
 
 // src/components/helpHint.tsx
 function HelpHint({ t }) {
-  const labelW = Math.max(
-    ...COMMON_COMMANDS.map(([k]) => k.length),
-    ...HOTKEY_PREVIEW.map(([k]) => k.length)
-  );
+  const labelW = Math.max(...COMMON_COMMANDS.map(([k]) => k.length), ...HOTKEY_PREVIEW.map(([k]) => k.length));
   const pad = (s) => s + " ".repeat(Math.max(0, labelW - s.length + 2));
   return /* @__PURE__ */ (0, import_jsx_runtime33.jsx)(Box_default, { alignItems: "flex-start", bottom: "100%", flexDirection: "column", left: 0, position: "absolute", right: 0, children: /* @__PURE__ */ (0, import_jsx_runtime33.jsxs)(
     Box_default,
@@ -89722,7 +89812,9 @@ var init_mathUnicode = __esm({
         }
         out += input.slice(i, idx);
         let p = idx + cmdLen;
-        while (input[p] === " " || input[p] === "	") p++;
+        while (input[p] === " " || input[p] === "	") {
+          p++;
+        }
         const arg = readBraced(input, p);
         if (!arg) {
           out += input.slice(idx, p + 1);
@@ -89751,7 +89843,9 @@ var init_mathUnicode = __esm({
         }
         out += input.slice(i, idx);
         let p = idx + 5;
-        while (input[p] === " " || input[p] === "	") p++;
+        while (input[p] === " " || input[p] === "	") {
+          p++;
+        }
         const num = readBraced(input, p);
         if (!num) {
           out += input.slice(idx, p + 1);
@@ -89759,7 +89853,9 @@ var init_mathUnicode = __esm({
           continue;
         }
         p = num.end;
-        while (input[p] === " " || input[p] === "	") p++;
+        while (input[p] === " " || input[p] === "	") {
+          p++;
+        }
         const den = readBraced(input, p);
         if (!den) {
           out += input.slice(idx, p + 1);
@@ -90420,17 +90516,23 @@ var init_markdown = __esm({
     COL_GAP = 2;
     TABLE_PADDING_LEFT = 2;
     renderTable = (k, rows, t, cols) => {
-      if (rows.length === 0 || rows[0].length === 0) return null;
+      if (rows.length === 0 || rows[0].length === 0) {
+        return null;
+      }
       const cellDisplayWidth = (raw) => stringWidth(stripInlineMarkup(raw));
       const minCellWidth = (raw) => {
         const text = stripInlineMarkup(raw);
         const words = text.split(/\s+/).filter((w) => w.length > 0);
-        if (words.length === 0) return MIN_COL_WIDTH;
+        if (words.length === 0) {
+          return MIN_COL_WIDTH;
+        }
         return Math.max(...words.map((w) => stringWidth(w)), MIN_COL_WIDTH);
       };
       const numCols = rows[0].length;
       const normalizedRows = rows.map((row) => {
-        if (row.length >= numCols) return row.slice(0, numCols);
+        if (row.length >= numCols) {
+          return row.slice(0, numCols);
+        }
         return [...row, ...Array(numCols - row.length).fill("")];
       });
       const idealWidths = normalizedRows[0].map(
@@ -90455,14 +90557,14 @@ var init_markdown = __esm({
         if (totalOverflow === 0) {
           columnWidths = [...minWidths];
         } else {
-          const rawAlloc = minWidths.map(
-            (min, i) => min + overflows[i] / totalOverflow * extraSpace
-          );
+          const rawAlloc = minWidths.map((min, i) => min + overflows[i] / totalOverflow * extraSpace);
           columnWidths = rawAlloc.map((v) => Math.floor(v));
           let remainder = availableWidth - columnWidths.reduce((a, b) => a + b, 0);
           const fracs = rawAlloc.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
           for (const { i } of fracs) {
-            if (remainder <= 0) break;
+            if (remainder <= 0) {
+              break;
+            }
             columnWidths[i]++;
             remainder--;
           }
@@ -90475,7 +90577,9 @@ var init_markdown = __esm({
         let remainder = availableWidth - columnWidths.reduce((a, b) => a + b, 0);
         const fracs = rawAlloc.map((v, i) => ({ i, frac: v - Math.floor(v) })).sort((a, b) => b.frac - a.frac);
         for (const { i } of fracs) {
-          if (remainder <= 0) break;
+          if (remainder <= 0) {
+            break;
+          }
           columnWidths[i]++;
           remainder--;
         }
@@ -90484,8 +90588,12 @@ var init_markdown = __esm({
       const graphemes2 = (s) => segmenter4 ? [...segmenter4.segment(s)].map((seg3) => seg3.segment) : [...s];
       const wrapCell = (raw, width, hard) => {
         const text = stripInlineMarkup(raw);
-        if (width <= 0) return [text];
-        if (stringWidth(text) <= width) return [text];
+        if (width <= 0) {
+          return [text];
+        }
+        if (stringWidth(text) <= width) {
+          return [text];
+        }
         const words = text.split(/\s+/).filter((w) => w.length > 0);
         const lines = [];
         let current = "";
@@ -90517,7 +90625,9 @@ var init_markdown = __esm({
             currentWidth = w;
           }
         }
-        if (current) lines.push(current);
+        if (current) {
+          lines.push(current);
+        }
         return lines.length > 0 ? lines : [""];
       };
       const isHard = totalMin > availableWidth;
@@ -90530,22 +90640,12 @@ var init_markdown = __esm({
           return text + pad + gap;
         }).join("");
         return /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Box_default, { flexDirection: "column", paddingLeft: TABLE_PADDING_LEFT, children: normalizedRows.map((row, ri) => /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(import_react94.Fragment, { children: [
-          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(
-            Text,
-            {
-              bold: ri === 0,
-              color: ri === 0 ? t.color.accent : void 0,
-              wrap: "truncate-end",
-              children: buildRowString(row)
-            }
-          ),
+          /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { bold: ri === 0, color: ri === 0 ? t.color.accent : void 0, wrap: "truncate-end", children: buildRowString(row) }),
           ri === 0 && normalizedRows.length > 1 ? /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, dimColor: true, wrap: "truncate-end", children: sep }) : null
         ] }, ri)) }, k);
       }
       const buildRowLines = (row) => {
-        const cellLines = row.map(
-          (cell, ci) => wrapCell(cell, columnWidths[ci], isHard)
-        );
+        const cellLines = row.map((cell, ci) => wrapCell(cell, columnWidths[ci], isHard));
         const maxLines = Math.max(...cellLines.map((l) => l.length), 1);
         const result = [];
         for (let li = 0; li < maxLines; li++) {
@@ -90555,7 +90655,9 @@ var init_markdown = __esm({
             const cellText = li < cl.length ? cl[li] : "";
             const pad = " ".repeat(Math.max(0, columnWidths[ci] - stringWidth(cellText)));
             line += cellText + pad;
-            if (ci < numCols - 1) line += "  ";
+            if (ci < numCols - 1) {
+              line += "  ";
+            }
           }
           result.push(line);
         }
@@ -90567,7 +90669,9 @@ var init_markdown = __esm({
         const kind = ri === 0 ? "header" : "body";
         const rowLines = buildRowLines(row);
         rowLines.forEach((text) => allEntries.push({ text, kind }));
-        if (ri > 0) tallestBodyRow = Math.max(tallestBodyRow, rowLines.length);
+        if (ri > 0) {
+          tallestBodyRow = Math.max(tallestBodyRow, rowLines.length);
+        }
         if (ri === 0 && normalizedRows.length > 1) {
           allEntries.push({ text: sep, kind: "separator" });
         }
@@ -91790,7 +91894,9 @@ var init_petSprite = __esm({
     import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
     UPPER_HALF = "\u2580";
     LOWER_HALF = "\u2584";
-    hex = (r, g, b) => `#${[r, g, b].map((v) => Math.max(0, Math.min(255, v | 0)).toString(16).padStart(2, "0")).join("")}`;
+    hex = (r, g, b) => `#${[r, g, b].map(
+      (v) => Math.max(0, Math.min(255, v | 0)).toString(16).padStart(2, "0")
+    ).join("")}`;
     PetSprite = (0, import_react100.memo)(function PetSprite2({ grid }) {
       if (!grid.length) {
         return null;
@@ -91808,10 +91914,7 @@ var init_petSprite = __esm({
         return top ? /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Text, { color: hex(tr, tg, tb), children: UPPER_HALF }, x) : /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Text, { color: hex(br, bg, bb), children: LOWER_HALF }, x);
       }) }, y)) });
     });
-    PetKitty = (0, import_react100.memo)(function PetKitty2({
-      color,
-      placeholder
-    }) {
+    PetKitty = (0, import_react100.memo)(function PetKitty2({ color, placeholder }) {
       if (!placeholder.length) {
         return null;
       }
@@ -92040,7 +92143,15 @@ var init_appLayout = __esm({
                 row.msg.role === "user" && firstUserIdx >= 0 && row.index > firstUserIdx && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(Text, { color: ui.theme.color.border, children: "\u2500\u2500\u2500" }) }),
                 row.msg.kind === "intro" ? /* @__PURE__ */ (0, import_jsx_runtime42.jsxs)(Box_default, { flexDirection: "column", paddingTop: 1, children: [
                   /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(Banner, { maxWidth: Math.max(1, composer.cols - 2), t: ui.theme }),
-                  row.msg.info && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(SessionPanel, { info: row.msg.info, maxWidth: Math.max(1, composer.cols - 2), sid: ui.sid, t: ui.theme })
+                  row.msg.info && /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
+                    SessionPanel,
+                    {
+                      info: row.msg.info,
+                      maxWidth: Math.max(1, composer.cols - 2),
+                      sid: ui.sid,
+                      t: ui.theme
+                    }
+                  )
                 ] }) : row.msg.kind === "panel" && row.msg.panelData ? /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(Panel, { sections: row.msg.panelData.sections, t: ui.theme, title: row.msg.panelData.title }) : /* @__PURE__ */ (0, import_jsx_runtime42.jsx)(
                   MessageLine,
                   {
@@ -92049,11 +92160,11 @@ var init_appLayout = __esm({
                     detailsMode: ui.detailsMode,
                     detailsModeCommandOverride: ui.detailsModeCommandOverride,
                     msg: row.msg,
-                    prev: prevRenderedMsg(
-                      (i) => transcript.virtualRows[i]?.msg,
-                      row.index,
-                      { commandOverride: ui.detailsModeCommandOverride, detailsMode: ui.detailsMode, sections: ui.sections }
-                    ),
+                    prev: prevRenderedMsg((i) => transcript.virtualRows[i]?.msg, row.index, {
+                      commandOverride: ui.detailsModeCommandOverride,
+                      detailsMode: ui.detailsMode,
+                      sections: ui.sections
+                    }),
                     sections: ui.sections,
                     t: ui.theme
                   }
@@ -92096,7 +92207,13 @@ var init_appLayout = __esm({
       const ui = useStore($uiState);
       const isBlocked = useStore($isBlocked);
       const sh = (composer.inputBuf[0] ?? composer.input).startsWith("!");
-      const promptText = composerPromptText(ui.theme.brand.prompt, ui.info?.profile_name, sh, TERMUX_TUI_MODE, composer.cols);
+      const promptText = composerPromptText(
+        ui.theme.brand.prompt,
+        ui.info?.profile_name,
+        sh,
+        TERMUX_TUI_MODE,
+        composer.cols
+      );
       const promptWidth = composerPromptWidth(promptText);
       const promptBlank = " ".repeat(promptWidth);
       const inputColumns = stableComposerColumns(composer.cols, promptWidth, TERMUX_TUI_MODE);
@@ -92717,7 +92834,9 @@ var GatewayClient = class extends EventEmitter {
         );
         return;
       }
-      this.lifecycle(`[lifecycle] child exit ${describeChild(ownedProc)} code=${code ?? "null"} signal=${signal ?? "null"}`);
+      this.lifecycle(
+        `[lifecycle] child exit ${describeChild(ownedProc)} code=${code ?? "null"} signal=${signal ?? "null"}`
+      );
       this.handleTransportExit(code);
     });
   }
@@ -92967,7 +93086,9 @@ var GatewayClient = class extends EventEmitter {
   kill(reason = "requested") {
     const proc = this.proc;
     const killed = proc?.kill();
-    this.lifecycle(`[lifecycle] GatewayClient.kill reason=${reason} ${describeChild(proc)} killResult=${killed ?? "none"}`);
+    this.lifecycle(
+      `[lifecycle] GatewayClient.kill reason=${reason} ${describeChild(proc)} killResult=${killed ?? "none"}`
+    );
     this.closeGatewaySocket();
     this.closeSidecarSocket();
     this.clearReadyTimer();
@@ -93189,10 +93310,14 @@ ${err.stack ?? ""}` : String(err);
 });
 var stopMemoryMonitor = startMemoryMonitor({
   onCritical: (snap, dump) => {
-    recordParentLifecycle(`memory-critical process.exit(137) heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)} dump=${dump?.heapPath ?? "failed"}`);
+    recordParentLifecycle(
+      `memory-critical process.exit(137) heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)} dump=${dump?.heapPath ?? "failed"}`
+    );
     resetTerminalModes();
-    process.stderr.write(`hermes-tui lifecycle: memory critical exit heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}
-`);
+    process.stderr.write(
+      `hermes-tui lifecycle: memory critical exit heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}
+`
+    );
     process.stderr.write(dumpNotice(snap, dump));
     process.stderr.write("hermes-tui: exiting to avoid OOM; restart to recover\n");
     process.exit(137);
@@ -93203,7 +93328,9 @@ var stopMemoryMonitor = startMemoryMonitor({
   // so the only trace was a bare gateway `stdin EOF`. Persist a breadcrumb +
   // stderr line so the next such death is attributable instead of silent.
   onWarn: (snap) => {
-    recordParentLifecycle(`memory-warning fast heap growth heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}`);
+    recordParentLifecycle(
+      `memory-warning fast heap growth heap=${formatBytes(snap.heapUsed)} rss=${formatBytes(snap.rss)}`
+    );
     process.stderr.write(
       `hermes-tui: heap climbing fast (${formatBytes(snap.heapUsed)}) \u2014 a large tool output or long session may be straining memory
 `
