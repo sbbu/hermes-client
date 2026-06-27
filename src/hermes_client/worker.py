@@ -5,6 +5,7 @@ import fnmatch
 import json
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import time
@@ -83,6 +84,53 @@ BLOCKED_TYPE_PATTERNS = [
     re.compile(r"\brm\s+-rf\s+/\s*$", re.IGNORECASE),
     re.compile(r":\s*\(\)\s*\{\s*:\|:\s*&\s*\}", re.IGNORECASE),
 ]
+RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
+
+
+def _shell_words(fragment: str) -> list[str]:
+    try:
+        return shlex.split(fragment)
+    except ValueError:
+        return fragment.split()
+
+
+def _rm_target_is_root(target: str) -> bool:
+    return target.startswith(("/*", "/./*")) or target.rstrip("/") in {"", "/."}
+
+
+def _dangerous_rm_root(text: str) -> bool:
+    for fragment in re.split(r"[\r\n;|&]+", text or ""):
+        words = _shell_words(fragment)
+        if not words:
+            continue
+        if words[0].lower() == "sudo":
+            words = words[1:]
+        if not words or words[0].lower() != "rm":
+            continue
+
+        flags: set[str] = set()
+        targets: list[str] = []
+        parse_flags = True
+        for word in words[1:]:
+            flag_word = word.lower()
+            if parse_flags and word == "--":
+                parse_flags = False
+                continue
+            if parse_flags and flag_word.startswith("--"):
+                if flag_word in {"--recursive", "--force"}:
+                    flags.add(flag_word)
+                continue
+            if parse_flags and word.startswith("-") and len(word) > 1:
+                flags.update(flag_word[1:])
+                continue
+            targets.append(word)
+
+        recursive = "r" in flags or "--recursive" in flags
+        force = "f" in flags or "--force" in flags
+        targets_root = any(_rm_target_is_root(target) for target in targets)
+        if recursive and force and targets_root:
+            return True
+    return False
 
 
 def _canon_key_combo(keys: str) -> frozenset[str]:
@@ -91,6 +139,8 @@ def _canon_key_combo(keys: str) -> frozenset[str]:
 
 
 def blocked_type_pattern(text: str) -> str | None:
+    if _dangerous_rm_root(text):
+        return RM_ROOT_GUARD_REASON
     for pat in BLOCKED_TYPE_PATTERNS:
         if pat.search(text or ""):
             return pat.pattern
