@@ -33,7 +33,11 @@ const EFFORT_VALUES = ['none', 'minimal', 'low', 'medium', 'high', 'xhigh'] as c
 // agent.service_tier stores "fast"/"priority"/"on" for fast; anything else is
 // normal (mirrors tui_gateway _load_service_tier).
 const isFastTier = (tier: unknown): boolean =>
-  ['fast', 'priority', 'on'].includes(String(tier ?? '').trim().toLowerCase())
+  ['fast', 'priority', 'on'].includes(
+    String(tier ?? '')
+      .trim()
+      .toLowerCase()
+  )
 
 // Reuse the composer's effort labels (`xhigh` shows as "Max", else 1:1).
 const effortLabelKey = (v: string) => (v === 'xhigh' ? 'max' : v) as 'high' | 'low' | 'max' | 'medium' | 'minimal'
@@ -65,6 +69,12 @@ const AUX_TASKS: readonly AuxTaskMeta[] = [
 ]
 
 const NO_PROVIDERS: readonly ModelOptionProvider[] = [{ name: '—', slug: '', models: [] }]
+
+// Radix <Select> renders a blank trigger when `value` matches no <SelectItem>.
+// A custom model (e.g. one added via config that isn't in the provider's
+// curated list) would vanish — surface the active value so it stays selectable.
+export const withActive = (models: readonly string[], active: string): readonly string[] =>
+  active && !models.includes(active) ? [active, ...models] : models
 
 interface StaleAuxWarningProps {
   applying: boolean
@@ -215,7 +225,10 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
 
   const reasoningSupported = mainCaps?.reasoning ?? true
   const fastSupported = mainCaps?.fast ?? false
-  const effortValue = String(getNested(config ?? {}, 'agent.reasoning_effort') ?? '').trim().toLowerCase() || 'medium'
+  const effortValue =
+    String(getNested(config ?? {}, 'agent.reasoning_effort') ?? '')
+      .trim()
+      .toLowerCase() || 'medium'
   const fastOn = isFastTier(getNested(config ?? {}, 'agent.service_tier'))
 
   // Persist a single agent.* default by round-tripping the whole config record
@@ -414,9 +427,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
   return (
     <div className="grid gap-6">
       <section>
-        <p className="mb-3 text-xs text-muted-foreground">
-          {m.appliesDesc}
-        </p>
+        <p className="mb-3 text-xs text-muted-foreground">{m.appliesDesc}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Select onValueChange={setSelectedProvider} value={selectedProvider}>
             <SelectTrigger className={cn('min-w-40', CONTROL_TEXT)}>
@@ -467,7 +478,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
                   <SelectValue placeholder={m.model} />
                 </SelectTrigger>
                 <SelectContent>
-                  {(selectedProviderModels.length ? selectedProviderModels : []).map(model => (
+                  {withActive(selectedProviderModels, selectedModel).map(model => (
                     <SelectItem key={model} value={model}>
                       {model}
                     </SelectItem>
@@ -498,7 +509,10 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
             {reasoningSupported && (
               <div className="flex items-center gap-2 text-xs">
                 {m.reasoning}
-                <Select onValueChange={value => void writeAgentDefault('agent.reasoning_effort', value)} value={effortValue}>
+                <Select
+                  onValueChange={value => void writeAgentDefault('agent.reasoning_effort', value)}
+                  value={effortValue}
+                >
                   <SelectTrigger className={cn('min-w-28', CONTROL_TEXT)}>
                     <SelectValue />
                   </SelectTrigger>
@@ -549,9 +563,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
             {m.resetAllToMain}
           </Button>
         </div>
-        <p className="mb-2 text-xs text-muted-foreground">
-          {m.auxiliaryDesc}
-        </p>
+        <p className="mb-2 text-xs text-muted-foreground">{m.auxiliaryDesc}</p>
         {switchStaleAux.length === 0 && persistentStaleAux.length > 0 && (
           <div className="mb-2.5">
             <StaleAuxWarning
@@ -619,7 +631,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
                           <SelectValue placeholder={m.model} />
                         </SelectTrigger>
                         <SelectContent>
-                          {(auxDraftProviderModels.length ? auxDraftProviderModels : []).map(model => (
+                          {withActive(auxDraftProviderModels, auxDraft.model).map(model => (
                             <SelectItem key={model} value={model}>
                               {model}
                             </SelectItem>
@@ -641,9 +653,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
                 }
                 description={
                   <span className="font-mono text-[0.68rem]">
-                    {isAuto
-                      ? m.autoUseMain
-                      : `${current.provider} · ${current.model || m.providerDefault}`}
+                    {isAuto ? m.autoUseMain : `${current.provider} · ${current.model || m.providerDefault}`}
                   </span>
                 }
                 key={meta.key}
