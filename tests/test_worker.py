@@ -49,6 +49,10 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf -- /")
     assert blocked_type_pattern("rm -rf /*")
     assert blocked_type_pattern("rm -rf /./")
+    assert blocked_type_pattern("rm -rf ~")
+    assert blocked_type_pattern("rm -rf ~/Documents")
+    assert blocked_type_pattern("rm -rf $HOME")
+    assert blocked_type_pattern("rm -rf ${HOME}/Documents")
     assert blocked_type_pattern("rm -rf /tmp") is None
 
 

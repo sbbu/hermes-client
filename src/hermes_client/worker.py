@@ -85,6 +85,7 @@ BLOCKED_TYPE_PATTERNS = [
     re.compile(r":\s*\(\)\s*\{\s*:\|:\s*&\s*\}", re.IGNORECASE),
 ]
 RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
+RM_HOME_GUARD_REASON = "recursive rm targeting user home"
 
 
 def _shell_words(fragment: str) -> list[str]:
@@ -98,7 +99,12 @@ def _rm_target_is_root(target: str) -> bool:
     return target.startswith(("/*", "/./*")) or target.rstrip("/") in {"", "/."}
 
 
-def _dangerous_rm_root(text: str) -> bool:
+def _rm_target_is_home(target: str) -> bool:
+    normalized = target.rstrip("/") or target
+    return normalized in {"~", "$HOME", "${HOME}"} or normalized.startswith(("~/", "$HOME/", "${HOME}/"))
+
+
+def _dangerous_rm_target_reason(text: str) -> str | None:
     for fragment in re.split(r"[\r\n;|&]+", text or ""):
         words = _shell_words(fragment)
         if not words:
@@ -127,10 +133,11 @@ def _dangerous_rm_root(text: str) -> bool:
 
         recursive = "r" in flags or "--recursive" in flags
         force = "f" in flags or "--force" in flags
-        targets_root = any(_rm_target_is_root(target) for target in targets)
-        if recursive and force and targets_root:
-            return True
-    return False
+        if recursive and force and any(_rm_target_is_root(target) for target in targets):
+            return RM_ROOT_GUARD_REASON
+        if recursive and force and any(_rm_target_is_home(target) for target in targets):
+            return RM_HOME_GUARD_REASON
+    return None
 
 
 def _canon_key_combo(keys: str) -> frozenset[str]:
@@ -139,8 +146,9 @@ def _canon_key_combo(keys: str) -> frozenset[str]:
 
 
 def blocked_type_pattern(text: str) -> str | None:
-    if _dangerous_rm_root(text):
-        return RM_ROOT_GUARD_REASON
+    rm_reason = _dangerous_rm_target_reason(text)
+    if rm_reason:
+        return rm_reason
     for pat in BLOCKED_TYPE_PATTERNS:
         if pat.search(text or ""):
             return pat.pattern
