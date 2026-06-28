@@ -58287,12 +58287,13 @@ var init_terminal_querier = __esm({
 });
 
 // packages/hermes-ink/src/ink/constants.ts
-var FRAME_INTERVAL_MS, BLURRED_FRAME_INTERVAL_MS;
+var FRAME_INTERVAL_MS, BLURRED_FRAME_INTERVAL_MS, MAX_COALESCED_BACKPRESSURE_FRAMES;
 var init_constants = __esm({
   "packages/hermes-ink/src/ink/constants.ts"() {
     "use strict";
     FRAME_INTERVAL_MS = 16;
     BLURRED_FRAME_INTERVAL_MS = FRAME_INTERVAL_MS;
+    MAX_COALESCED_BACKPRESSURE_FRAMES = 10;
   }
 });
 
@@ -59228,6 +59229,13 @@ var init_App = __esm({
               level: "warn"
             });
             stdin.addListener("readable", this.handleReadable);
+          }
+          if (this.rawModeEnabledCount > 0 && stdin.readableLength > 0) {
+            setImmediate(() => {
+              if (this.rawModeEnabledCount > 0 && this.props.stdin.readableLength > 0) {
+                this.handleReadable();
+              }
+            });
           }
         }
       };
@@ -61811,6 +61819,11 @@ var init_ink = __esm({
       // (callback fired).
       pendingWriteStart = null;
       lastDrainMs = 0;
+      // Issue #31486: count of consecutive frames skipped because the previous
+      // write hadn't drained. Reset to 0 whenever a frame actually writes (or the
+      // pipe has drained). Capped by MAX_COALESCED_BACKPRESSURE_FRAMES so a
+      // never-firing drain callback can't coalesce forever.
+      coalescedBackpressureFrames = 0;
       lastYogaCounters = {
         ms: 0,
         visited: 0,
@@ -62057,6 +62070,13 @@ var init_ink = __esm({
           clearTimeout(this.drainTimer);
           this.drainTimer = null;
         }
+        if (this.options.stdout.isTTY && this.pendingWriteStart !== null && this.coalescedBackpressureFrames < MAX_COALESCED_BACKPRESSURE_FRAMES) {
+          this.coalescedBackpressureFrames += 1;
+          this.isRendering = false;
+          this.drainTimer = setTimeout(() => this.onRender(), FRAME_INTERVAL_MS >> 2);
+          return;
+        }
+        this.coalescedBackpressureFrames = 0;
         flushInteractionTime();
         const renderStart = performance.now();
         const terminalWidth = this.options.stdout.columns || 80;
@@ -76881,6 +76901,32 @@ ${stripped}
         this.syncReasoningSegment();
         this.pulseReasoningStreaming();
       }
+      /**
+       * Render one MoA reference model's output as a committed labelled block
+       * before the aggregator responds. Unlike reasoning, references are shown
+       * regardless of showReasoning (they ARE the mixture-of-agents process the
+       * user opted into by selecting a MoA preset). Each becomes its own
+       * thinking-style segment tagged with the source model, so a multi-reference
+       * preset builds a stack the user can scroll.
+       */
+      recordMoaReference(label, text, index, count) {
+        if (this.interrupted) {
+          return;
+        }
+        this.closeReasoningSegment();
+        const header = index && count ? `\u25C7 Reference ${index}/${count} \u2014 ${label}` : `\u25C7 Reference \u2014 ${label}`;
+        const body = text.trim();
+        const thinking = body ? `${header}
+${body}` : header;
+        this.pushSegment({
+          kind: "trail",
+          role: "system",
+          text: "",
+          thinking,
+          thinkingTokens: estimateTokensRough(thinking)
+        });
+        patchTurnState({ streamSegments: this.segmentMessages });
+      }
       recordReasoningDelta(text, force = false) {
         if (this.interrupted || !force && !getUiState().showReasoning) {
           return;
@@ -77480,6 +77526,16 @@ function createGatewayEventHandler(ctx) {
         return;
       case "reasoning.available":
         turnController.recordReasoningAvailable(String(ev.payload?.text ?? ""), Boolean(ev.payload?.verbose));
+        return;
+      case "moa.reference":
+        turnController.recordMoaReference(
+          String(ev.payload?.label ?? "reference"),
+          String(ev.payload?.text ?? ""),
+          typeof ev.payload?.index === "number" ? ev.payload.index : void 0,
+          typeof ev.payload?.count === "number" ? ev.payload.count : void 0
+        );
+        return;
+      case "moa.aggregating":
         return;
       case "tool.progress":
         if (ev.payload?.preview && ev.payload.name) {
@@ -92650,6 +92706,7 @@ var GatewayClient = class extends EventEmitter {
   ready = false;
   readyTimer = null;
   subscribed = false;
+  drainGeneration = 0;
   stdoutRl = null;
   stderrRl = null;
   constructor() {
@@ -92695,6 +92752,8 @@ var GatewayClient = class extends EventEmitter {
   resetStartupState() {
     this.rejectPending(new Error("gateway restarting"));
     this.ready = false;
+    this.subscribed = false;
+    this.drainGeneration += 1;
     this.bufferedEvents.clear();
     this.pendingExit = void 0;
     this.stdoutRl?.close();
@@ -92987,15 +93046,21 @@ var GatewayClient = class extends EventEmitter {
     }
   };
   drain() {
-    this.subscribed = true;
-    for (const ev of this.bufferedEvents.drain()) {
-      this.emit("event", ev);
-    }
-    if (this.pendingExit !== void 0) {
-      const code = this.pendingExit;
-      this.pendingExit = void 0;
-      this.emit("exit", code);
-    }
+    const generation = this.drainGeneration;
+    queueMicrotask(() => {
+      if (this.drainGeneration !== generation) {
+        return;
+      }
+      this.subscribed = true;
+      for (const ev of this.bufferedEvents.drain()) {
+        this.emit("event", ev);
+      }
+      if (this.pendingExit !== void 0) {
+        const code = this.pendingExit;
+        this.pendingExit = void 0;
+        this.emit("exit", code);
+      }
+    });
   }
   getLogTail(limit = 20) {
     return this.logs.tail(Math.max(1, limit)).join("\n");
