@@ -1,10 +1,10 @@
 /**
  * Pure helpers for choosing a remote URL during passive update checks.
  *
- * A public install can end up with `origin=git@github.com:NousResearch/hermes-agent.git`.
+ * A public install can end up with `origin=git@github.com:sbbu/hermes-client.git`.
  * If the user's GitHub SSH key is FIDO2/passkey-backed, a background `git fetch
  * origin` triggers an unexplained hardware-touch prompt. For passive checks
- * against the official repo we substitute the public HTTPS `ls-remote` path,
+ * against the client repo we substitute the public HTTPS `ls-remote` path,
  * which needs no auth and cannot prompt. Active update/apply flows are left
  * unchanged.
  *
@@ -12,8 +12,8 @@
  * testable without booting Electron (main.cjs requires('electron') at load).
  */
 
-const OFFICIAL_REPO_HTTPS_URL = 'https://github.com/NousResearch/hermes-agent.git'
-const OFFICIAL_REPO_CANONICAL = 'github.com/nousresearch/hermes-agent'
+const OFFICIAL_REPO_HTTPS_URL = 'https://github.com/sbbu/hermes-client.git'
+const OFFICIAL_REPO_CANONICAL = 'github.com/sbbu/hermes-client'
 
 // Normalize common GitHub remote URL forms to `host/owner/repo` (lowercased,
 // no trailing slash, no .git suffix) so SSH and HTTPS forms of the same repo
@@ -39,7 +39,9 @@ function canonicalGitHubRemote(url) {
 }
 
 function isSshRemote(url) {
-  const value = String(url || '').trim().toLowerCase()
+  const value = String(url || '')
+    .trim()
+    .toLowerCase()
   return value.startsWith('git@') || value.startsWith('ssh://')
 }
 

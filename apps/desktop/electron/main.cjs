@@ -322,9 +322,7 @@ function hermesManagedNodePathEntries() {
 }
 
 function pathWithHermesManagedNode(...entries) {
-  return [...hermesManagedNodePathEntries(), ...entries, process.env.PATH]
-    .filter(Boolean)
-    .join(path.delimiter)
+  return [...hermesManagedNodePathEntries(), ...entries, process.env.PATH].filter(Boolean).join(path.delimiter)
 }
 
 // ACTIVE_HERMES_ROOT — the canonical mutable Hermes install. Same path
@@ -653,7 +651,7 @@ app.setName(APP_NAME)
 // Windows toast notifications silently no-op unless an AppUserModelID is set:
 // `new Notification().show()` returns without error and nothing appears. The
 // AUMID must match the installed Start Menu shortcut's AUMID, which
-// electron-builder derives from the build `appId` (com.nousresearch.hermes) —
+// electron-builder derives from the build `appId` —
 // keep this string in sync with package.json `build.appId`. macOS/Linux don't
 // need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
 // never firing on Windows.)
@@ -1953,7 +1951,9 @@ async function applyUpdates(_opts = {}) {
   try {
     const updateRoot = resolveUpdateRoot()
     const command = CLIENT_UPDATE_COMMAND
-    rememberLog(`[updates] Hermes Client Desktop refuses the stock Hermes Agent updater; surfacing manual ${command} for ${updateRoot}`)
+    rememberLog(
+      `[updates] Hermes Client Desktop refuses the stock Hermes Agent updater; surfacing manual ${command} for ${updateRoot}`
+    )
     emitUpdateProgress({ stage: 'manual', message: command, percent: null })
     return {
       ok: true,
@@ -1966,7 +1966,6 @@ async function applyUpdates(_opts = {}) {
     updateInFlight = false
   }
 }
-
 
 async function handOffWindowsBootstrapRecovery(reason) {
   if (!IS_WINDOWS || !IS_PACKAGED) return false
@@ -1998,7 +1997,9 @@ async function handOffWindowsBootstrapRecovery(reason) {
   })
   child.unref()
 
-  rememberLog(`[bootstrap] handed off ${reason} recovery to updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop to release app.asar`)
+  rememberLog(
+    `[bootstrap] handed off ${reason} recovery to updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop to release app.asar`
+  )
   // Same dwell as the in-app update hand-off (#50419): give the updater's
   // window time to appear before we vanish, so the recovery doesn't look like
   // a crash and provoke a mid-recovery relaunch.
@@ -2717,7 +2718,9 @@ async function ensureRuntime(backend) {
     rememberLog('[bootstrap] no Hermes install found; starting first-launch bootstrap')
 
     if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
-      const handoffError = new Error('Hermes recovery was handed off to Hermes Setup. The desktop will restart when recovery completes.')
+      const handoffError = new Error(
+        'Hermes recovery was handed off to Hermes Setup. The desktop will restart when recovery completes.'
+      )
       handoffError.isBootstrapFailure = true
       handoffError.bootstrapHandedOff = true
       bootstrapFailure = handoffError
@@ -2852,7 +2855,6 @@ async function ensureRuntime(backend) {
   })
   return backend
 }
-
 
 function fetchJson(url, token, options = {}) {
   return new Promise((resolve, reject) => {
@@ -3949,8 +3951,8 @@ function installMediaPermissions() {
 // ---------------------------------------------------------------------------
 // OAuth remote-gateway auth.
 //
-// Hosted Hermes gateways gate the dashboard behind an OAuth provider (e.g.
-// Nous Research) instead of a static session token. The auth model is
+// Hosted Hermes gateways gate the dashboard behind an OAuth provider instead
+// of a static session token. The auth model is
 // fundamentally different from the token path:
 //
 //   * REST is authed by HttpOnly session cookies (``hermes_session_at``),
@@ -4545,8 +4547,7 @@ async function buildRemoteConnection(rawUrl, authMode, token, source) {
     // the authoritative liveness check.
     if (!(await hasLiveOauthSession(baseUrl))) {
       const err = new Error(
-        'Remote Hermes gateway uses OAuth, but you are not signed in. ' +
-          'Open Settings → Gateway and click "Sign in".'
+        'Remote Hermes gateway uses OAuth, but you are not signed in. ' + 'Open Settings → Gateway and click "Sign in".'
       )
       err.needsOauthLogin = true
       throw err
@@ -4625,7 +4626,9 @@ async function resolveRemoteBackend(profile) {
   // 3. Global remote. Hermes Client Desktop is remote-only, so a local
   // desktop backend is never spawned as a fallback.
   if (config.mode !== 'remote') {
-    throw new Error('Hermes Client Desktop is remote-only. Configure a remote URL with `hermes-client configure --url http://HOST:9119` or Settings → Gateway.')
+    throw new Error(
+      'Hermes Client Desktop is remote-only. Configure a remote URL with `hermes-client configure --url http://HOST:9119` or Settings → Gateway.'
+    )
   }
   const authMode = normAuthMode(config.remote?.authMode)
   const token = authMode === 'oauth' ? null : decryptDesktopSecret(config.remote?.token)
@@ -4702,7 +4705,7 @@ async function probeRemoteAuthMode(rawUrl) {
 
   if (authRequired) {
     // Best-effort: a gated gateway exposes the registered providers so the
-    // button can read "Sign in with Nous Research" instead of a generic
+    // button can read the provider name instead of a generic
     // label, and so a username/password provider can be distinguished from
     // an OAuth-redirect one (``supports_password``). A failure here doesn't
     // change the auth mode, so swallow it.
@@ -5166,7 +5169,9 @@ async function startHermes() {
     }
 
     if (CLIENT_ONLY) {
-      throw new Error('Hermes Client Desktop is remote-only. Configure a remote URL with `hermes-client configure --url http://HOST:9119` or Settings → Gateway.')
+      throw new Error(
+        'Hermes Client Desktop is remote-only. Configure a remote URL with `hermes-client configure --url http://HOST:9119` or Settings → Gateway.'
+      )
     }
 
     // Mutual exclusion with an in-app update (#50238). If this instance was

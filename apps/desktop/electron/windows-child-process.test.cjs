@@ -12,7 +12,8 @@ function readElectronFile(name) {
 }
 
 function requireHiddenChildOptions(source, needle) {
-  const index = source.indexOf(needle)
+  const match = needle instanceof RegExp ? needle.exec(source) : null
+  const index = needle instanceof RegExp ? (match?.index ?? -1) : source.indexOf(needle)
   assert.notEqual(index, -1, `missing call site: ${needle}`)
   const snippet = source.slice(index, index + 700)
   assert.match(
@@ -28,14 +29,17 @@ test('desktop background child processes opt into hidden Windows consoles', () =
   assert.match(source, /function hiddenWindowsChildOptions\(options = \{\}\)/)
 
   requireHiddenChildOptions(source, "execFileSync(\n          'reg'")
-  requireHiddenChildOptions(source, "execFileSync(\n          pyExe")
-  requireHiddenChildOptions(source, "spawn(\n      resolveGitBinary()")
+  requireHiddenChildOptions(source, 'execFileSync(\n          pyExe')
+  requireHiddenChildOptions(source, 'spawn(\n      resolveGitBinary()')
   requireHiddenChildOptions(source, "execFileSync('taskkill'")
-  requireHiddenChildOptions(source, "spawn(\n        command,")
+  requireHiddenChildOptions(source, 'spawn(\n        command,')
   requireHiddenChildOptions(source, "spawn('curl'")
-  requireHiddenChildOptions(source, "spawn(\n    backend.command,")
-  requireHiddenChildOptions(source, "hermesProcess = spawn(\n      backend.command,")
-  requireHiddenChildOptions(source, "spawn(\n        py,\n        ['-m', 'hermes_cli.main', 'uninstall', '--gui-summary']")
+  requireHiddenChildOptions(source, 'spawn(\n    backend.command,')
+  requireHiddenChildOptions(source, 'hermesProcess = spawn(\n      backend.command,')
+  requireHiddenChildOptions(
+    source,
+    "spawn(\n        py,\n        ['-m', 'hermes_cli.main', 'uninstall', '--gui-summary']"
+  )
 })
 
 test('intentional or interactive desktop child processes stay documented', () => {
@@ -53,5 +57,5 @@ test('bootstrap PowerShell runner hides Windows console children', () => {
   const source = readElectronFile('bootstrap-runner.cjs')
 
   assert.match(source, /function hiddenWindowsChildOptions\(options = \{\}\)/)
-  requireHiddenChildOptions(source, 'spawn(ps, fullArgs')
+  requireHiddenChildOptions(source, /spawn\(\s*ps,\s*fullArgs/)
 })
