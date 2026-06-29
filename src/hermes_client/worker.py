@@ -99,44 +99,60 @@ def _rm_target_is_root(target: str) -> bool:
     return target.startswith(("/*", "/./*")) or target.rstrip("/") in {"", "/."}
 
 
+def _target_matches_prefix(target: str, prefix: str) -> bool:
+    return target == prefix or target.startswith(f"{prefix}/")
+
+
 def _rm_target_is_home(target: str) -> bool:
     normalized = target.rstrip("/") or target
-    return normalized in {"~", "$HOME", "${HOME}"} or normalized.startswith(("~/", "$HOME/", "${HOME}/"))
+    symbolic_homes = ("~", "$HOME", "${HOME}", "/Users/$USER", "/Users/${USER}", "/home/$USER", "/home/${USER}")
+    if any(_target_matches_prefix(normalized, prefix) for prefix in symbolic_homes):
+        return True
+    home = str(Path.home()).rstrip("/")
+    return bool(home and home != "/" and _target_matches_prefix(normalized, home))
+
+
+def _rm_word_is_command(word: str) -> bool:
+    basename = word.rstrip("/").rsplit("/", 1)[-1].lower()
+    return basename in {"rm", "rm.exe"}
+
+
+def _dangerous_rm_args_reason(args: list[str]) -> str | None:
+    flags: set[str] = set()
+    targets: list[str] = []
+    parse_flags = True
+    for word in args:
+        flag_word = word.lower()
+        if parse_flags and word == "--":
+            parse_flags = False
+            continue
+        if parse_flags and flag_word.startswith("--"):
+            if flag_word in {"--recursive", "--force"}:
+                flags.add(flag_word)
+            continue
+        if parse_flags and word.startswith("-") and len(word) > 1:
+            flags.update(flag_word[1:])
+            continue
+        targets.append(word)
+
+    recursive = "r" in flags or "--recursive" in flags
+    force = "f" in flags or "--force" in flags
+    if recursive and force and any(_rm_target_is_root(target) for target in targets):
+        return RM_ROOT_GUARD_REASON
+    if recursive and force and any(_rm_target_is_home(target) for target in targets):
+        return RM_HOME_GUARD_REASON
+    return None
 
 
 def _dangerous_rm_target_reason(text: str) -> str | None:
     for fragment in re.split(r"[\r\n;|&]+", text or ""):
         words = _shell_words(fragment)
-        if not words:
-            continue
-        if words[0].lower() == "sudo":
-            words = words[1:]
-        if not words or words[0].lower() != "rm":
-            continue
-
-        flags: set[str] = set()
-        targets: list[str] = []
-        parse_flags = True
-        for word in words[1:]:
-            flag_word = word.lower()
-            if parse_flags and word == "--":
-                parse_flags = False
+        for index, word in enumerate(words):
+            if not _rm_word_is_command(word):
                 continue
-            if parse_flags and flag_word.startswith("--"):
-                if flag_word in {"--recursive", "--force"}:
-                    flags.add(flag_word)
-                continue
-            if parse_flags and word.startswith("-") and len(word) > 1:
-                flags.update(flag_word[1:])
-                continue
-            targets.append(word)
-
-        recursive = "r" in flags or "--recursive" in flags
-        force = "f" in flags or "--force" in flags
-        if recursive and force and any(_rm_target_is_root(target) for target in targets):
-            return RM_ROOT_GUARD_REASON
-        if recursive and force and any(_rm_target_is_home(target) for target in targets):
-            return RM_HOME_GUARD_REASON
+            reason = _dangerous_rm_args_reason(words[index + 1 :])
+            if reason:
+                return reason
     return None
 
 

@@ -49,11 +49,19 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf -- /")
     assert blocked_type_pattern("rm -rf /*")
     assert blocked_type_pattern("rm -rf /./")
+    assert blocked_type_pattern("sudo -n rm -fr /")
+    assert blocked_type_pattern("/bin/rm -fr /")
+    assert blocked_type_pattern("/usr/bin/rm --recursive --force /")
+    assert blocked_type_pattern("command rm -r -f /")
+    assert blocked_type_pattern("env PATH=/bin rm -fr /")
     assert blocked_type_pattern("rm -rf ~")
     assert blocked_type_pattern("rm -rf ~/Documents")
+    assert blocked_type_pattern("rm -fr /Users/$USER")
+    assert blocked_type_pattern("/bin/rm --recursive --force ~/Documents")
     assert blocked_type_pattern("rm -rf $HOME")
     assert blocked_type_pattern("rm -rf ${HOME}/Documents")
     assert blocked_type_pattern("rm -rf /tmp") is None
+    assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
 
 
 def test_local_computer_use_blocks_destructive_key_combos():
