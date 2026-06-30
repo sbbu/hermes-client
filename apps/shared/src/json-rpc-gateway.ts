@@ -51,6 +51,11 @@ type PendingCall = {
   timer?: ReturnType<typeof setTimeout>;
 };
 
+type ConnectingCall = {
+  cancel: (error: Error) => void;
+  socket: WebSocketLike;
+};
+
 export interface GatewayClientOptions {
   closedErrorMessage?: string;
   connectErrorMessage?: string;
@@ -70,6 +75,8 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
 const DEFAULT_CONNECT_TIMEOUT_MS = 15_000;
 
 export class JsonRpcGatewayClient {
+  private connecting: ConnectingCall | null = null;
+  private connectPromise: Promise<void> | null = null;
   private nextId = 0;
   private pending = new Map<GatewayRequestId, PendingCall>();
   private socket: WebSocketLike | null = null;
@@ -105,12 +112,13 @@ export class JsonRpcGatewayClient {
     return this.state;
   }
 
-  async connect(wsUrl: string): Promise<void> {
-    if (
-      this.socket?.readyState === WebSocket.OPEN ||
-      this.state === "connecting"
-    ) {
-      return;
+  connect(wsUrl: string): Promise<void> {
+    if (this.socket?.readyState === WebSocket.OPEN) {
+      return Promise.resolve();
+    }
+
+    if (this.state === "connecting" && this.connectPromise) {
+      return this.connectPromise;
     }
 
     this.setState("connecting");
@@ -136,9 +144,20 @@ export class JsonRpcGatewayClient {
       this.rejectAllPending(new Error(this.options.closedErrorMessage));
     });
 
-    await new Promise<void>((resolve, reject) => {
+    let connectPromise!: Promise<void>;
+    connectPromise = new Promise<void>((resolve, reject) => {
       let settled = false;
       let timer: ReturnType<typeof setTimeout> | undefined;
+
+      const clearConnectState = () => {
+        if (this.connecting?.socket === socket) {
+          this.connecting = null;
+        }
+
+        if (this.connectPromise === connectPromise) {
+          this.connectPromise = null;
+        }
+      };
 
       const cleanup = () => {
         if (timer !== undefined) {
@@ -156,6 +175,7 @@ export class JsonRpcGatewayClient {
 
         settled = true;
         cleanup();
+        clearConnectState();
         this.setState("open");
         resolve();
       };
@@ -167,8 +187,23 @@ export class JsonRpcGatewayClient {
 
         settled = true;
         cleanup();
+        clearConnectState();
         this.setState("error");
         reject(new Error(this.options.connectErrorMessage));
+      };
+
+      this.connecting = {
+        cancel: (error: Error) => {
+          if (settled) {
+            return;
+          }
+
+          settled = true;
+          cleanup();
+          clearConnectState();
+          reject(error);
+        },
+        socket,
       };
 
       socket.addEventListener("open", onOpen, { once: true });
@@ -193,11 +228,15 @@ export class JsonRpcGatewayClient {
 
             this.socket = null;
           }
+          clearConnectState();
           this.setState("error");
           reject(new Error(this.options.connectErrorMessage));
         }, this.options.connectTimeoutMs);
       }
     });
+
+    this.connectPromise = connectPromise;
+    return connectPromise;
   }
 
   close(): void {
@@ -205,6 +244,13 @@ export class JsonRpcGatewayClient {
 
     if (!socket) {
       return;
+    }
+
+    const connecting =
+      this.connecting?.socket === socket ? this.connecting : null;
+
+    if (connecting) {
+      connecting.cancel(new Error(this.options.closedErrorMessage));
     }
 
     try {
