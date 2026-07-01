@@ -189,7 +189,9 @@ export const Thread: FC<{
 }) => {
   const messageComponents = useMemo(
     () => ({
-      AssistantMessage: () => <AssistantMessage onBranchInNewChat={onBranchInNewChat} onDismissError={onDismissError} />,
+      AssistantMessage: () => (
+        <AssistantMessage onBranchInNewChat={onBranchInNewChat} onDismissError={onDismissError} />
+      ),
       SystemMessage,
       UserEditComposer: () => <UserEditComposer cwd={cwd} gateway={gateway} sessionId={sessionId} />,
       UserMessage: () => <UserMessage onCancel={onCancel} onRestoreToMessage={onRestoreToMessage} />
@@ -1001,7 +1003,6 @@ const UserMessage: FC<{
   return (
     <MessagePrimitive.Root asChild>
       <StickyHumanMessageContainer
-        messageId={messageId}
         attachments={
           // Attachments live BELOW the sticky bubble in normal flow, so they
           // scroll away behind the pinned bubble instead of riding along with
@@ -1012,6 +1013,7 @@ const UserMessage: FC<{
             </div>
           ) : null
         }
+        messageId={messageId}
       >
         <ActionBarPrimitive.Root className="relative w-full max-w-full" data-slot="aui_user-bubble-actions">
           <div className="human-message-with-todos-wrapper flex w-full flex-col gap-0">
@@ -1458,7 +1460,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
   // read it in remote mode, and an image needs its bytes uploaded for vision.
   // Stage each through the same file.attach/image.attach_bytes pipeline the main
   // composer uses, then insert the *gateway-side* ref the agent can resolve —
-  // never the raw local path (the MahmoudR remote-attach bug, which the main
+  // never the raw local path (the remote-attach regression that the main
   // composer fixes but this edit composer used to reproduce).
   const uploadOsDropRefs = useCallback(
     async (osDrops: ReturnType<typeof extractDroppedFiles>): Promise<InlineRefInput[]> => {

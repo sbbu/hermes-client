@@ -43,7 +43,8 @@ export interface DroppedFile {
   file?: File
   /** Absolute filesystem path. Empty when an OS drop didn't carry one. */
   path: string
-  /** True if the entry is a directory. Currently only set by in-app drags. */
+  /** True if the entry is a directory. Set by in-app drags, and by OS drops via
+   * DataTransferItem.webkitGetAsEntry(). */
   isDirectory?: boolean
   /** First line number for in-app line-ref drags (source view gutter). */
   line?: number
@@ -107,39 +108,50 @@ export function extractDroppedFiles(transfer: DataTransfer): DroppedFile[] {
     // Malformed payload — fall through to native files.
   }
 
-  const fileList = transfer.files
-
-  if (fileList) {
-    for (let i = 0; i < fileList.length; i += 1) {
-      const file = fileList.item(i)
-
-      if (!file || seenFiles.has(file)) {
-        continue
-      }
-
-      seenFiles.add(file)
-      let path = ''
-
-      if (getPath) {
-        try {
-          path = getPath(file) || ''
-        } catch {
-          path = ''
-        }
-      }
-
-      if (path && seenPaths.has(path)) {
-        continue
-      }
-
-      if (path) {
-        seenPaths.add(path)
-      }
-
-      result.push({ file, path })
+  // Add a native OS-drop entry. A dropped directory has no byte content to
+  // upload, so it's emitted as a path-only entry with `isDirectory: true` —
+  // that routes it to a `@folder:` ref / folder attachment (like the folder
+  // picker) instead of the file-upload pipeline, which can't stage a directory
+  // (the gateway can't read its bytes and there's no data_url to send).
+  const pushNativeEntry = (file: File, isDirectory: boolean) => {
+    if (seenFiles.has(file)) {
+      return
     }
+
+    seenFiles.add(file)
+    let path = ''
+
+    if (getPath) {
+      try {
+        path = getPath(file) || ''
+      } catch {
+        path = ''
+      }
+    }
+
+    if (path && seenPaths.has(path)) {
+      return
+    }
+
+    if (path) {
+      seenPaths.add(path)
+    }
+
+    if (isDirectory) {
+      if (path) {
+        result.push({ isDirectory: true, path })
+      }
+
+      return
+    }
+
+    result.push({ file, path })
   }
 
+  // Process items first: DataTransferItem.webkitGetAsEntry() is the only
+  // synchronous way to tell a dropped folder from a file, and it lives only on
+  // items (not transfer.files). Must be read here, inside the drop handler,
+  // before the DataTransfer detaches.
   const items = transfer.items
 
   if (items) {
@@ -150,32 +162,39 @@ export function extractDroppedFiles(transfer: DataTransfer): DroppedFile[] {
         continue
       }
 
+      let isDirectory = false
+
+      try {
+        const entry = typeof item.webkitGetAsEntry === 'function' ? item.webkitGetAsEntry() : null
+        isDirectory = entry?.isDirectory === true
+      } catch {
+        isDirectory = false
+      }
+
       const file = item.getAsFile()
 
-      if (!file || seenFiles.has(file)) {
+      if (!file) {
         continue
       }
 
-      seenFiles.add(file)
-      let path = ''
+      pushNativeEntry(file, isDirectory)
+    }
+  }
 
-      if (getPath) {
-        try {
-          path = getPath(file) || ''
-        } catch {
-          path = ''
-        }
-      }
+  // Fallback for environments that populate transfer.files but not items.
+  // webkitGetAsEntry isn't available on this path, so directory detection
+  // relies on the items pass above; anything reaching here is treated as a file.
+  const fileList = transfer.files
 
-      if (path && seenPaths.has(path)) {
+  if (fileList) {
+    for (let i = 0; i < fileList.length; i += 1) {
+      const file = fileList.item(i)
+
+      if (!file) {
         continue
       }
 
-      if (path) {
-        seenPaths.add(path)
-      }
-
-      result.push({ file, path })
+      pushNativeEntry(file, false)
     }
   }
 
@@ -226,9 +245,12 @@ const attachToMain = (attachment: ComposerAttachment) => {
 export function useComposerActions({ activeSessionId, currentCwd, requestGateway }: ComposerActionsOptions) {
   const { t } = useI18n()
   const copy = t.desktop
-  const addTextToDraft = useCallback((text: string) => {
-    requestComposerInsert(text, { mode: 'block' })
-  }, [copy.imagePreviewFailed])
+  const addTextToDraft = useCallback(
+    (text: string) => {
+      requestComposerInsert(text, { mode: 'block' })
+    },
+    [copy.imagePreviewFailed]
+  )
 
   const addTerminalSelectionAttachment = useCallback((text: string, label = 'selection') => {
     const trimmed = text.trim()

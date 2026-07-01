@@ -47,6 +47,13 @@ import type {
 
 const DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS = 30_000
 const SESSION_LIST_REQUEST_TIMEOUT_MS = 60_000
+// prompt.submit is effectively fire-and-forget: turn completion is signaled by
+// stream / message.complete events, NOT by the RPC return. Long turns (MoA,
+// deep reasoning, large tool chains) can legitimately take minutes to ACK, so
+// the generic 30s default causes a false timeout toast while the turn continues.
+// Match the backend's agent-turn ceiling so the ACK timeout only fires when the
+// turn itself would have been abandoned server-side.
+export const PROMPT_SUBMIT_REQUEST_TIMEOUT_MS = 1_800_000
 
 export type {
   ActionResponse,
@@ -353,10 +360,7 @@ export function getMemoryProviderConfig(provider: string): Promise<MemoryProvide
   })
 }
 
-export function saveMemoryProviderConfig(
-  provider: string,
-  values: Record<string, string>
-): Promise<{ ok: boolean }> {
+export function saveMemoryProviderConfig(provider: string, values: Record<string, string>): Promise<{ ok: boolean }> {
   return window.hermesDesktop.api<{ ok: boolean }>({
     path: `/api/memory/providers/${encodeURIComponent(provider)}/config`,
     method: 'PUT',
