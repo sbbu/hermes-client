@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import plistlib
-from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -82,6 +81,29 @@ def test_install_worker_writes_launchd_plist(tmp_path, monkeypatch, capsys):
     assert "auto" in argv
     assert str(home / "Documents") in argv
     assert "local_worker:" in capsys.readouterr().out
+
+
+def test_uninstall_worker_from_worker_service_defers_launchd_bootout(tmp_path, monkeypatch, capsys):
+    home = tmp_path / "home"
+    plist = home / "Library" / "LaunchAgents" / "com.sbbu.hermes-client.worker.plist"
+    plist.parent.mkdir(parents=True)
+    plist.write_text("placeholder")
+    monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("HERMES_CLIENT_WORKER_SERVICE", "1")
+
+    def fail_sync_unload(plist_arg):
+        raise AssertionError("worker-service uninstall must not synchronously boot out its own MCP server")
+
+    deferred = []
+    monkeypatch.setattr(cli, "_unload_plist", fail_sync_unload)
+    monkeypatch.setattr(cli, "_defer_unload_plist", lambda label, plist_arg: deferred.append((label, plist_arg)), raising=False)
+
+    args = cli.build_parser().parse_args(["uninstall-worker"])
+    args.func(args)
+
+    assert not plist.exists()
+    assert deferred == [("com.sbbu.hermes-client.worker", plist)]
+    assert "unload scheduled after current MCP request" in capsys.readouterr().out
 
 
 def test_autoupdater_uses_valid_direct_reference(tmp_path, monkeypatch):

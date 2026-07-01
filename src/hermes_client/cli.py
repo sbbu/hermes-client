@@ -89,6 +89,28 @@ def _defer_load_plist(label: str, plist: Path) -> None:
     subprocess.Popen(["/bin/sh", str(script)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
 
 
+def _defer_unload_plist(label: str, plist: Path) -> None:
+    """Unload launchd after this process returns.
+
+    A worker-triggered uninstall inherits HERMES_CLIENT_WORKER_SERVICE from the
+    launchd service. Synchronously booting out that service can kill the MCP
+    server before the uninstall command responds or removes the plist.
+    """
+    if sys.platform != "darwin":
+        return
+    uid = os.getuid()
+    script = _state_dir() / f"unload-{label}.sh"
+    script.write_text(
+        "#!/bin/sh\n"
+        "sleep 2\n"
+        f"/bin/launchctl bootout gui/{uid}/{label} >/dev/null 2>&1 || "
+        f"/bin/launchctl bootout gui/{uid} {str(plist)!r} >/dev/null 2>&1 || true\n"
+        f"/bin/rm -f {str(plist)!r}\n"
+    )
+    script.chmod(0o755)
+    subprocess.Popen(["/bin/sh", str(script)], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+
+
 def _called_from_worker_service() -> bool:
     return os.environ.get("HERMES_CLIENT_WORKER_SERVICE") == "1"
 
@@ -315,6 +337,13 @@ def cmd_install_worker(args) -> None:
 
 def cmd_uninstall_worker(args) -> None:
     plist = _worker_plist_path()
+    label = "com.sbbu.hermes-client.worker"
+    if _called_from_worker_service():
+        if plist.exists():
+            plist.unlink()
+        _defer_unload_plist(label, plist)
+        print("removed hermes-client worker service (unload scheduled after current MCP request)")
+        return
     _unload_plist(plist)
     if plist.exists():
         plist.unlink()
