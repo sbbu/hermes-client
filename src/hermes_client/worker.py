@@ -4,6 +4,7 @@ import base64
 import fnmatch
 import json
 import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -96,7 +97,19 @@ def _shell_words(fragment: str) -> list[str]:
 
 
 def _rm_target_is_root(target: str) -> bool:
-    return target.startswith(("/*", "/./*")) or target.rstrip("/") in {"", "/."}
+    raw = target.strip()
+    if raw.startswith(("/*", "/./*")) or raw.rstrip("/") in {"", "/."}:
+        return True
+
+    normalized = posixpath.normpath(raw)
+    if normalized == "/":
+        return True
+
+    if not normalized.startswith("/"):
+        return False
+
+    first_component = normalized.lstrip("/").split("/", 1)[0]
+    return bool(first_component and any(ch in first_component for ch in "*?["))
 
 
 def _target_matches_prefix(target: str, prefix: str) -> bool:
