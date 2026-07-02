@@ -5,6 +5,7 @@ import { droppedFileInlineRef } from '@/app/chat/composer/inline-refs'
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
 import { useI18n } from '@/i18n'
 import { attachmentId, contextPath, pathLabel } from '@/lib/chat-runtime'
+import { readDesktopFileDataUrl } from '@/lib/desktop-fs'
 import {
   addComposerAttachment,
   type ComposerAttachment,
@@ -36,6 +37,29 @@ function blobExtension(blob: Blob): string {
 
 export function isImagePath(filePath: string): boolean {
   return IMAGE_EXTENSION_PATTERN.test(filePath)
+}
+
+/**
+ * Read an attachment's thumbnail preview, local disk first. Paperclip picks,
+ * clipboard saves, and OS drops always hand us paths on THIS machine — the
+ * remote-routed fs facade would 404 them against the gateway and toast a bogus
+ * "preview failed" even though the attach itself works (upload reads local
+ * bytes too). In-app drags from the remote project tree are the opposite case:
+ * the local read fails there, so fall back to the facade (remote fs bridge).
+ * In local mode the facade IS the local bridge, so this stays a single read.
+ */
+export async function attachmentPreviewDataUrl(filePath: string): Promise<string> {
+  try {
+    const local = await window.hermesDesktop?.readFileDataUrl?.(filePath)
+
+    if (local) {
+      return local
+    }
+  } catch {
+    // Not on this machine (or unreadable locally) — try the gateway.
+  }
+
+  return readDesktopFileDataUrl(filePath)
 }
 
 export interface DroppedFile {
@@ -245,12 +269,10 @@ const attachToMain = (attachment: ComposerAttachment) => {
 export function useComposerActions({ activeSessionId, currentCwd, requestGateway }: ComposerActionsOptions) {
   const { t } = useI18n()
   const copy = t.desktop
-  const addTextToDraft = useCallback(
-    (text: string) => {
-      requestComposerInsert(text, { mode: 'block' })
-    },
-    [copy.imagePreviewFailed]
-  )
+
+  const addTextToDraft = useCallback((text: string) => {
+    requestComposerInsert(text, { mode: 'block' })
+  }, [])
 
   const addTerminalSelectionAttachment = useCallback((text: string, label = 'selection') => {
     const trimmed = text.trim()
@@ -351,35 +373,38 @@ export function useComposerActions({ activeSessionId, currentCwd, requestGateway
     [currentCwd]
   )
 
-  const attachImagePath = useCallback(async (filePath: string) => {
-    if (!filePath) {
-      return false
-    }
-
-    const baseAttachment: ComposerAttachment = {
-      id: attachmentId('image', filePath),
-      kind: 'image',
-      label: pathLabel(filePath),
-      detail: filePath,
-      path: filePath
-    }
-
-    attachToMain(baseAttachment)
-
-    try {
-      const previewUrl = await window.hermesDesktop?.readFileDataUrl(filePath)
-
-      if (previewUrl) {
-        addComposerAttachment({ ...baseAttachment, previewUrl })
+  const attachImagePath = useCallback(
+    async (filePath: string) => {
+      if (!filePath) {
+        return false
       }
 
-      return true
-    } catch (err) {
-      notifyError(err, copy.imagePreviewFailed)
+      const baseAttachment: ComposerAttachment = {
+        id: attachmentId('image', filePath),
+        kind: 'image',
+        label: pathLabel(filePath),
+        detail: filePath,
+        path: filePath
+      }
 
-      return true
-    }
-  }, [])
+      attachToMain(baseAttachment)
+
+      try {
+        const previewUrl = await attachmentPreviewDataUrl(filePath)
+
+        if (previewUrl) {
+          addComposerAttachment({ ...baseAttachment, previewUrl })
+        }
+
+        return true
+      } catch (err) {
+        notifyError(err, copy.imagePreviewFailed)
+
+        return true
+      }
+    },
+    [copy.imagePreviewFailed]
+  )
 
   const attachImageBlob = useCallback(
     async (blob: Blob) => {

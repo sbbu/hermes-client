@@ -1343,6 +1343,14 @@ export function usePromptActions({
         const { name, arg } = parseSlashCommand(command)
 
         if (!name) {
+          // The composer draft was already cleared on submit, and slash input
+          // never lands in the Up-arrow history ring (it derives from sent user
+          // messages) — so without this restore, any payload after a degenerate
+          // slash (`/ text`, `/` + newline) is lost forever. Hand it back.
+          if (command.replace(/^\/+/, '').trim()) {
+            setComposerDraft(command)
+          }
+
           const sessionId = await ensureSessionId(sessionHint)
 
           if (sessionId) {

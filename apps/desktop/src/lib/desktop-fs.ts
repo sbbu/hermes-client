@@ -106,8 +106,8 @@ export async function selectDesktopPaths(options?: HermesSelectPathsOptions): Pr
   if (!isDesktopFsRemoteMode()) {
     return desktop.selectPaths(options)
   }
-  if (!options?.directories || options.multiple !== false) {
-    return []
+  if (!options?.directories) {
+    return desktop.selectPaths(options)
   }
-  return remotePicker ? remotePicker.selectPaths(options) : []
+  return remotePicker ? remotePicker.selectPaths({ ...options, multiple: false }) : []
 }
