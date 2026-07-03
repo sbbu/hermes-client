@@ -13,6 +13,7 @@ import { uploadComposerAttachment, usePromptActions } from './use-prompt-actions
 vi.mock('@/hermes', () => ({
   getProfiles: vi.fn(async () => ({ profiles: [] })),
   PROMPT_SUBMIT_REQUEST_TIMEOUT_MS: 1_800_000,
+  STARTUP_REQUEST_TIMEOUT_MS: 60_000,
   setApiRequestProfile: vi.fn(),
   transcribeAudio: vi.fn()
 }))

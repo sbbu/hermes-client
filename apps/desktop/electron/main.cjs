@@ -35,7 +35,7 @@ const {
   SESSION_WINDOW_MIN_WIDTH
 } = require('./session-windows.cjs')
 const { canImportHermesCli, verifyHermesCli } = require('./backend-probes.cjs')
-const { createLinkTitleWindow } = require('./link-title-window.cjs')
+const { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } = require('./link-title-window.cjs')
 const { probeGatewayWebSocket } = require('./gateway-ws-probe.cjs')
 const { adoptServedDashboardToken } = require('./dashboard-token.cjs')
 const { waitForDashboardPort } = require('./backend-ready.cjs')
@@ -3148,6 +3148,7 @@ function fetchHtmlTitleWithCurl(rawUrl) {
 function getLinkTitleSession() {
   if (linkTitleSession || !app.isReady()) return linkTitleSession
   linkTitleSession = session.fromPartition('hermes:link-titles', { cache: false })
+  guardLinkTitleSession(linkTitleSession)
   linkTitleSession.webRequest.onBeforeRequest((details, callback) => {
     callback({ cancel: RENDER_TITLE_BLOCKED_RESOURCES.has(details.resourceType) })
   })
@@ -3198,7 +3199,7 @@ function runRenderTitleJob(rawUrl) {
       return finish('')
     }
 
-    const readTitle = () => window?.webContents?.getTitle?.() || ''
+    const readTitle = () => readLinkTitleWindowTitle(window)
     const scheduleGrace = () => {
       if (graceTimer) clearTimeout(graceTimer)
       graceTimer = setTimeout(() => finish(readTitle()), RENDER_TITLE_GRACE_MS)

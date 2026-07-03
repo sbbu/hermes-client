@@ -12,7 +12,8 @@ const $gateway = atom<unknown>({ id: 'live-socket' })
 vi.mock('@/store/gateway', () => ({ $gateway, ensureGatewayForProfile }))
 vi.mock('@/hermes', () => ({
   getProfiles: vi.fn(async () => ({ profiles: [] })),
-  setApiRequestProfile: vi.fn()
+  setApiRequestProfile: vi.fn(),
+  STARTUP_REQUEST_TIMEOUT_MS: 60_000
 }))
 vi.mock('@/lib/query-client', () => ({ queryClient: { invalidateQueries: vi.fn() } }))
 
@@ -31,7 +32,12 @@ const profile = (name: string, isDefault = false): ProfileInfo => ({
 })
 
 const remoteConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
-  ({ baseUrl: 'https://hermes-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as HermesConnection
+  ({
+    baseUrl: 'https://remote-hermes.example.test',
+    mode: 'remote',
+    profile: 'vps-remote',
+    ...over
+  }) as HermesConnection
 
 const localConn = (over: Partial<HermesConnection> = {}): HermesConnection =>
   ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as HermesConnection
