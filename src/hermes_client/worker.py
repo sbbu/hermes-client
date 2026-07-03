@@ -158,7 +158,7 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
 
 
 def _dangerous_rm_target_reason(text: str) -> str | None:
-    for fragment in re.split(r"[\r\n;|&]+", text or ""):
+    for fragment in re.split(r"[\r\n;|&`()]+", text or ""):
         words = _shell_words(fragment)
         for index, word in enumerate(words):
             if not _rm_word_is_command(word):
