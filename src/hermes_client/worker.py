@@ -109,7 +109,9 @@ def _rm_target_is_root(target: str) -> bool:
         return False
 
     first_component = normalized.lstrip("/").split("/", 1)[0]
-    return bool(first_component and any(ch in first_component for ch in "*?["))
+    # Top-level shell expansions (globs and brace expansion) can expand to
+    # filesystem-root children before rm runs, e.g. /[be]* or /{bin,etc}.
+    return bool(first_component and any(ch in first_component for ch in "*?[]{}"))
 
 
 def _target_matches_prefix(target: str, prefix: str) -> bool:

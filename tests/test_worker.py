@@ -49,10 +49,13 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf -- /")
     assert blocked_type_pattern("rm -rf /*")
     assert blocked_type_pattern("rm -rf /[be]*")
+    assert blocked_type_pattern("rm -rf /{bin,etc}")
+    assert blocked_type_pattern("rm -rf /b{in,oot}")
     assert blocked_type_pattern("rm -rf /./")
     assert blocked_type_pattern("rm -rf /..")
     assert blocked_type_pattern("rm -rf /tmp/..")
     assert blocked_type_pattern("rm -rf /tmp/../*")
+    assert blocked_type_pattern("rm -rf /tmp/../{bin,etc}")
     assert blocked_type_pattern("sudo -n rm -fr /")
     assert blocked_type_pattern("/bin/rm -fr /")
     assert blocked_type_pattern("/usr/bin/rm --recursive --force /")
@@ -69,6 +72,7 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf $HOME")
     assert blocked_type_pattern("rm -rf ${HOME}/Documents")
     assert blocked_type_pattern("rm -rf /tmp") is None
+    assert blocked_type_pattern("rm -rf /tmp/{a,b}") is None
     assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
 
 
