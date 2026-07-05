@@ -120,8 +120,21 @@ def _target_matches_prefix(target: str, prefix: str) -> bool:
 
 def _rm_target_is_home(target: str) -> bool:
     normalized = target.rstrip("/") or target
-    symbolic_homes = ("~", "$HOME", "${HOME}", "/Users/$USER", "/Users/${USER}", "/home/$USER", "/home/${USER}")
+    symbolic_homes = (
+        "~",
+        "$HOME",
+        "${HOME}",
+        "/Users/$USER",
+        "/Users/${USER}",
+        "/home/$USER",
+        "/home/${USER}",
+    )
     if any(_target_matches_prefix(normalized, prefix) for prefix in symbolic_homes):
+        return True
+    # Shell substitutions like /Users/$(whoami) and /home/`id -un` resolve
+    # to the active user's home at execution time. Treat any dynamic username
+    # segment under the standard home roots as a home-targeting rm payload.
+    if normalized.startswith(("/Users/$(", "/Users/`", "/home/$(", "/home/`")):
         return True
     home = str(Path.home()).rstrip("/")
     return bool(home and home != "/" and _target_matches_prefix(normalized, home))
@@ -160,7 +173,12 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
 
 
 def _dangerous_rm_target_reason(text: str) -> str | None:
-    for fragment in re.split(r"[\r\n;|&`()]+", text or ""):
+    fragments = [text or "", *re.split(r"[\r\n;|&`()]+", text or "")]
+    seen: set[str] = set()
+    for fragment in fragments:
+        if fragment in seen:
+            continue
+        seen.add(fragment)
         words = _shell_words(fragment)
         for index, word in enumerate(words):
             if not _rm_word_is_command(word):
