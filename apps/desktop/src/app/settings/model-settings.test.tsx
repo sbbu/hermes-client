@@ -47,7 +47,14 @@ beforeEach(() => {
         capabilities: { 'hermes-4': { reasoning: true, fast: true } }
       },
       // An unconfigured api_key provider — surfaced by the full-universe payload.
-      { name: 'DeepSeek', slug: 'deepseek', models: [], authenticated: false, auth_type: 'api_key', key_env: 'DEEPSEEK_API_KEY' }
+      {
+        name: 'DeepSeek',
+        slug: 'deepseek',
+        models: [],
+        authenticated: false,
+        auth_type: 'api_key',
+        key_env: 'DEEPSEEK_API_KEY'
+      }
     ]
   })
   getAuxiliaryModels.mockResolvedValue({
@@ -87,8 +94,11 @@ describe('ModelSettings', () => {
     // "Nous" shows in both the trigger and the open list; the unconfigured
     // provider + its setup hint are the unique signal of the full universe.
     expect((await screen.findAllByText('Nous')).length).toBeGreaterThan(0)
-    expect(await screen.findByText(/DeepSeek/)).toBeTruthy()
-    expect(await screen.findByText(/set up/)).toBeTruthy()
+    const deepseekOption = await screen.findByText(/DeepSeek/)
+    expect(deepseekOption).toBeTruthy()
+
+    fireEvent.click(deepseekOption)
+    expect(await screen.findByPlaceholderText(/Paste DEEPSEEK_API_KEY/)).toBeTruthy()
   })
 
   it('activates an unconfigured api_key provider inline by saving its key', async () => {
@@ -128,7 +138,15 @@ describe('ModelSettings', () => {
 
   it('hides the reasoning/speed defaults when the main model reports no capabilities', async () => {
     getGlobalModelOptions.mockResolvedValueOnce({
-      providers: [{ name: 'Nous', slug: 'nous', models: ['hermes-4'], authenticated: true, capabilities: { 'hermes-4': { reasoning: false, fast: false } } }]
+      providers: [
+        {
+          name: 'Nous',
+          slug: 'nous',
+          models: ['hermes-4'],
+          authenticated: true,
+          capabilities: { 'hermes-4': { reasoning: false, fast: false } }
+        }
+      ]
     })
 
     await renderModelSettings()
