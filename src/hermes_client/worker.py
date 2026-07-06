@@ -120,6 +120,11 @@ def _target_matches_prefix(target: str, prefix: str) -> bool:
 
 def _rm_target_is_home(target: str) -> bool:
     normalized = target.rstrip("/") or target
+    candidates = [normalized]
+    if normalized.startswith("/"):
+        collapsed = posixpath.normpath(normalized)
+        if collapsed not in candidates:
+            candidates.append(collapsed)
     symbolic_homes = (
         "~",
         "$HOME",
@@ -129,15 +134,16 @@ def _rm_target_is_home(target: str) -> bool:
         "/home/$USER",
         "/home/${USER}",
     )
-    if any(_target_matches_prefix(normalized, prefix) for prefix in symbolic_homes):
+    if any(_target_matches_prefix(candidate, prefix) for candidate in candidates for prefix in symbolic_homes):
         return True
     # Shell substitutions like /Users/$(whoami) and /home/`id -un` resolve
     # to the active user's home at execution time. Treat any dynamic username
     # segment under the standard home roots as a home-targeting rm payload.
-    if normalized.startswith(("/Users/$(", "/Users/`", "/home/$(", "/home/`")):
+    dynamic_home_prefixes = ("/Users/$(", "/Users/`", "/home/$(", "/home/`")
+    if any(candidate.startswith(dynamic_home_prefixes) for candidate in candidates):
         return True
     home = str(Path.home()).rstrip("/")
-    return bool(home and home != "/" and _target_matches_prefix(normalized, home))
+    return bool(home and home != "/" and any(_target_matches_prefix(candidate, home) for candidate in candidates))
 
 
 def _rm_word_is_command(word: str) -> bool:
