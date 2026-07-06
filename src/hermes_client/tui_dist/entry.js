@@ -69544,6 +69544,9 @@ var init_session = __esm({
           if (!arg.trim()) {
             return patchOverlayState({ modelPicker: true });
           }
+          if (arg.trim() === "--refresh") {
+            return patchOverlayState({ modelPicker: { refresh: true } });
+          }
           const switchModel = (confirmExpensiveModel = false) => ctx.gateway.rpc("config.set", {
             confirm_expensive_model: confirmExpensiveModel,
             key: "model",
@@ -75231,7 +75234,15 @@ function providerIndexAfterClearingFilter(providerRows, provider) {
   }
   return providerRows.findIndex((row) => row.provider.slug === provider.slug);
 }
-function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, sessionId, t }) {
+function ModelPicker({
+  allowPersistGlobal = true,
+  gw: gw2,
+  initialRefresh = false,
+  onCancel,
+  onSelect,
+  sessionId,
+  t
+}) {
   const [providers, setProviders] = (0, import_react53.useState)([]);
   const [currentModel, setCurrentModel] = (0, import_react53.useState)("");
   const [err, setErr] = (0, import_react53.useState)("");
@@ -75247,7 +75258,10 @@ function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, s
   const { stdout } = useStdout();
   const width = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, (stdout?.columns ?? 80) - 6));
   (0, import_react53.useEffect)(() => {
-    gw2.request("model.options", sessionId ? { session_id: sessionId } : {}).then((raw) => {
+    gw2.request("model.options", {
+      ...sessionId ? { session_id: sessionId } : {},
+      ...initialRefresh ? { refresh: true } : {}
+    }).then((raw) => {
       const r = asRpcResult(raw);
       if (!r) {
         setErr("invalid response: model.options");
@@ -75271,7 +75285,7 @@ function ModelPicker({ allowPersistGlobal = true, gw: gw2, onCancel, onSelect, s
       setErr(rpcErrorMessage(e));
       setLoading(false);
     });
-  }, [gw2, sessionId]);
+  }, [gw2, initialRefresh, sessionId]);
   const names = (0, import_react53.useMemo)(() => providerDisplayNames(providers), [providers]);
   const providerRows = (0, import_react53.useMemo)(
     () => providers.map((p, i) => ({ provider: p, name: names[i] ?? p.name ?? p.slug })),
@@ -78483,6 +78497,7 @@ function FloatingOverlays({
       ModelPicker,
       {
         gw: gw2,
+        initialRefresh: typeof overlay.modelPicker === "object" && overlay.modelPicker.refresh === true,
         onCancel: () => patchOverlayState({ modelPicker: false }),
         onSelect: onModelSelect,
         sessionId: sid,

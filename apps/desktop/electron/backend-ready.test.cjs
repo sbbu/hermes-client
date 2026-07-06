@@ -19,7 +19,7 @@ const {
   waitForDashboardPort,
   resolvePortAnnounceTimeoutMs,
   DEFAULT_PORT_ANNOUNCE_TIMEOUT_MS,
-  MIN_PORT_ANNOUNCE_TIMEOUT_MS,
+  MIN_PORT_ANNOUNCE_TIMEOUT_MS
 } = require('./backend-ready.cjs')
 
 // A minimal stand-in for a spawned child process: an EventEmitter with a
@@ -78,6 +78,13 @@ test('resolves with the announced port', async () => {
   const p = waitForDashboardPort(child, 1000)
   child.stdout.emit('data', 'noise before\nHERMES_DASHBOARD_READY port=54321\n')
   assert.equal(await p, 54321)
+})
+
+test('resolves with a HERMES_BACKEND_READY port (headless `serve`)', async () => {
+  const child = makeFakeChild()
+  const p = waitForDashboardPort(child, 1000)
+  child.stdout.emit('data', 'HERMES_BACKEND_READY port=43210\n')
+  assert.equal(await p, 43210)
 })
 
 test('parses the port even when the line arrives split across chunks', async () => {

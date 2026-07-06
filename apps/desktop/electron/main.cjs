@@ -21,7 +21,6 @@ const crypto = require('node:crypto')
 const fs = require('node:fs')
 const http = require('node:http')
 const https = require('node:https')
-const net = require('node:net')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { execFileSync, spawn } = require('node:child_process')
@@ -42,9 +41,8 @@ const { waitForDashboardPort } = require('./backend-ready.cjs')
 const { serializeJsonBody, setJsonRequestHeaders } = require('./oauth-net-request.cjs')
 const { fetchMarketplaceThemes, searchMarketplaceThemes } = require('./vscode-marketplace.cjs')
 const { buildDesktopBackendEnv, normalizeHermesHomeRoot } = require('./backend-env.cjs')
-const { readWindowsUserEnvVar } = require('./windows-user-env.cjs')
 const { readDirForIpc } = require('./fs-read-dir.cjs')
-const { readLiveUpdateMarker } = require('./update-marker.cjs')
+const { readLiveUpdateMarker, writeUpdateMarker } = require('./update-marker.cjs')
 const {
   resolveUnpackedRelease,
   decideRelaunchOutcome,
@@ -1790,6 +1788,7 @@ function resolveUpdaterBinary() {
   return fileExists(candidate) ? candidate : null
 }
 
+// eslint-disable-next-line no-unused-vars -- retained for staged-updater recovery parity with upstream desktop.
 function repairMacUpdaterHelper(updater) {
   if (!IS_MAC || !updater) return
 
@@ -1942,7 +1941,7 @@ async function releaseBackendLock(updateRoot, tag) {
 //
 // Detection (checkUpdates / commit changelog / "N behind") stays in the UI;
 // only this apply action changed.
-async function applyUpdates(_opts = {}) {
+async function applyUpdates() {
   if (updateInFlight) {
     throw new Error('An update is already in progress.')
   }
@@ -1996,6 +1995,14 @@ async function handOffWindowsBootstrapRecovery(reason) {
     windowsHide: false
   })
   child.unref()
+
+  // Write the update-in-progress marker immediately after handing off. The
+  // updater writes its own marker later, but without this pre-write a renderer
+  // reconnect during the hand-off gap can respawn a backend that re-locks files
+  // the updater needs.
+  if (Number.isInteger(child.pid)) {
+    writeUpdateMarker(HERMES_HOME, child.pid)
+  }
 
   rememberLog(
     `[bootstrap] handed off ${reason} recovery to updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop to release app.asar`
@@ -2066,6 +2073,7 @@ function shellQuote(value) {
 // (`hermes desktop --build-only`), then atomically swap the running .app bundle
 // with the freshly built one and relaunch. Degrades to "backend updated,
 // restart to load the new GUI" if the swap can't be performed.
+// eslint-disable-next-line no-unused-vars -- retained as a reference fallback; Hermes Client update flow is fork/manual.
 async function applyUpdatesPosixInApp() {
   const updateRoot = resolveUpdateRoot()
   const hermes = resolveHermesCliBinary(updateRoot)
