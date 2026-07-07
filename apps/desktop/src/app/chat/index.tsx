@@ -317,7 +317,12 @@ export function ChatView({
   // The compact new-session pop-out skips the wordmark/tagline intro — it's a
   // scratch window, not the full-height empty state.
   const showIntro =
-    !isSecondaryWindow() && freshDraftReady && !isRoutedSessionView && !selectedSessionId && !activeSessionId && messagesEmpty
+    !isSecondaryWindow() &&
+    freshDraftReady &&
+    !isRoutedSessionView &&
+    !selectedSessionId &&
+    !activeSessionId &&
+    messagesEmpty
 
   // Session is still loading if the route references a session we haven't
   // resumed yet. Once `activeSessionId` is set (runtime has resumed), the
@@ -352,7 +357,10 @@ export function ChatView({
         throw new Error('Hermes gateway unavailable')
       }
 
-      return gateway.request<ModelOptionsResponse>('model.options', { session_id: activeSessionId })
+      return gateway.request<ModelOptionsResponse>('model.options', {
+        session_id: activeSessionId,
+        explicit_only: true
+      })
     },
     enabled: gatewayOpen
   })
