@@ -65,6 +65,9 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("echo `rm -rf /`")
     assert blocked_type_pattern("echo $(printf ok; rm -rf /)")
     assert blocked_type_pattern("echo $( (rm -rf /) )")
+    assert blocked_type_pattern("rm -rf${IFS}/")
+    assert blocked_type_pattern("rm${IFS}-rf${IFS}/")
+    assert blocked_type_pattern("sudo${IFS}rm${IFS}-fr${IFS}/")
     assert blocked_type_pattern("rm -rf ~")
     assert blocked_type_pattern("rm -rf ~/Documents")
     assert blocked_type_pattern("rm -fr /Users/$USER")
@@ -80,8 +83,12 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("/bin/rm --recursive --force ~/Documents")
     assert blocked_type_pattern("rm -rf $HOME")
     assert blocked_type_pattern("rm -rf ${HOME}/Documents")
+    assert blocked_type_pattern("rm -rf ${HOME:-/tmp}/Documents")
+    assert blocked_type_pattern("rm -fr /Users/${USER:-example}")
+    assert blocked_type_pattern("rm -fr /home/${USER:-example}/Documents")
     assert blocked_type_pattern("rm -rf /tmp") is None
     assert blocked_type_pattern("rm -rf /tmp/{a,b}") is None
+    assert blocked_type_pattern("rm -rf /tmp/${USER:-cache}") is None
     assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
 
 

@@ -87,9 +87,16 @@ BLOCKED_TYPE_PATTERNS = [
 ]
 RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
 RM_HOME_GUARD_REASON = "recursive rm targeting user home"
+SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
+SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
+SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
 
 
 def _shell_words(fragment: str) -> list[str]:
+    # Unquoted $IFS expands to shell word separators before command execution.
+    # Normalize it before shlex parsing so payloads like rm${IFS}-rf${IFS}/
+    # are judged as the shell would execute them.
+    fragment = SHELL_IFS_REF_RE.sub(" ", fragment)
     try:
         return shlex.split(fragment)
     except ValueError:
@@ -131,10 +138,18 @@ def _rm_target_is_home(target: str) -> bool:
         "${HOME}",
         "/Users/$USER",
         "/Users/${USER}",
+        "/Users/$LOGNAME",
+        "/Users/${LOGNAME}",
         "/home/$USER",
         "/home/${USER}",
+        "/home/$LOGNAME",
+        "/home/${LOGNAME}",
     )
     if any(_target_matches_prefix(candidate, prefix) for candidate in candidates for prefix in symbolic_homes):
+        return True
+    if any(SHELL_HOME_PARAM_RE.match(candidate) for candidate in candidates):
+        return True
+    if any(SHELL_USER_HOME_PARAM_RE.match(candidate) for candidate in candidates):
         return True
     # Shell substitutions like /Users/$(whoami) and /home/`id -un` resolve
     # to the active user's home at execution time. Treat any dynamic username
