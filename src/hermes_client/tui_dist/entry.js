@@ -75260,7 +75260,12 @@ function ModelPicker({
   (0, import_react53.useEffect)(() => {
     gw2.request("model.options", {
       ...sessionId ? { session_id: sessionId } : {},
-      ...initialRefresh ? { refresh: true } : {}
+      ...initialRefresh ? { refresh: true } : {},
+      // The TUI picker shows the full provider universe with setup
+      // affordances ("paste KEY to activate"), so opt into unconfigured
+      // rows — the backend now defaults to the configured subset for
+      // desktop chat pickers (#56974).
+      include_unconfigured: true
     }).then((raw) => {
       const r = asRpcResult(raw);
       if (!r) {
@@ -78919,6 +78924,10 @@ function SessionPanel({ info, maxWidth, sid, t }) {
           " ",
           "to update"
         ] })
+      ] }),
+      info.install_warning && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { bold: true, color: t.color.warn, wrap: "wrap", children: [
+        "! ",
+        info.install_warning
       ] })
     ] })
   ] });

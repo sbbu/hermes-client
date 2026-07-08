@@ -53,6 +53,7 @@ import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents, pruneDelegateFallbackSubagents, upsertSubagent } from '@/store/subagents'
 import { setSessionTodos } from '@/store/todos'
 import { recordToolDiff } from '@/store/tool-diffs'
+import { reportInstallMethodWarning } from '@/store/updates'
 import type { RpcEvent } from '@/types/hermes'
 
 import type { ClientSessionState } from '../../types'
@@ -822,6 +823,10 @@ export function useMessageStream({
 
         if (typeof payload?.credential_warning === 'string' && payload.credential_warning) {
           requestDesktopOnboarding(payload.credential_warning)
+        }
+
+        if (apply) {
+          reportInstallMethodWarning(payload?.install_warning)
         }
 
         void refreshHermesConfig()

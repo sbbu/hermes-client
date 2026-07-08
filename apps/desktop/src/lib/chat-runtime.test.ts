@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest'
 
+import type { ChatMessage } from '@/lib/chat-messages'
 import type { ComposerAttachment } from '@/store/composer'
 
-import { coerceThinkingText, optimisticAttachmentRef, parseCommandDispatch, parseSlashCommand } from './chat-runtime'
+import {
+  coalesceToolOnlyAssistants,
+  coerceThinkingText,
+  createToolMergeCache,
+  optimisticAttachmentRef,
+  parseCommandDispatch,
+  parseSlashCommand
+} from './chat-runtime'
 
 const DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANS'
 
@@ -50,6 +58,33 @@ describe('coerceThinkingText', () => {
         "◉_◉ processing... I don't see any current rewritten thinking or next thinking to process. Could you provide the thinking content you'd like me to rewrite?"
       )
     ).toBe('')
+  })
+})
+
+describe('coalesceToolOnlyAssistants', () => {
+  const toolPart = (id: string) =>
+    ({ args: {}, result: 'ok', toolCallId: id, toolName: 'terminal', type: 'tool-call' }) as never
+
+  it('folds settled tool-only assistant messages into the preceding assistant message', () => {
+    const base: ChatMessage = { id: 'a1', parts: [{ text: 'working', type: 'text' }], role: 'assistant' }
+    const tools: ChatMessage = { id: 'a2', parts: [toolPart('call-1')], role: 'assistant' }
+    const user: ChatMessage = { id: 'u1', parts: [{ text: 'next', type: 'text' }], role: 'user' }
+    const cache = createToolMergeCache()
+
+    const merged = coalesceToolOnlyAssistants([base, tools, user], cache)
+
+    expect(merged).toHaveLength(2)
+    expect(merged[0]).toMatchObject({ id: 'a1', role: 'assistant' })
+    expect(merged[0]?.parts).toHaveLength(2)
+    expect(merged[1]).toBe(user)
+    expect(coalesceToolOnlyAssistants([base, tools, user], cache)[0]).toBe(merged[0])
+  })
+
+  it('does not merge pending tool-only messages mid-stream', () => {
+    const base: ChatMessage = { id: 'a1', parts: [{ text: 'working', type: 'text' }], role: 'assistant' }
+    const pendingTools: ChatMessage = { id: 'a2', parts: [toolPart('call-1')], pending: true, role: 'assistant' }
+
+    expect(coalesceToolOnlyAssistants([base, pendingTools], createToolMergeCache())).toEqual([base, pendingTools])
   })
 })
 

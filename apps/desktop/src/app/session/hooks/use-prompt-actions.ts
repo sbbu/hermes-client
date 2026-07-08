@@ -122,6 +122,12 @@ function isSessionNotFoundError(error: unknown): boolean {
   return /session not found/i.test(message)
 }
 
+function isGatewayTimeoutError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error)
+
+  return /timed out.*prompt\.submit|prompt\.submit.*timed out/i.test(message)
+}
+
 // The gateway refuses prompt.submit while a turn is running (4009 "session
 // busy"). It's a transient concurrency guard, never a user-facing error: a
 // submit racing the settle edge (or a rewind interrupting mid-turn) just waits
@@ -668,6 +674,24 @@ export function usePromptActions({
         setMessages(current => [...current, buildUserMessage()])
       }
 
+      if (!sessionId && selectedStoredSessionIdRef.current) {
+        try {
+          const resumed = await requestGateway<{ session_id: string }>('session.resume', {
+            session_id: selectedStoredSessionIdRef.current,
+            source: 'desktop'
+          })
+
+          if (resumed?.session_id) {
+            sessionId = resumed.session_id
+            activeSessionIdRef.current = resumed.session_id
+            seedOptimistic(sessionId)
+          }
+        } catch {
+          // The session may have been removed or live only in the REST history;
+          // fall through to normal session creation so a new chat can still send.
+        }
+      }
+
       if (!sessionId) {
         try {
           sessionId = await createBackendSessionForSend(visibleText)
@@ -712,10 +736,14 @@ export function usePromptActions({
             requestGateway('prompt.submit', { session_id: sessionId, text }, PROMPT_SUBMIT_REQUEST_TIMEOUT_MS)
           )
         } catch (firstErr) {
-          if (isSessionNotFoundError(firstErr) && selectedStoredSessionIdRef.current) {
+          if (
+            (isSessionNotFoundError(firstErr) || isGatewayTimeoutError(firstErr)) &&
+            selectedStoredSessionIdRef.current
+          ) {
             // Re-register the session in the gateway and get a fresh live ID.
             const resumed = await requestGateway<{ session_id: string }>('session.resume', {
-              session_id: selectedStoredSessionIdRef.current
+              session_id: selectedStoredSessionIdRef.current,
+              source: 'desktop'
             })
 
             const recoveredId = resumed?.session_id
@@ -785,6 +813,7 @@ export function usePromptActions({
     },
     [
       activeSessionId,
+      activeSessionIdRef,
       busyRef,
       copy,
       createBackendSessionForSend,
@@ -1483,7 +1512,8 @@ export function usePromptActions({
       if (isSessionNotFoundError(err) && selectedStoredSessionIdRef.current) {
         try {
           const resumed = await requestGateway<{ session_id: string }>('session.resume', {
-            session_id: selectedStoredSessionIdRef.current
+            session_id: selectedStoredSessionIdRef.current,
+            source: 'desktop'
           })
 
           const recoveredId = resumed?.session_id

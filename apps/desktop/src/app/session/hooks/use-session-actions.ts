@@ -12,7 +12,13 @@ import { clearQueuedPrompts } from '@/store/composer-queue'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { requestDesktopOnboarding } from '@/store/onboarding'
-import { $activeGatewayProfile, $newChatProfile, $profiles, ensureGatewayProfile, normalizeProfileKey } from '@/store/profile'
+import {
+  $activeGatewayProfile,
+  $newChatProfile,
+  $profiles,
+  ensureGatewayProfile,
+  normalizeProfileKey
+} from '@/store/profile'
 import {
   $currentCwd,
   $currentFastMode,
@@ -49,9 +55,15 @@ import {
   workspaceCwdForNewSession
 } from '@/store/session'
 import { broadcastSessionsChanged } from '@/store/session-sync'
-import { reportBackendContract } from '@/store/updates'
+import { reportBackendContract, reportInstallMethodWarning } from '@/store/updates'
 import { isWatchWindow } from '@/store/windows'
-import type { SessionCreateResponse, SessionInfo, SessionResumeResponse, SessionRuntimeInfo, UsageStats } from '@/types/hermes'
+import type {
+  SessionCreateResponse,
+  SessionInfo,
+  SessionResumeResponse,
+  SessionRuntimeInfo,
+  UsageStats
+} from '@/types/hermes'
 
 import { NEW_CHAT_ROUTE, sessionRoute, SETTINGS_ROUTE } from '../../routes'
 import type { ClientSessionState, SidebarNavItem } from '../../types'
@@ -284,15 +296,7 @@ async function resolveStoredSession(storedSessionId: string): Promise<SessionInf
 type SessionRuntimeStatePatch = Partial<
   Pick<
     ClientSessionState,
-    | 'branch'
-    | 'cwd'
-    | 'fast'
-    | 'model'
-    | 'personality'
-    | 'provider'
-    | 'reasoningEffort'
-    | 'serviceTier'
-    | 'yolo'
+    'branch' | 'cwd' | 'fast' | 'model' | 'personality' | 'provider' | 'reasoningEffort' | 'serviceTier' | 'yolo'
   >
 >
 
@@ -304,6 +308,7 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
   const sessionState: SessionRuntimeStatePatch = {}
 
   reportBackendContract(info.desktop_contract)
+  reportInstallMethodWarning(info.install_warning)
 
   if (info.credential_warning) {
     requestDesktopOnboarding(info.credential_warning)
@@ -462,6 +467,7 @@ export function useSessionActions({
         const created = await requestGateway<SessionCreateResponse>('session.create', {
           cols: 96,
           ...(cwd && { cwd }),
+          source: 'desktop',
           ...(newChatProfile ? { profile: newChatProfile } : {}),
           ...(uiModel ? { model: uiModel, ...(uiProvider ? { provider: uiProvider } : {}) } : {}),
           ...(uiEffort ? { reasoning_effort: uiEffort } : {}),
@@ -706,6 +712,7 @@ export function useSessionActions({
         const resumePromise = requestGateway<SessionResumeResponse>('session.resume', {
           session_id: storedSessionId,
           cols: 96,
+          source: 'desktop',
           ...(watchWindow ? { lazy: true } : {}),
           ...(sessionProfile ? { profile: sessionProfile } : {})
         })
@@ -899,6 +906,7 @@ export function useSessionActions({
         const branched = await requestGateway<SessionCreateResponse>('session.create', {
           cols: 96,
           ...(cwd && { cwd }),
+          source: 'desktop',
           messages: branchMessages.map(({ content, role }) => ({ content, role })),
           title: copy.branchTitle
         })

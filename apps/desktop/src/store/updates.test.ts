@@ -51,7 +51,8 @@ const {
   applyUpdates,
   $updateApply,
   $updateOverlayOpen,
-  resetUpdateApplyState
+  resetUpdateApplyState,
+  reportInstallMethodWarning
 } = await import('./updates')
 const { setConnection } = await import('./session')
 
@@ -158,6 +159,42 @@ describe('reportBackendContract', () => {
     reportBackendContract(2) // backend updated → satisfied, snooze cleared
     reportBackendContract(1) // a later regression must warn immediately
     expect(notifySpy).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('reportInstallMethodWarning', () => {
+  beforeEach(() => {
+    storage.clear()
+    notifySpy.mockClear()
+    dismissSpy.mockClear()
+    vi.useRealTimers()
+  })
+
+  it('shows install-method warnings from session runtime info', () => {
+    reportInstallMethodWarning('Poetry installs must be updated manually.')
+
+    expect(notifySpy).toHaveBeenCalledTimes(1)
+    expect(notifySpy.mock.calls[0]?.[0]).toMatchObject({
+      id: 'install-method-not-supported',
+      kind: 'warning',
+      message: 'Poetry installs must be updated manually.'
+    })
+  })
+
+  it('dismisses the warning when the backend reports no issue', () => {
+    reportInstallMethodWarning(undefined)
+
+    expect(dismissSpy).toHaveBeenCalledWith('install-method-not-supported')
+  })
+
+  it('does not re-show on later session opens once dismissed', () => {
+    reportInstallMethodWarning('Manual update required.')
+    lastToast().onDismiss()
+    notifySpy.mockClear()
+
+    reportInstallMethodWarning('Manual update required.')
+
+    expect(notifySpy).not.toHaveBeenCalled()
   })
 })
 
@@ -348,7 +385,15 @@ describe('applyBackendUpdate fork-safe guard', () => {
     checkHermesUpdateSpy.mockReset()
     updateHermesSpy.mockReset()
     getActionStatusSpy.mockReset()
-    $backendUpdateApply.set({ applying: false, stage: 'idle', message: '', percent: null, error: null, command: null, log: [] })
+    $backendUpdateApply.set({
+      applying: false,
+      stage: 'idle',
+      message: '',
+      percent: null,
+      error: null,
+      command: null,
+      log: []
+    })
     vi.useRealTimers()
   })
 
@@ -365,4 +410,3 @@ describe('applyBackendUpdate fork-safe guard', () => {
     })
   })
 })
-

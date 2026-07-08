@@ -50,6 +50,7 @@ export type GatewayEventPayload = {
   cwd?: string
   branch?: string
   credential_warning?: string
+  install_warning?: string
   personality?: string
   usage?: Partial<UsageStats>
   // clarify.request

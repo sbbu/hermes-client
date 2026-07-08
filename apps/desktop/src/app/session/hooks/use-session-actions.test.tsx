@@ -117,6 +117,12 @@ describe('createBackendSessionForSend profile routing', () => {
 
     expect(params).toMatchObject({ profile: 'default' })
   })
+
+  it('tags new desktop chats as desktop sessions', async () => {
+    const params = await createWith(() => {})
+
+    expect(params).toMatchObject({ source: 'desktop' })
+  })
 })
 
 // ── Resume failure recovery (the "stuck loading session window" bug) ──────────
@@ -241,9 +247,12 @@ describe('resumeSession failure recovery', () => {
   it('leaves the failure latch clear when resume succeeds', async () => {
     // Pre-arm to prove a successful resume clears it (entry-clear path).
     setResumeFailedSessionId('stored-1')
+    let resumeParams: Record<string, unknown> | undefined
 
     const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
       if (method === 'session.resume') {
+        resumeParams = params
+
         return { session_id: 'runtime-1', resumed: params?.session_id, messages: [], info: {} } as never
       }
 
@@ -255,5 +264,6 @@ describe('resumeSession failure recovery', () => {
     await runResume(requestGateway)
 
     expect($resumeFailedSessionId.get()).toBeNull()
+    expect(resumeParams).toMatchObject({ source: 'desktop' })
   })
 })
