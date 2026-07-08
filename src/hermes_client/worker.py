@@ -185,10 +185,9 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
         targets.append(word)
 
     recursive = "r" in flags or "--recursive" in flags
-    force = "f" in flags or "--force" in flags
-    if recursive and force and any(_rm_target_is_root(target) for target in targets):
+    if recursive and any(_rm_target_is_root(target) for target in targets):
         return RM_ROOT_GUARD_REASON
-    if recursive and force and any(_rm_target_is_home(target) for target in targets):
+    if recursive and any(_rm_target_is_home(target) for target in targets):
         return RM_HOME_GUARD_REASON
     return None
 
