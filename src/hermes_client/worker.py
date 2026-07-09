@@ -88,6 +88,7 @@ BLOCKED_TYPE_PATTERNS = [
 RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
 RM_HOME_GUARD_REASON = "recursive rm targeting user home"
 SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
+SHELL_PARAM_WORD_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-=+]|[-=+])(?P<word>[^}]*)\}")
 SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
 
@@ -103,7 +104,17 @@ def _shell_words(fragment: str) -> list[str]:
         return fragment.split()
 
 
-def _rm_target_is_root(target: str) -> bool:
+def _shell_parameter_word_variants(target: str) -> list[str]:
+    variants: list[str] = []
+    for match in SHELL_PARAM_WORD_RE.finditer(target):
+        word = match.group("word")
+        if not word:
+            continue
+        variants.append(f"{target[: match.start()]}{word}{target[match.end():]}")
+    return variants
+
+
+def _rm_target_is_root_literal(target: str) -> bool:
     raw = target.strip()
     if raw.startswith(("/*", "/./*")) or raw.rstrip("/") in {"", "/."}:
         return True
@@ -119,6 +130,12 @@ def _rm_target_is_root(target: str) -> bool:
     # Top-level shell expansions (globs and brace expansion) can expand to
     # filesystem-root children before rm runs, e.g. /[be]* or /{bin,etc}.
     return bool(first_component and any(ch in first_component for ch in "*?[]{}"))
+
+
+def _rm_target_is_root(target: str) -> bool:
+    if _rm_target_is_root_literal(target):
+        return True
+    return any(_rm_target_is_root_literal(candidate) for candidate in _shell_parameter_word_variants(target))
 
 
 def _target_matches_prefix(target: str, prefix: str) -> bool:
