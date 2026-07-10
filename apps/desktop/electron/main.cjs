@@ -3753,7 +3753,13 @@ function installPreviewShortcut(window) {
 // survives reloads/restarts) rather than a main-process JSON file. The main
 // process owns setZoomLevel, so we mirror each change into localStorage and
 // read it back on did-finish-load to re-apply after reloads or crash recovery.
-const { ZOOM_STORAGE_KEY, clampZoomLevel, percentToZoomLevel, zoomLevelToPercent } = require('./zoom.cjs')
+const {
+  ZOOM_STORAGE_KEY,
+  clampZoomLevel,
+  installZoomReassertOnWindowEvents,
+  percentToZoomLevel,
+  zoomLevelToPercent
+} = require('./zoom.cjs')
 
 function setAndPersistZoomLevel(window, zoomLevel) {
   if (!window || window.isDestroyed()) return
@@ -5345,10 +5351,15 @@ async function startHermes() {
 // security posture: external links open in the OS browser, in-app navigation
 // stays confined to the dev server / packaged file URL, and the preview /
 // devtools / zoom / context-menu affordances behave identically everywhere.
-function wireCommonWindowHandlers(win) {
+// The pet overlay opts out of global zoom because it owns its window-fit scale.
+function wireCommonWindowHandlers(win, { zoom = true } = {}) {
   installPreviewShortcut(win)
   installDevToolsShortcut(win)
-  installZoomShortcuts(win)
+  if (zoom) {
+    installZoomShortcuts(win)
+    installZoomReassertOnWindowEvents(win, () => restorePersistedZoomLevel(win))
+    win.webContents.once('did-finish-load', () => restorePersistedZoomLevel(win))
+  }
   installContextMenu(win)
   win.webContents.setWindowOpenHandler(details => {
     openExternalUrl(details.url)
@@ -5526,7 +5537,7 @@ function spawnPetOverlayWindow(bounds) {
     // Not supported everywhere — best effort.
   }
 
-  wireCommonWindowHandlers(win)
+  wireCommonWindowHandlers(win, { zoom: false })
 
   win.once('ready-to-show', () => {
     if (!win.isDestroyed()) win.showInactive()
@@ -5705,7 +5716,6 @@ function createWindow() {
   }
 
   mainWindow.webContents.once('did-finish-load', () => {
-    restorePersistedZoomLevel(mainWindow)
     broadcastBootProgress()
     sendWindowStateChanged()
     startHermes().catch(error => rememberLog(error.stack || error.message))

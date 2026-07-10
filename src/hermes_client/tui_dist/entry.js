@@ -66302,13 +66302,15 @@ var init_overlayStore = __esm({
 });
 
 // src/app/petFlashStore.ts
-var $petFlash, flashPet, $petBox;
+var $petFlash, flashPet, $goodVibesTick, flashGoodVibes, $petBox;
 var init_petFlashStore = __esm({
   "src/app/petFlashStore.ts"() {
     "use strict";
     init_nanostores();
     $petFlash = atom(null);
     flashPet = (state, ms = 1600) => $petFlash.set({ state, until: Date.now() + ms });
+    $goodVibesTick = atom(0);
+    flashGoodVibes = () => $goodVibesTick.set($goodVibesTick.get() + 1);
     $petBox = atom(null);
   }
 });
@@ -67645,6 +67647,10 @@ function createGatewayEventHandler(ctx) {
         if (ev.payload?.name) {
           turnController.pushTrail(`drafting ${ev.payload.name}\u2026`);
         }
+        return;
+      case "reaction":
+        flashGoodVibes();
+        flashPet("jump");
         return;
       case "tool.start":
         turnController.recordTodos(ev.payload.todos);
@@ -71931,7 +71937,6 @@ function submitPrompt(text, deps, showUserMessage = true) {
       return deps.sys("session not ready yet");
     }
     turnController.clearStatusTimer();
-    deps.maybeGoodVibes(submitText);
     deps.setLastUserMsg(text);
     if (show) {
       deps.appendMessage({ role: "user", text: displayText });
@@ -71981,7 +71986,6 @@ function useSubmission(opts) {
     composerRefs,
     composerState,
     gw: gw2,
-    maybeGoodVibes,
     setLastUserMsg,
     slashRef,
     submitRef,
@@ -72022,14 +72026,13 @@ function useSubmission(opts) {
           enqueue: composerActions.enqueue,
           expand,
           gw: gw2,
-          maybeGoodVibes,
           setLastUserMsg,
           sys
         },
         showUserMessage
       );
     },
-    [appendMessage, composerActions, composerState.pasteSnips, gw2, maybeGoodVibes, setLastUserMsg, sys]
+    [appendMessage, composerActions, composerState.pasteSnips, gw2, setLastUserMsg, sys]
   );
   const shellExec = (0, import_react42.useCallback)(
     (cmd) => {
@@ -72302,7 +72305,7 @@ function useMainApp(gw2) {
   const [sessionStartedAt, setSessionStartedAt] = (0, import_react44.useState)(() => Date.now());
   const [turnStartedAt, setTurnStartedAt] = (0, import_react44.useState)(null);
   const [lastTurnEndedAt, setLastTurnEndedAt] = (0, import_react44.useState)(null);
-  const [goodVibesTick, setGoodVibesTick] = (0, import_react44.useState)(0);
+  const goodVibesTick = useStore($goodVibesTick);
   const [bellOnComplete, setBellOnComplete] = (0, import_react44.useState)(false);
   const ui = useStore($uiState);
   const overlay = useStore($overlayState);
@@ -72494,11 +72497,6 @@ function useMainApp(gw2) {
     },
     [sys]
   );
-  const maybeGoodVibes = (0, import_react44.useCallback)((text) => {
-    if (GOOD_VIBES_RE.test(text)) {
-      setGoodVibesTick((v) => v + 1);
-    }
-  }, []);
   const rpc = (0, import_react44.useCallback)(
     async (method, params = {}) => {
       try {
@@ -72663,7 +72661,6 @@ function useMainApp(gw2) {
     composerRefs,
     composerState,
     gw: gw2,
-    maybeGoodVibes,
     setLastUserMsg,
     slashRef,
     submitRef,
@@ -73012,7 +73009,7 @@ function useMainApp(gw2) {
   );
   return { appActions, appComposer, appProgress, appStatus, appTranscript, gateway };
 }
-var import_react44, GOOD_VIBES_RE, BRACKET_PASTE_ON, BRACKET_PASTE_OFF, MAX_HEIGHT_CACHE_BUCKETS, capHistory, statusColorOf;
+var import_react44, BRACKET_PASTE_ON, BRACKET_PASTE_OFF, MAX_HEIGHT_CACHE_BUCKETS, capHistory, statusColorOf;
 var init_useMainApp = __esm({
   "src/app/useMainApp.ts"() {
     "use strict";
@@ -73041,6 +73038,7 @@ var init_useMainApp = __esm({
     init_gatewayRecovery();
     init_inputSelectionStore();
     init_overlayStore();
+    init_petFlashStore();
     init_scroll();
     init_turnController();
     init_turnStore();
@@ -73051,7 +73049,6 @@ var init_useMainApp = __esm({
     init_useLongRunToolCharms();
     init_useSessionLifecycle();
     init_useSubmission();
-    GOOD_VIBES_RE = /\b(good bot|thanks|thank you|thx|ty|ily|love you)\b/i;
     BRACKET_PASTE_ON = "\x1B[?2004h";
     BRACKET_PASTE_OFF = "\x1B[?2004l";
     MAX_HEIGHT_CACHE_BUCKETS = 12;
@@ -77425,7 +77422,7 @@ function ConfirmScreen({
       amount
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: payLine }),
-    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Hermes to charge your card." }),
+    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Nous Research to charge your card." }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(ActionRow, { active: sel === 0, color: t.color.ok, label: `Pay $${amount} now`, t }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(ActionRow, { active: sel === 1, label: "Cancel", t }),
@@ -77562,7 +77559,7 @@ function AutoReloadScreen({ ctx, onClose, onPatch, s, t }) {
     fieldBox("Reload balance to:", reloadTo, setReloadTo, row === 1, "reloadTo"),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)(Text, { color: t.color.muted, children: [
-      "By confirming, you authorize Hermes to charge ",
+      "By confirming, you authorize Nous Research to charge ",
       s.card ? s.card.masked : "your card",
       " whenever your balance falls below the threshold. Turn off any time here or on the portal."
     ] }),
@@ -78824,7 +78821,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, {}),
       /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { color: t.color.accent, children: [
         info.model.split("/").pop(),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
       sid && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { children: [
@@ -78843,7 +78840,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
         /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
           /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
             info.model.split("/").pop(),
-            /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
           sid && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { wrap: "truncate-end", children: [

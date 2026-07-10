@@ -6,8 +6,17 @@
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 
-const { ZOOM_STORAGE_KEY, clampZoomLevel, percentToZoomLevel, zoomLevelToPercent } = require('./zoom.cjs')
+const {
+  ZOOM_STORAGE_KEY,
+  ZOOM_REASSERT_WINDOW_EVENTS,
+  clampZoomLevel,
+  installZoomReassertOnWindowEvents,
+  percentToZoomLevel,
+  zoomLevelToPercent
+} = require('./zoom.cjs')
 
 test('storage key stays stable so persisted zoom survives upgrades', () => {
   assert.equal(ZOOM_STORAGE_KEY, 'hermes:desktop:zoomLevel')
@@ -51,4 +60,53 @@ test('conversion is monotonic across the preset range', () => {
 test('extreme percentages clamp to the level bounds', () => {
   assert.equal(percentToZoomLevel(1), -9)
   assert.equal(percentToZoomLevel(1_000_000), 9)
+})
+
+test('installZoomReassertOnWindowEvents wires show and restore', () => {
+  const handlers = new Map()
+  const win = {
+    isDestroyed: () => false,
+    on(event, listener) {
+      handlers.set(event, listener)
+    }
+  }
+  let calls = 0
+  installZoomReassertOnWindowEvents(win, () => {
+    calls += 1
+  })
+
+  assert.deepEqual([...handlers.keys()], [...ZOOM_REASSERT_WINDOW_EVENTS])
+  handlers.get('show')()
+  handlers.get('restore')()
+  assert.equal(calls, 2)
+})
+
+test('installZoomReassertOnWindowEvents skips destroyed windows', () => {
+  const handlers = new Map()
+  let destroyed = false
+  const win = {
+    isDestroyed: () => destroyed,
+    on(event, listener) {
+      handlers.set(event, listener)
+    }
+  }
+  let calls = 0
+  installZoomReassertOnWindowEvents(win, () => {
+    calls += 1
+  })
+  destroyed = true
+  handlers.get('show')()
+  assert.equal(calls, 0)
+})
+
+test('pet overlay opts out of global UI zoom; chat windows keep it', () => {
+  const source = fs.readFileSync(path.join(__dirname, 'main.cjs'), 'utf8').replace(/\r\n/g, '\n')
+
+  assert.match(source, /function wireCommonWindowHandlers\(win, \{ zoom = true \}/)
+  assert.match(source, /wireCommonWindowHandlers\(win, \{ zoom: false \}\)/)
+
+  const finishLoad = source.indexOf("mainWindow.webContents.once('did-finish-load'")
+  assert.notEqual(finishLoad, -1, 'missing mainWindow did-finish-load handler')
+  const snippet = source.slice(finishLoad, finishLoad + 300)
+  assert.doesNotMatch(snippet, /restorePersistedZoomLevel\(mainWindow\)/)
 })

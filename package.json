@@ -1,7 +1,7 @@
 {
   "name": "hermes-client",
   "private": true,
-  "version": "0.3.15",
+  "version": "0.3.16",
   "description": "Remote-only Hermes client, desktop shell, and local tool worker.",
   "workspaces": [
     "apps/*"

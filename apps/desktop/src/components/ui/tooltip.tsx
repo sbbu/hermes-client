@@ -3,8 +3,21 @@ import * as React from 'react'
 
 import { cn } from '@/lib/utils'
 
-function TooltipProvider({ delayDuration = 0, ...props }: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
-  return <TooltipPrimitive.Provider data-slot="tooltip-provider" delayDuration={delayDuration} {...props} />
+function TooltipProvider({
+  delayDuration = 0,
+  // Tips are labels, not interactive surfaces. Hoverable content + Radix's
+  // pointer-grace bridge can leave tips stuck open over Electron chrome.
+  disableHoverableContent = true,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
+  return (
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delayDuration={delayDuration}
+      disableHoverableContent={disableHoverableContent}
+      {...props}
+    />
+  )
 }
 
 function Tooltip({ ...props }: React.ComponentProps<typeof TooltipPrimitive.Root>) {
@@ -28,7 +41,7 @@ function TooltipContent({
         // classes). bg-foreground/text-background auto-inverts per theme: white
         // on near-black in light mode, black on white in dark.
         className={cn(
-          'z-[200] w-fit bg-foreground px-1.5 py-1 text-[11px] font-bold leading-none text-background select-none [font-family:Arial,sans-serif]',
+          'pointer-events-none z-[200] w-fit bg-foreground px-1.5 py-1 text-[11px] font-bold leading-none text-background select-none [font-family:Arial,sans-serif]',
           className
         )}
         data-slot="tooltip-content"
@@ -50,15 +63,15 @@ interface TipProps extends Omit<React.ComponentProps<typeof TooltipPrimitive.Con
 // Drop-in replacement for native `title=`: wrap any single element. Instant,
 // position-aware, themed. Self-contained (carries its own Provider) so it works
 // anywhere without a provider ancestor. Renders the child untouched when label
-// is falsy.
+// is falsy. Open state is trigger-hover only — never sticky or click-blocking.
 function Tip({ label, children, delayDuration = 0, ...props }: TipProps) {
   if (!label) {
     return <>{children}</>
   }
 
   return (
-    <TooltipProvider delayDuration={delayDuration}>
-      <Tooltip>
+    <TooltipProvider delayDuration={delayDuration} disableHoverableContent>
+      <Tooltip disableHoverableContent>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
         <TooltipContent {...props}>{label}</TooltipContent>
       </Tooltip>

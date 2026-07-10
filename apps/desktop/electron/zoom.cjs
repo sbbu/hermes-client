@@ -11,6 +11,7 @@ const ZOOM_STORAGE_KEY = 'hermes:desktop:zoomLevel'
 const ZOOM_FACTOR_BASE = 1.2
 const MIN_ZOOM_LEVEL = -9
 const MAX_ZOOM_LEVEL = 9
+const ZOOM_REASSERT_WINDOW_EVENTS = ['show', 'restore']
 
 function clampZoomLevel(value) {
   if (!Number.isFinite(value)) return 0
@@ -26,9 +27,24 @@ function percentToZoomLevel(percent) {
   return clampZoomLevel(Math.log(percent / 100) / Math.log(ZOOM_FACTOR_BASE))
 }
 
+// Chromium on Windows can drop webContents zoom when a BrowserWindow is minimized
+// and restored. Re-apply the persisted level on these lifecycle transitions.
+function installZoomReassertOnWindowEvents(win, reassert) {
+  if (!win?.on) return
+
+  for (const event of ZOOM_REASSERT_WINDOW_EVENTS) {
+    win.on(event, () => {
+      if (win.isDestroyed?.()) return
+      reassert()
+    })
+  }
+}
+
 module.exports = {
   ZOOM_STORAGE_KEY,
+  ZOOM_REASSERT_WINDOW_EVENTS,
   clampZoomLevel,
+  installZoomReassertOnWindowEvents,
   percentToZoomLevel,
   zoomLevelToPercent
 }
