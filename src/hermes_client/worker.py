@@ -87,6 +87,8 @@ BLOCKED_TYPE_PATTERNS = [
 ]
 RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
 RM_HOME_GUARD_REASON = "recursive rm targeting user home"
+SHELL_PARAMETER_GUARD_REASON = "complex shell parameter expansion"
+MAX_SHELL_PARAMETER_VARIANTS = 256
 SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
 SHELL_PARAM_WORD_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-=+]|[-=+])(?P<word>[^}]*)\}")
 SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
@@ -104,14 +106,52 @@ def _shell_words(fragment: str) -> list[str]:
         return fragment.split()
 
 
-def _shell_parameter_word_variants(target: str) -> list[str]:
-    variants: list[str] = []
-    for match in SHELL_PARAM_WORD_RE.finditer(target):
-        word = match.group("word")
-        if not word:
+def _shell_expanding_parameter_offsets(text: str) -> set[int]:
+    offsets: set[int] = set()
+    quote: str | None = None
+    escaped = False
+    for index, char in enumerate(text):
+        if escaped:
+            escaped = False
             continue
-        variants.append(f"{target[: match.start()]}{word}{target[match.end():]}")
-    return variants
+        if char == "\\" and quote != "'":
+            escaped = True
+            continue
+        if char == "'" and quote in {None, "'"}:
+            quote = None if quote == "'" else "'"
+        elif char == '"' and quote in {None, '"'}:
+            quote = None if quote == '"' else '"'
+        elif char == "$" and quote != "'":
+            offsets.add(index)
+    return offsets
+
+
+def _shell_parameter_word_variants(text: str) -> list[str] | None:
+    expanding_offsets = _shell_expanding_parameter_offsets(text)
+    matches = [
+        match for match in SHELL_PARAM_WORD_RE.finditer(text) if match.start() in expanding_offsets
+    ]
+    variants = [""]
+    cursor = 0
+    for match in matches:
+        prefix = text[cursor : match.start()]
+        word = match.group("word")
+        # Each parameter may select its explicit word or another value. Empty is
+        # the conservative branch needed to reveal dangerous adjacent words.
+        variants = [
+            f"{variant}{prefix}{replacement}"
+            for variant in variants
+            for replacement in ("", word)
+        ]
+        # The caller blocks over-complex payloads instead of leaving a bypass or
+        # allowing exponential work in the computer-use worker.
+        if len(variants) > MAX_SHELL_PARAMETER_VARIANTS:
+            return None
+        cursor = match.end()
+
+    suffix = text[cursor:]
+    expanded = (f"{variant}{suffix}" for variant in variants)
+    return list(dict.fromkeys(candidate for candidate in expanded if candidate != text))
 
 
 def _rm_target_is_root_literal(target: str) -> bool:
@@ -130,12 +170,6 @@ def _rm_target_is_root_literal(target: str) -> bool:
     # Top-level shell expansions (globs and brace expansion) can expand to
     # filesystem-root children before rm runs, e.g. /[be]* or /{bin,etc}.
     return bool(first_component and any(ch in first_component for ch in "*?[]{}"))
-
-
-def _rm_target_is_root(target: str) -> bool:
-    if _rm_target_is_root_literal(target):
-        return True
-    return any(_rm_target_is_root_literal(candidate) for candidate in _shell_parameter_word_variants(target))
 
 
 def _target_matches_prefix(target: str, prefix: str) -> bool:
@@ -202,7 +236,7 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
         targets.append(word)
 
     recursive = "r" in flags or "--recursive" in flags
-    if recursive and any(_rm_target_is_root(target) for target in targets):
+    if recursive and any(_rm_target_is_root_literal(target) for target in targets):
         return RM_ROOT_GUARD_REASON
     if recursive and any(_rm_target_is_home(target) for target in targets):
         return RM_HOME_GUARD_REASON
@@ -210,7 +244,13 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
 
 
 def _dangerous_rm_target_reason(text: str) -> str | None:
-    fragments = [text or "", *re.split(r"[\r\n;|&`()]+", text or "")]
+    raw_fragments = [text or "", *re.split(r"[\r\n;|&`()]+", text or "")]
+    fragments: list[str] = []
+    for fragment in raw_fragments:
+        variants = _shell_parameter_word_variants(fragment)
+        if variants is None:
+            return SHELL_PARAMETER_GUARD_REASON
+        fragments.extend((fragment, *variants))
     seen: set[str] = set()
     for fragment in fragments:
         if fragment in seen:

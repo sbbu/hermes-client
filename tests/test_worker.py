@@ -61,6 +61,12 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf /tmp/${X:-..}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-../*}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-.}/..")
+    assert blocked_type_pattern("rm ${FLAGS:--rf} /")
+    assert blocked_type_pattern("${COMMAND:-rm} -rf /")
+    assert blocked_type_pattern("${PAYLOAD:-rm -rf /}")
+    assert blocked_type_pattern('"${COMMAND:-rm}" "${FLAGS:--r}" "${TARGET:-/}"')
+    assert blocked_type_pattern("r${COMMAND_SUFFIX:-m} ${FLAGS:--r} ${TARGET:-/}")
+    assert blocked_type_pattern("r${A:-m}${B:+x} ${FLAGS:--r} /")
     assert blocked_type_pattern("sudo -n rm -fr /")
     assert blocked_type_pattern("/bin/rm -fr /")
     assert blocked_type_pattern("/usr/bin/rm --recursive --force /")
@@ -96,7 +102,19 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf /tmp") is None
     assert blocked_type_pattern("rm -rf /tmp/{a,b}") is None
     assert blocked_type_pattern("rm -rf /tmp/${USER:-cache}") is None
+    assert blocked_type_pattern("rm ${FLAGS:--rf} /tmp") is None
+    assert blocked_type_pattern("${COMMAND:-printf} -rf /") is None
+    assert blocked_type_pattern("'${COMMAND:-rm}' -rf /") is None
+    assert blocked_type_pattern("'${PAYLOAD:-rm -rf /}'") is None
+    assert blocked_type_pattern("\\${COMMAND:-rm} -rf /") is None
+    assert blocked_type_pattern("rm -rf '/tmp/${X:-..}'") is None
+    assert blocked_type_pattern("r${COMMAND_SUFFIX:-mdir} ${FLAGS:--r} /") is None
     assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
+
+
+def test_local_computer_use_bounds_shell_parameter_variants():
+    expansion_heavy_text = " ".join(f"${{VALUE_{index}:-word}}" for index in range(10_000))
+    assert blocked_type_pattern(expansion_heavy_text) == "complex shell parameter expansion"
 
 
 def test_local_computer_use_blocks_destructive_key_combos():
