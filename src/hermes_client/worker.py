@@ -93,6 +93,8 @@ SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
 SHELL_PARAM_WORD_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-=+]|[-=+])(?P<word>[^}]*)\}")
 SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
+SHELL_HOME_SUFFIX_RE = re.compile(r"\$\{HOME(?P<op>%%|%)(?P<pattern>[^{}]*)\}")
+SHELL_IDENTITY_REF_RE = re.compile(r"\$\{(?:USER|LOGNAME)\}|\$(?:USER|LOGNAME)\b")
 
 
 def _shell_words(fragment: str) -> list[str]:
@@ -154,6 +156,53 @@ def _shell_parameter_word_variants(text: str) -> list[str] | None:
     return list(dict.fromkeys(candidate for candidate in expanded if candidate != text))
 
 
+def _known_home_parameter_variant(text: str) -> str:
+    """Resolve deterministic, unquoted HOME suffix-removal expressions."""
+    home = str(Path.home()).rstrip("/") or "/"
+    username = Path(home).name
+    expanded = text
+
+    identity_offsets = _shell_expanding_parameter_offsets(expanded)
+    identity_matches = [
+        match for match in SHELL_IDENTITY_REF_RE.finditer(expanded) if match.start() in identity_offsets
+    ]
+    if identity_matches:
+        pieces: list[str] = []
+        cursor = 0
+        for match in identity_matches:
+            pieces.extend((expanded[cursor : match.start()], username))
+            cursor = match.end()
+        pieces.append(expanded[cursor:])
+        expanded = "".join(pieces)
+
+    # In ${HOME%pattern}, the shortest matching suffix is removed; %% removes
+    # the longest. Evaluate against the worker's real HOME so expressions that
+    # become / or the current home cannot hide from the literal target checks.
+    expanding_offsets = _shell_expanding_parameter_offsets(expanded)
+    suffix_matches = [
+        match for match in SHELL_HOME_SUFFIX_RE.finditer(expanded) if match.start() in expanding_offsets
+    ]
+    if not suffix_matches:
+        return expanded
+
+    pieces = []
+    cursor = 0
+    for match in suffix_matches:
+        pieces.append(expanded[cursor : match.start()])
+        pattern = match.group("pattern")
+        cut_points = [
+            index for index in range(len(home) + 1) if fnmatch.fnmatchcase(home[index:], pattern)
+        ]
+        if cut_points:
+            cut = min(cut_points) if match.group("op") == "%%" else max(cut_points)
+            pieces.append(home[:cut])
+        else:
+            pieces.append(home)
+        cursor = match.end()
+    pieces.append(expanded[cursor:])
+    return "".join(pieces)
+
+
 def _rm_target_is_root_literal(target: str) -> bool:
     raw = target.strip()
     if raw.startswith(("/*", "/./*")) or raw.rstrip("/") in {"", "/."}:
@@ -202,13 +251,26 @@ def _rm_target_is_home(target: str) -> bool:
         return True
     if any(SHELL_USER_HOME_PARAM_RE.match(candidate) for candidate in candidates):
         return True
+    home = str(Path.home()).rstrip("/")
+    home_parents = {"/Users", "/home"}
+    if home and home != "/":
+        home_parents.add(str(Path(home).parent).rstrip("/"))
+    for candidate in candidates:
+        for parent in home_parents:
+            prefix = f"{parent}/" if parent else "/"
+            if not candidate.startswith(prefix):
+                continue
+            user_component = candidate[len(prefix) :].split("/", 1)[0]
+            # A shell glob/brace in the username slot can include the current
+            # account even when it never spells the home directory literally.
+            if any(char in user_component for char in "*?[]{}"):
+                return True
     # Shell substitutions like /Users/$(whoami) and /home/`id -un` resolve
     # to the active user's home at execution time. Treat any dynamic username
     # segment under the standard home roots as a home-targeting rm payload.
     dynamic_home_prefixes = ("/Users/$(", "/Users/`", "/home/$(", "/home/`")
     if any(candidate.startswith(dynamic_home_prefixes) for candidate in candidates):
         return True
-    home = str(Path.home()).rstrip("/")
     return bool(home and home != "/" and any(_target_matches_prefix(candidate, home) for candidate in candidates))
 
 
@@ -250,7 +312,11 @@ def _dangerous_rm_target_reason(text: str) -> str | None:
         variants = _shell_parameter_word_variants(fragment)
         if variants is None:
             return SHELL_PARAMETER_GUARD_REASON
-        fragments.extend((fragment, *variants))
+        for candidate in (fragment, *variants):
+            fragments.append(candidate)
+            home_variant = _known_home_parameter_variant(candidate)
+            if home_variant != candidate:
+                fragments.append(home_variant)
     seen: set[str] = set()
     for fragment in fragments:
         if fragment in seen:

@@ -61,6 +61,8 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf /tmp/${X:-..}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-../*}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-.}/..")
+    assert blocked_type_pattern("rm -rf ${HOME%%/*}/")
+    assert blocked_type_pattern("rm -r ${HOME%%/*}/*")
     assert blocked_type_pattern("rm ${FLAGS:--rf} /")
     assert blocked_type_pattern("${COMMAND:-rm} -rf /")
     assert blocked_type_pattern("${PAYLOAD:-rm -rf /}")
@@ -83,6 +85,13 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -r ~")
     assert blocked_type_pattern("rm -rf ~/Documents")
     assert blocked_type_pattern("rm --recursive ~/Documents")
+    assert blocked_type_pattern("rm -fr /Users/*")
+    assert blocked_type_pattern("rm -fr /home/*")
+    assert blocked_type_pattern("rm -fr ${HOME%/*}/$USER")
+    assert blocked_type_pattern("rm -fr ${HOME%/*}/${USER}")
+    assert blocked_type_pattern("rm -fr ${HOME%/*}/$(whoami)")
+    assert blocked_type_pattern("rm -fr ${HOME%/$USER}/$USER")
+    assert blocked_type_pattern("rm -fr ${HOME%/${USER}}/${USER}")
     assert blocked_type_pattern("rm -fr /Users/$USER")
     assert blocked_type_pattern("rm -fr /Users/../Users/$USER")
     assert blocked_type_pattern("rm -fr /Users/../Users/$(whoami)")
@@ -108,6 +117,8 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("'${PAYLOAD:-rm -rf /}'") is None
     assert blocked_type_pattern("\\${COMMAND:-rm} -rf /") is None
     assert blocked_type_pattern("rm -rf '/tmp/${X:-..}'") is None
+    assert blocked_type_pattern("rm -rf '${HOME%%/*}/'") is None
+    assert blocked_type_pattern("rm -rf '${HOME%/*}/$USER'") is None
     assert blocked_type_pattern("r${COMMAND_SUFFIX:-mdir} ${FLAGS:--r} /") is None
     assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
 
