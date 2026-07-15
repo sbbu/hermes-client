@@ -21,6 +21,7 @@ import { useResizeObserver } from '@/hooks/use-resize-observer'
 import { useI18n } from '@/i18n'
 import { chatMessageText } from '@/lib/chat-messages'
 import { SLASH_COMMAND_RE } from '@/lib/chat-runtime'
+import { sanitizeComposerInput } from '@/lib/composer-input-sanitize'
 import { desktopSlashCommandTakesArgs } from '@/lib/desktop-slash-commands'
 import { DATA_IMAGE_URL_RE } from '@/lib/embedded-images'
 import { triggerHaptic } from '@/lib/haptics'
@@ -273,14 +274,17 @@ export function ChatBar({
     poppedOut ? handleComposerDock() : handleComposerPopOut()
   }, [handleComposerDock, handleComposerPopOut, poppedOut])
 
-  const { dockProximity, dragging, onPointerDown: onComposerGesturePointerDown } =
-    useComposerPopoutGestures({
-      composerRef,
-      onDock: handleComposerDock,
-      onPopOut: handleComposerPopOut,
-      poppedOut,
-      position: popoutPosition
-    })
+  const {
+    dockProximity,
+    dragging,
+    onPointerDown: onComposerGesturePointerDown
+  } = useComposerPopoutGestures({
+    composerRef,
+    onDock: handleComposerDock,
+    onPopOut: handleComposerPopOut,
+    poppedOut,
+    position: popoutPosition
+  })
 
   const draftRef = useRef(draft)
   const pendingDraftPersistRef = useRef<{ scope: string | null; text: string } | null>(null)
@@ -732,7 +736,7 @@ export function ChatBar({
   const flushEditorToDraft = (editor: HTMLDivElement) => {
     normalizeComposerEditorDom(editor)
 
-    const nextDraft = composerPlainText(editor)
+    const nextDraft = sanitizeComposerInput(composerPlainText(editor))
 
     if (nextDraft !== draftRef.current) {
       draftRef.current = nextDraft
@@ -774,7 +778,7 @@ export function ChatBar({
     // blank lines (common when selecting from terminals, code blocks, web pages)
     // doesn't dump multiline padding into the composer. Internal newlines are
     // preserved — only the edges are cleaned up.
-    const pastedText = event.clipboardData.getData('text').trim()
+    const pastedText = sanitizeComposerInput(event.clipboardData.getData('text').trim())
 
     if (!pastedText) {
       event.preventDefault()
@@ -811,8 +815,7 @@ export function ChatBar({
   // Suppress the "No matches" empty state once a slash command is past its name:
   // a no-arg command has nothing to offer, and a fully-typed arg commits on
   // Space/Tab — neither should dead-end on a popover.
-  const argStageEmpty =
-    trigger?.kind === '/' && slashArgStage(trigger.query) && !triggerLoading && !triggerItems.length
+  const argStageEmpty = trigger?.kind === '/' && slashArgStage(trigger.query) && !triggerLoading && !triggerItems.length
 
   const closeTrigger = () => {
     setTrigger(null)
@@ -839,7 +842,14 @@ export function ChatBar({
       id: text,
       type: 'slash',
       label: text.slice(1),
-      metadata: { command: slashCommandToken(trigger.query), display: text, meta: '', group: '', action: '', rawText: text }
+      metadata: {
+        command: slashCommandToken(trigger.query),
+        display: text,
+        meta: '',
+        group: '',
+        action: '',
+        rawText: text
+      }
     })
   }
 
@@ -979,10 +989,7 @@ export function ChatBar({
 
     // Non-collapsed Backspace/Delete: native selection-delete is ~O(n²) on large
     // drafts (Ctrl+A → Delete froze ~1.3s). Collapsed carets fall through.
-    if (
-      (event.key === 'Backspace' || event.key === 'Delete') &&
-      deleteSelectionInEditor(event.currentTarget)
-    ) {
+    if ((event.key === 'Backspace' || event.key === 'Delete') && deleteSelectionInEditor(event.currentTarget)) {
       event.preventDefault()
       flushEditorToDraft(event.currentTarget)
 
@@ -2098,7 +2105,9 @@ export function ChatBar({
               <div
                 className={cn(
                   'relative z-1 flex min-h-0 w-full flex-col gap-(--composer-row-gap) overflow-hidden rounded-[inherit] px-(--composer-surface-pad-x) py-(--composer-surface-pad-y) transition-opacity duration-200 ease-out',
-                  scrolledUp ? 'opacity-30 group-hover/composer:opacity-100 group-focus-within/composer-surface:opacity-100' : 'opacity-100'
+                  scrolledUp
+                    ? 'opacity-30 group-hover/composer:opacity-100 group-focus-within/composer-surface:opacity-100'
+                    : 'opacity-100'
                 )}
                 data-slot="composer-fade"
               >

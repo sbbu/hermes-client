@@ -683,6 +683,14 @@ export function useSessionActions({
       setFreshDraftReady(false)
       setActiveSessionId(null)
       activeSessionIdRef.current = null
+
+      // A warm-cache hit can still fall through here after its runtime id goes
+      // stale. Do not leave the previous session's transcript on screen while
+      // the cold resume hydrates the replacement.
+      if ($messages.get().length > 0) {
+        setMessages([])
+      }
+
       busyRef.current = true
       setBusy(true)
       setAwaitingResponse(false)

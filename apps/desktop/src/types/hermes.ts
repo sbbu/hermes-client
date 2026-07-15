@@ -324,6 +324,7 @@ export interface SessionInfo {
   archived?: boolean
   cwd?: null | string
   ended_at: null | number
+  git_branch?: null | string
   id: string
   /** Original root id of a compression chain, when this entry is a projected
    *  continuation tip. Stable across compressions — used as the durable id for

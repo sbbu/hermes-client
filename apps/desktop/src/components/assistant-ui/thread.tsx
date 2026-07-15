@@ -8,6 +8,7 @@ import {
   type ToolCallMessagePartProps,
   useAui,
   useAuiState,
+  useMessagePartReasoning,
   useMessageRuntime
 } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
@@ -89,6 +90,7 @@ import type { HermesGateway } from '@/hermes'
 import { useResizeObserver } from '@/hooks/use-resize-observer'
 import { useI18n } from '@/i18n'
 import { attachmentDisplayText, attachmentId, pathLabel } from '@/lib/chat-runtime'
+import { sanitizeComposerInput } from '@/lib/composer-input-sanitize'
 import { DATA_IMAGE_URL_RE } from '@/lib/embedded-images'
 import { LinkifiedText } from '@/lib/external-link'
 import { triggerHaptic } from '@/lib/haptics'
@@ -601,10 +603,11 @@ const ReasoningAccordionGroup: FC<{ children?: ReactNode; endIndex: number; star
   )
 }
 
-const ReasoningTextPart: FC<{ text: string; status?: { type: string } }> = ({ text, status }) => {
-  const displayText = text.trimStart()
+const ReasoningTextPart: FC = () => {
+  const part = useMessagePartReasoning() as { text?: string; status?: { type?: string } }
   const messageRunning = useAuiState(s => s.message.status?.type === 'running')
-  const isRunning = status?.type === 'running' || messageRunning
+  const isRunning = part.status?.type === 'running' || messageRunning
+  const displayText = (part.text ?? '').trimStart()
 
   return (
     <MarkdownTextContent
@@ -1302,7 +1305,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
 
   const syncDraftFromEditor = useCallback(
     (editor: HTMLDivElement) => {
-      const nextDraft = composerPlainText(editor)
+      const nextDraft = sanitizeComposerInput(composerPlainText(editor))
 
       if (nextDraft !== draftRef.current) {
         draftRef.current = nextDraft
@@ -1591,7 +1594,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
   }
 
   const handlePaste = (event: ClipboardEvent<HTMLDivElement>) => {
-    const pastedText = event.clipboardData.getData('text')
+    const pastedText = sanitizeComposerInput(event.clipboardData.getData('text'))
 
     if (!pastedText || DATA_IMAGE_URL_RE.test(pastedText.trim())) {
       event.preventDefault()

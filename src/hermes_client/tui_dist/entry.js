@@ -72006,17 +72006,7 @@ var init_submissionCore = __esm({
 
 // src/app/useSubmission.ts
 function useSubmission(opts) {
-  const {
-    appendMessage,
-    composerActions,
-    composerRefs,
-    composerState,
-    gw: gw2,
-    setLastUserMsg,
-    slashRef,
-    submitRef,
-    sys
-  } = opts;
+  const { appendMessage, composerActions, composerRefs, composerState, gw: gw2, setLastUserMsg, slashRef, submitRef, sys } = opts;
   const lastEmptyAt = (0, import_react42.useRef)(0);
   const typingIdleTimer = (0, import_react42.useRef)(null);
   (0, import_react42.useEffect)(() => {
@@ -77475,7 +77465,7 @@ function ConfirmScreen({
       amount
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: payLine }),
-    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Nous Research to charge your card." }),
+    /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Hermes to charge your card." }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(ActionRow, { active: sel === 0, color: t.color.ok, label: `Pay $${amount} now`, t }),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(ActionRow, { active: sel === 1, label: "Cancel", t }),
@@ -77612,7 +77602,7 @@ function AutoReloadScreen({ ctx, onClose, onPatch, s, t }) {
     fieldBox("Reload balance to:", reloadTo, setReloadTo, row === 1, "reloadTo"),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime25.jsxs)(Text, { color: t.color.muted, children: [
-      "By confirming, you authorize Nous Research to charge ",
+      "By confirming, you authorize Hermes to charge ",
       s.card ? s.card.masked : "your card",
       " whenever your balance falls below the threshold. Turn off any time here or on the portal."
     ] }),
@@ -78884,7 +78874,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, {}),
       /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { color: t.color.accent, children: [
         info.model.split("/").pop(),
-        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+        /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
       sid && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { children: [
@@ -78903,7 +78893,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
         /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
           /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
             info.model.split("/").pop(),
-            /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+            /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime32.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
           sid && /* @__PURE__ */ (0, import_jsx_runtime32.jsxs)(Text, { wrap: "truncate-end", children: [
@@ -79017,7 +79007,7 @@ var init_branding = __esm({
     init_text();
     import_jsx_runtime32 = __toESM(require_jsx_runtime(), 1);
     LOADER_TICK_MS = 120;
-    TAG_FULL = "Hermes Client";
+    TAG_FULL = "Hermes \xB7 Hermes Client";
     TAG_MID = "Hermes Client";
     TAG_TINY = "Hermes";
     HIDE_BELOW = 34;
@@ -79475,7 +79465,7 @@ function Journey({ gw: gw2, onClose, t }) {
     /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
       /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(Text, { wrap: "truncate-end", children: [
         /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { bold: true, color: t.color.primary, children: "\u2726 Journey" }),
-        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { color: t.color.muted, children: "  learned skills & memories over time" })
+        /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { color: t.color.muted, children: " learned skills & memories over time" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime35.jsx)(Text, { wrap: "wrap", children: data.legend.map((item, i) => /* @__PURE__ */ (0, import_jsx_runtime35.jsxs)(Text, { children: [
         i ? "   " : "",
@@ -82886,10 +82876,21 @@ var init_appLayout = __esm({
       if (!active) {
         return null;
       }
-      return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(NoSelect, { bottom: PET_BOTTOM, flexShrink: 0, paddingLeft: PET_PAD_LEFT, paddingTop: 1, position: "absolute", right: PET_RIGHT, children: [
-        kitty ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(PetKitty, { color: kitty.color, placeholder: kitty.placeholder }) : null,
-        !kitty && grid ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(PetSprite, { grid }) : null
-      ] });
+      return /* @__PURE__ */ (0, import_jsx_runtime44.jsxs)(
+        NoSelect,
+        {
+          bottom: PET_BOTTOM,
+          flexShrink: 0,
+          paddingLeft: PET_PAD_LEFT,
+          paddingTop: 1,
+          position: "absolute",
+          right: PET_RIGHT,
+          children: [
+            kitty ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(PetKitty, { color: kitty.color, placeholder: kitty.placeholder }) : null,
+            !kitty && grid ? /* @__PURE__ */ (0, import_jsx_runtime44.jsx)(PetSprite, { grid }) : null
+          ]
+        }
+      );
     });
     PromptPrefix = (0, import_react77.memo)(function PromptPrefix2({
       bold = false,

@@ -41,7 +41,12 @@ import {
   Zap
 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { $commandPaletteOpen, $commandPalettePage, closeCommandPalette, setCommandPaletteOpen } from '@/store/command-palette'
+import {
+  $commandPaletteOpen,
+  $commandPalettePage,
+  closeCommandPalette,
+  setCommandPaletteOpen
+} from '@/store/command-palette'
 import { $bindings } from '@/store/keybinds'
 import { runGatewayRestart } from '@/store/system-actions'
 import { luminance } from '@/themes/color'
@@ -101,6 +106,7 @@ interface PalettePage {
 }
 
 interface SessionEntry {
+  git_branch?: null | string
   id: string
   preview?: string
   title: string
@@ -129,6 +135,7 @@ const SESSION_ID_RE = /^\d{8}_\d{6}_[a-f0-9]{6}$/
 type SessionRow = Awaited<ReturnType<typeof listAllProfileSessions>>['sessions'][number]
 
 const toSessionEntry = (session: SessionRow): SessionEntry => ({
+  git_branch: session.git_branch ?? null,
   id: session.id,
   preview: session.preview ?? undefined,
   title: sessionTitle(session)
@@ -201,7 +208,8 @@ function themeSupportsMode(name: string, target: 'light' | 'dark'): boolean {
     return true
   }
 
-  const background = target === 'dark' ? (resolved.darkColors ?? resolved.colors).background : resolved.colors.background
+  const background =
+    target === 'dark' ? (resolved.darkColors ?? resolved.colors).background : resolved.colors.background
 
   return target === 'dark' ? luminance(background) <= 0.5 : luminance(background) > 0.5
 }
@@ -468,7 +476,12 @@ export function CommandPalette() {
         items: sessions.map(session => ({
           icon: MessageCircle,
           id: `session-${session.id}`,
-          keywords: ['chat', 'session', ...(session.preview ? [session.preview] : [])],
+          keywords: [
+            'chat',
+            'session',
+            ...(session.preview ? [session.preview] : []),
+            ...(session.git_branch ? [session.git_branch] : [])
+          ],
           label: session.title,
           run: go(sessionRoute(session.id))
         }))
@@ -506,7 +519,13 @@ export function CommandPalette() {
         items: archivedSessions.map(session => ({
           icon: Archive,
           id: `archived-${session.id}`,
-          keywords: ['archived', 'chat', 'session', ...(session.preview ? [session.preview] : [])],
+          keywords: [
+            'archived',
+            'chat',
+            'session',
+            ...(session.preview ? [session.preview] : []),
+            ...(session.git_branch ? [session.git_branch] : [])
+          ],
           label: session.title,
           run: go(`${SETTINGS_ROUTE}?tab=sessions&session=${encodeURIComponent(session.id)}`)
         }))
