@@ -318,6 +318,7 @@ interface PromptActionsOptions {
   busyRef: MutableRefObject<boolean>
   branchCurrentSession: () => Promise<boolean>
   createBackendSessionForSend: (preview?: string | null) => Promise<string | null>
+  getRouteToken: () => string
   handleSkinCommand: (arg: string) => string
   refreshSessions: () => Promise<void>
   requestGateway: <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
@@ -393,6 +394,7 @@ export function usePromptActions({
   busyRef,
   branchCurrentSession,
   createBackendSessionForSend,
+  getRouteToken,
   handleSkinCommand,
   refreshSessions,
   requestGateway,
@@ -592,6 +594,16 @@ export function usePromptActions({
         return false
       }
 
+      // Pin the selected session and route for the entire async submit. A
+      // profile/session switch during resume or attachment upload must abort,
+      // never redirect the user's prompt into the newly focused chat.
+      const startingActiveSessionId = activeSessionIdRef.current
+      const startingStoredSessionId = selectedStoredSessionIdRef.current
+      const startingRouteToken = getRouteToken()
+
+      const sessionContextDrifted = (): boolean =>
+        selectedStoredSessionIdRef.current !== startingStoredSessionId || getRouteToken() !== startingRouteToken
+
       const optimisticId = `user-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
       const buildUserMessage = (): ChatMessage => ({
@@ -626,7 +638,7 @@ export function usePromptActions({
             // (what made drained-after-interrupt sends go silent).
             interrupted: false
           }),
-          selectedStoredSessionIdRef.current
+          startingStoredSessionId
         )
 
       // After sync rewrites refs, refresh the optimistic message in place so the
@@ -638,7 +650,7 @@ export function usePromptActions({
             ...state,
             messages: state.messages.map(message => (message.id === optimisticId ? buildUserMessage() : message))
           }),
-          selectedStoredSessionIdRef.current
+          startingStoredSessionId
         )
 
       const dropOptimistic = (sid: null | string) => {
@@ -657,8 +669,15 @@ export function usePromptActions({
             awaitingResponse: false,
             pendingBranchGroup: null
           }),
-          selectedStoredSessionIdRef.current
+          startingStoredSessionId
         )
+      }
+
+      const abortForSessionSwitch = (optimisticSessionId: null | string): false => {
+        dropOptimistic(optimisticSessionId)
+        releaseBusy()
+
+        return false
       }
 
       setMutableRef(busyRef, true)
@@ -666,7 +685,7 @@ export function usePromptActions({
       setAwaitingResponse(true)
       clearNotifications()
 
-      let sessionId: null | string = activeSessionId
+      let sessionId: null | string = startingActiveSessionId
 
       if (sessionId) {
         seedOptimistic(sessionId)
@@ -674,12 +693,16 @@ export function usePromptActions({
         setMessages(current => [...current, buildUserMessage()])
       }
 
-      if (!sessionId && selectedStoredSessionIdRef.current) {
+      if (!sessionId && startingStoredSessionId) {
         try {
           const resumed = await requestGateway<{ session_id: string }>('session.resume', {
-            session_id: selectedStoredSessionIdRef.current,
+            session_id: startingStoredSessionId,
             source: 'desktop'
           })
+
+          if (sessionContextDrifted()) {
+            return abortForSessionSwitch(sessionId)
+          }
 
           if (resumed?.session_id) {
             sessionId = resumed.session_id
@@ -689,6 +712,10 @@ export function usePromptActions({
         } catch {
           // The session may have been removed or live only in the REST history;
           // fall through to normal session creation so a new chat can still send.
+        }
+
+        if (sessionContextDrifted()) {
+          return abortForSessionSwitch(sessionId)
         }
       }
 
@@ -701,6 +728,10 @@ export function usePromptActions({
           notifyError(err, copy.sessionUnavailable)
 
           return false
+        }
+
+        if (sessionContextDrifted()) {
+          return abortForSessionSwitch(sessionId)
         }
 
         if (!sessionId) {
@@ -719,6 +750,10 @@ export function usePromptActions({
           updateComposerAttachments: usingComposerAttachments
         })
 
+        if (sessionContextDrifted()) {
+          return abortForSessionSwitch(sessionId)
+        }
+
         // Rewrite the optimistic message + prompt text with the synced refs so
         // the gateway receives @file: paths that resolve in its workspace.
         // (Images keep their inline base64 preview — see optimisticAttachmentRef.)
@@ -736,15 +771,16 @@ export function usePromptActions({
             requestGateway('prompt.submit', { session_id: sessionId, text }, PROMPT_SUBMIT_REQUEST_TIMEOUT_MS)
           )
         } catch (firstErr) {
-          if (
-            (isSessionNotFoundError(firstErr) || isGatewayTimeoutError(firstErr)) &&
-            selectedStoredSessionIdRef.current
-          ) {
+          if ((isSessionNotFoundError(firstErr) || isGatewayTimeoutError(firstErr)) && startingStoredSessionId) {
             // Re-register the session in the gateway and get a fresh live ID.
             const resumed = await requestGateway<{ session_id: string }>('session.resume', {
-              session_id: selectedStoredSessionIdRef.current,
+              session_id: startingStoredSessionId,
               source: 'desktop'
             })
+
+            if (sessionContextDrifted()) {
+              return abortForSessionSwitch(sessionId)
+            }
 
             const recoveredId = resumed?.session_id
 
@@ -812,11 +848,11 @@ export function usePromptActions({
       }
     },
     [
-      activeSessionId,
       activeSessionIdRef,
       busyRef,
       copy,
       createBackendSessionForSend,
+      getRouteToken,
       requestGateway,
       selectedStoredSessionIdRef,
       syncAttachmentsForSubmit,

@@ -18,7 +18,7 @@ import {
 } from '@/lib/chat-messages'
 import { coerceGatewayText, coerceThinkingText, normalizePersonalityValue } from '@/lib/chat-runtime'
 import { playCompletionSound } from '@/lib/completion-sound'
-import { gatewayEventRequiresSessionId } from '@/lib/gateway-events'
+import { resolveGatewayEventSessionId } from '@/lib/gateway-events'
 import {
   dedupeGeneratedImageEchoesInParts,
   generatedImageEchoSources,
@@ -35,7 +35,14 @@ import { dispatchNativeNotification } from '@/store/native-notifications'
 import { notify } from '@/store/notifications'
 import { requestDesktopOnboarding } from '@/store/onboarding'
 import { flashPetActivity, markPetUnread, setPetActivity } from '@/store/pet'
-import { clearAllPrompts, setApprovalRequest, setSecretRequest, setSudoRequest } from '@/store/prompts'
+import {
+  clearAllPrompts,
+  clearSecretRequest,
+  clearSudoRequest,
+  setApprovalRequest,
+  setSecretRequest,
+  setSudoRequest
+} from '@/store/prompts'
 import {
   setCurrentBranch,
   setCurrentCwd,
@@ -166,6 +173,19 @@ const SUBAGENT_EVENT_TYPES = new Set([
   'subagent.tool',
   'subagent.progress',
   'subagent.complete'
+])
+
+const COMPACTION_RESUME_EVENT_TYPES = new Set([
+  'message.delta',
+  'thinking.delta',
+  'reasoning.delta',
+  'reasoning.available',
+  'moa.reference',
+  'moa.aggregating',
+  'tool.start',
+  'tool.progress',
+  'tool.generating',
+  'tool.complete'
 ])
 
 // Anonymous progress events that carry todos but no name still belong to the
@@ -340,6 +360,7 @@ export function useMessageStream({
   const nativeSubagentSessionsRef = useRef<Set<string>>(new Set())
   // Turns that auto-compacted: skip post-turn hydrate so live scrollback survives.
   const compactedTurnRef = useRef<Set<string>>(new Set())
+  const unscopedStreamSessionIdRef = useRef<string | null>(null)
 
   const flushQueuedDeltas = useCallback(
     (sessionId?: string) => {
@@ -718,12 +739,27 @@ export function useMessageStream({
       const payload = event.payload as GatewayEventPayload | undefined
       const explicitSid = event.session_id || ''
 
-      if (!explicitSid && gatewayEventRequiresSessionId(event.type)) {
+      const route = resolveGatewayEventSessionId({
+        activeSessionId: activeSessionIdRef.current,
+        eventType: event.type,
+        explicitSessionId: explicitSid,
+        unscopedStreamSessionId: unscopedStreamSessionIdRef.current
+      })
+
+      unscopedStreamSessionIdRef.current = route.nextUnscopedStreamSessionId
+
+      if (route.drop) {
         return
       }
 
-      const sessionId = explicitSid || activeSessionIdRef.current
+      const sessionId = route.sessionId
       const isActiveEvent = !!sessionId && sessionId === activeSessionIdRef.current
+
+      // Mid-turn compaction emits no second message.start. Any resumed model
+      // output or tool activity proves summarization is over.
+      if (sessionId && COMPACTION_RESUME_EVENT_TYPES.has(event.type) && compactedTurnRef.current.has(sessionId)) {
+        setSessionCompacting(sessionId, false)
+      }
 
       if (event.type === 'gateway.ready') {
         return
@@ -1048,6 +1084,11 @@ export function useMessageStream({
           sessionId,
           title: translateNow('notifications.native.approvalTitle')
         })
+      } else if (event.type === 'sudo.expire') {
+        clearSudoRequest(
+          sessionId ?? undefined,
+          typeof payload?.request_id === 'string' ? payload.request_id : undefined
+        )
       } else if (event.type === 'sudo.request') {
         // Sudo password capture (tools/terminal_tool.py). Blocked on
         // sudo.respond {request_id, password}.
@@ -1067,6 +1108,11 @@ export function useMessageStream({
             title: translateNow('notifications.native.inputTitle')
           })
         }
+      } else if (event.type === 'secret.expire') {
+        clearSecretRequest(
+          sessionId ?? undefined,
+          typeof payload?.request_id === 'string' ? payload.request_id : undefined
+        )
       } else if (event.type === 'secret.request') {
         // Skill credential capture (tools/skills_tool.py). Blocked on
         // secret.respond {request_id, value}.

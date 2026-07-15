@@ -1697,7 +1697,7 @@ export function ChatBar({
 
     const restore = () => {
       loadIntoComposer(text, submittedAttachments)
-      stashAt(activeQueueSessionKeyRef.current, text, submittedAttachments)
+      stashAt(submittedScope, text, submittedAttachments)
     }
 
     void Promise.resolve(attachments ? onSubmit(text, { attachments }) : onSubmit(text))

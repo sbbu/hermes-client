@@ -64733,6 +64733,36 @@ var init_paths = __esm({
   }
 });
 
+// src/domain/slash.ts
+var TUI_SESSION_MODEL_FLAG, sessionScopedModelArg, looksLikeSlashCommand, parseSlashCommand, applyCompletion, completionToApplyOnSubmit;
+var init_slash = __esm({
+  "src/domain/slash.ts"() {
+    "use strict";
+    TUI_SESSION_MODEL_FLAG = "--tui-session";
+    sessionScopedModelArg = (value) => {
+      const parts = value.trim().split(/\s+/).filter(Boolean);
+      const kept = parts.filter((part) => part !== TUI_SESSION_MODEL_FLAG && part !== "--global" && part !== "--session");
+      return kept.length ? `${kept.join(" ")} --session` : "";
+    };
+    looksLikeSlashCommand = (text) => /^\/[^\s/]*(?:\s|$)/.test(text);
+    parseSlashCommand = (cmd) => {
+      const [name = "", ...rest] = cmd.slice(1).split(/\s+/);
+      return { arg: rest.join(" "), cmd, name: name.toLowerCase() };
+    };
+    applyCompletion = (value, rowText2, compReplace) => {
+      const text = value.startsWith("/") && rowText2.startsWith("/") ? rowText2.slice(1) : rowText2;
+      return value.slice(0, compReplace) + text;
+    };
+    completionToApplyOnSubmit = (value, rowText2, compReplace) => {
+      if (!rowText2) {
+        return null;
+      }
+      const next = applyCompletion(value, rowText2, compReplace);
+      return next !== value && next.trimEnd() !== value.trimEnd() ? next : null;
+    };
+  }
+});
+
 // src/hooks/useGitBranch.ts
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
@@ -67699,7 +67729,13 @@ function createGatewayEventHandler(ctx) {
         const description = String(ev.payload.description ?? "dangerous command");
         const allowPermanent = ev.payload.allow_permanent !== false;
         patchOverlayState({
-          approval: { allowPermanent, command: String(ev.payload.command ?? ""), description }
+          approval: {
+            allowPermanent,
+            choices: ev.payload.choices,
+            command: String(ev.payload.command ?? ""),
+            description,
+            smartDenied: ev.payload.smart_denied === true
+          }
         });
         setStatus("approval needed");
         return;
@@ -67713,6 +67749,12 @@ function createGatewayEventHandler(ctx) {
           secret: { envVar: ev.payload.env_var, prompt: ev.payload.prompt, requestId: ev.payload.request_id }
         });
         setStatus("secret input needed");
+        return;
+      case "sudo.expire":
+        patchOverlayState((prev) => prev.sudo?.requestId === ev.payload.request_id ? { ...prev, sudo: null } : prev);
+        return;
+      case "secret.expire":
+        patchOverlayState((prev) => prev.secret?.requestId === ev.payload.request_id ? { ...prev, secret: null } : prev);
         return;
       case "background.complete":
         dropBgTask(ev.payload.task_id);
@@ -67885,31 +67927,6 @@ var init_createGatewayEventHandler = __esm({
       }
       const normalized = status.toLowerCase();
       return KNOWN_SUBAGENT_STATUSES2.has(normalized) ? normalized : fallback;
-    };
-  }
-});
-
-// src/domain/slash.ts
-var TUI_SESSION_MODEL_FLAG, looksLikeSlashCommand, parseSlashCommand, applyCompletion, completionToApplyOnSubmit;
-var init_slash = __esm({
-  "src/domain/slash.ts"() {
-    "use strict";
-    TUI_SESSION_MODEL_FLAG = "--tui-session";
-    looksLikeSlashCommand = (text) => /^\/[^\s/]*(?:\s|$)/.test(text);
-    parseSlashCommand = (cmd) => {
-      const [name = "", ...rest] = cmd.slice(1).split(/\s+/);
-      return { arg: rest.join(" "), cmd, name: name.toLowerCase() };
-    };
-    applyCompletion = (value, rowText2, compReplace) => {
-      const text = value.startsWith("/") && rowText2.startsWith("/") ? rowText2.slice(1) : rowText2;
-      return value.slice(0, compReplace) + text;
-    };
-    completionToApplyOnSubmit = (value, rowText2, compReplace) => {
-      if (!rowText2) {
-        return null;
-      }
-      const next = applyCompletion(value, rowText2, compReplace);
-      return next !== value && next.trimEnd() !== value.trimEnd() ? next : null;
     };
   }
 });
@@ -69496,7 +69513,7 @@ ${body}` : body;
 });
 
 // src/app/slash/commands/session.ts
-var TUI_SESSION_MODEL_RE, TUI_SESSION_STRIP_RE, stripTuiSessionFlag, modelValueForConfigSet, sessionCommands;
+var TUI_SESSION_MODEL_RE, modelValueForConfigSet, sessionCommands;
 var init_session = __esm({
   "src/app/slash/commands/session.ts"() {
     "use strict";
@@ -69508,15 +69525,13 @@ var init_session = __esm({
     init_overlayStore();
     init_uiStore();
     TUI_SESSION_MODEL_RE = new RegExp(`(?:^|\\s)${TUI_SESSION_MODEL_FLAG}(?:\\s|$)`);
-    TUI_SESSION_STRIP_RE = new RegExp(`\\s*${TUI_SESSION_MODEL_FLAG}\\b\\s*`, "g");
-    stripTuiSessionFlag = (trimmed) => trimmed.replace(TUI_SESSION_STRIP_RE, " ").replace(/\s+/g, " ").trim();
     modelValueForConfigSet = (arg) => {
       const trimmed = arg.trim();
       if (!trimmed) {
         return trimmed;
       }
       if (TUI_SESSION_MODEL_RE.test(trimmed)) {
-        return stripTuiSessionFlag(trimmed);
+        return sessionScopedModelArg(trimmed);
       }
       return trimmed;
     };
@@ -71168,6 +71183,20 @@ function applyVoiceRecordResponse(response, starting, voice, sys) {
     voice.setProcessing(false);
   }
 }
+function dismissSensitivePrompt(overlay, rpc, sys) {
+  if (overlay.sudo) {
+    const requestId = overlay.sudo.requestId;
+    patchOverlayState({ sudo: null });
+    sys("sudo cancelled");
+    return rpc("sudo.respond", { password: "", request_id: requestId });
+  }
+  if (overlay.secret) {
+    const requestId = overlay.secret.requestId;
+    patchOverlayState({ secret: null });
+    sys("secret entry cancelled");
+    return rpc("secret.respond", { request_id: requestId, value: "" });
+  }
+}
 function useInputHandlers(ctx) {
   const { actions, composer, gateway, terminal, voice, wheelStep } = ctx;
   const { actions: cActions, refs: cRefs, state: cState } = composer;
@@ -71202,11 +71231,8 @@ function useInputHandlers(ctx) {
     if (overlay.approval) {
       return gateway.rpc("approval.respond", { choice: "deny", session_id: getUiState().sid }).then((r) => r && (patchOverlayState({ approval: null }), patchTurnState({ outcome: "denied" })));
     }
-    if (overlay.sudo) {
-      return gateway.rpc("sudo.respond", { password: "", request_id: overlay.sudo.requestId }).then((r) => r && (patchOverlayState({ sudo: null }), actions.sys("sudo cancelled")));
-    }
-    if (overlay.secret) {
-      return gateway.rpc("secret.respond", { request_id: overlay.secret.requestId, value: "" }).then((r) => r && (patchOverlayState({ secret: null }), actions.sys("secret entry cancelled")));
+    if (overlay.sudo || overlay.secret) {
+      return dismissSensitivePrompt(overlay, gateway.rpc, actions.sys);
     }
     if (overlay.modelPicker) {
       return patchOverlayState({ modelPicker: false });
@@ -71343,7 +71369,7 @@ function useInputHandlers(ctx) {
         }
         return;
       }
-      if (isCtrl(key, ch, "c")) {
+      if (isCtrl(key, ch, "c") || key.escape && (overlay.secret || overlay.sudo)) {
         cancelOverlayFromCtrlC();
       } else if (key.escape && overlay.sessions) {
         patchOverlayState({ sessions: false });
@@ -72257,7 +72283,7 @@ async function startPromptLiveSession({
     sys("error: failed to start new live session");
     return null;
   }
-  const requestedModel = modelArg?.trim();
+  const requestedModel = modelArg ? sessionScopedModelArg(modelArg) : "";
   if (requestedModel) {
     const result = await rpc("config.set", { key: "model", session_id: sid, value: requestedModel });
     if (!result?.value) {
@@ -72838,7 +72864,11 @@ function useMainApp(gw2) {
       if (!overlay.sudo) {
         return;
       }
-      return respondWith("sudo.respond", { password: pw, request_id: overlay.sudo.requestId }, () => {
+      const requestId = overlay.sudo.requestId;
+      if (!pw) {
+        patchOverlayState({ sudo: null });
+      }
+      return respondWith("sudo.respond", { password: pw, request_id: requestId }, () => {
         patchOverlayState({ sudo: null });
         patchUiState({ status: "running\u2026" });
       });
@@ -72850,7 +72880,11 @@ function useMainApp(gw2) {
       if (!overlay.secret) {
         return;
       }
-      return respondWith("secret.respond", { request_id: overlay.secret.requestId, value }, () => {
+      const requestId = overlay.secret.requestId;
+      if (!value) {
+        patchOverlayState({ secret: null });
+      }
+      return respondWith("secret.respond", { request_id: requestId, value }, () => {
         patchOverlayState({ secret: null });
         patchUiState({ status: "running\u2026" });
       });
@@ -73023,6 +73057,7 @@ var init_useMainApp = __esm({
     init_details();
     init_messages();
     init_paths();
+    init_slash();
     init_useGitBranch();
     init_useVirtualHistory();
     init_inputMetrics();
@@ -75817,6 +75852,29 @@ function lineNav(s, p, dir2) {
   const lineEnd = nextEnd < 0 ? s.length : nextEnd;
   return snapPos(s, Math.min(nextBreak + 1 + col, lineEnd));
 }
+function resolveCursorLayout(display, cur, curRefCurrent, columns) {
+  void cur;
+  return cursorLayout(display, curRefCurrent, columns);
+}
+function fastBackspaceEffect(current, cursor) {
+  const t = prevPos(current, cursor);
+  const removed = current.slice(t, cursor);
+  return {
+    advanceDelta: -1,
+    newCursor: t,
+    newValue: current.slice(0, t) + current.slice(cursor),
+    removed,
+    write: "\b \b"
+  };
+}
+function fastAppendEffect(current, cursor, text) {
+  return {
+    advanceDelta: text.length,
+    newCursor: cursor + text.length,
+    newValue: current.slice(0, cursor) + text + current.slice(cursor),
+    write: text
+  };
+}
 function canFastAppendShape(current, cursor, text, columns, currentLineWidth) {
   if (cursor !== current.length) {
     return false;
@@ -75950,7 +76008,7 @@ function TextInput({
     () => sel && sel.start !== sel.end ? { end: Math.max(sel.start, sel.end), start: Math.min(sel.start, sel.end) } : null,
     [sel]
   );
-  const layout = cursorLayout(display, curRef.current, columns);
+  const layout = resolveCursorLayout(display, cur, curRef.current, columns);
   const boxRef = useDeclaredCursor2({
     line: layout.line,
     column: layout.column,
@@ -76357,11 +76415,11 @@ function TextInput({
           v = v.slice(0, t) + v.slice(c);
           c = t;
         } else if (canFastBackspace(v, c)) {
-          const t = prevPos(v, c);
-          v = v.slice(0, t) + v.slice(c);
-          c = t;
-          stdout.write("\b \b");
-          noteCursorAdvance(-1);
+          const effect = fastBackspaceEffect(v, c);
+          v = effect.newValue;
+          c = effect.newCursor;
+          stdout.write(effect.write);
+          noteCursorAdvance(effect.advanceDelta);
           commit(v, c, true, false, false, Math.max(0, lineWidthRef.current - 1));
           return;
         } else {
@@ -76442,11 +76500,14 @@ function TextInput({
             c = inserted.cursor;
           } else {
             const simpleAppend = canFastAppend(v, c, text);
+            const preInsertValue = v;
+            const preInsertCursor = c;
             v = inserted.value;
             c = inserted.cursor;
             if (simpleAppend) {
-              stdout.write(text);
-              noteCursorAdvance(text.length);
+              const effect = fastAppendEffect(preInsertValue, preInsertCursor, text);
+              stdout.write(effect.write);
+              noteCursorAdvance(effect.advanceDelta);
               commit(v, c, true, false, false, lineWidthRef.current + stringWidth3(text));
               return;
             }
@@ -77121,15 +77182,7 @@ var init_activeSessionSwitcher = __esm({
       return next ? { action: "activate", sessionId: next.id } : { action: "new" };
     };
     draftModelArgFromPickerValue = (value) => {
-      const parts = value.trim().split(/\s+/).filter(Boolean);
-      const kept = [];
-      for (const part of parts) {
-        if (part === TUI_SESSION_MODEL_FLAG || part === "--global") {
-          continue;
-        }
-        kept.push(part);
-      }
-      return kept.join(" ");
+      return sessionScopedModelArg(value);
     };
     draftModelNameFromArg = (value) => {
       const parts = draftModelArgFromPickerValue(value).split(/\s+/).filter(Boolean);
@@ -77966,6 +78019,15 @@ var init_pluginsHub = __esm({
 });
 
 // src/components/prompts.tsx
+function approvalOptions(req) {
+  if (req.choices) {
+    return req.choices.filter((choice) => APPROVAL_OPTS.includes(choice));
+  }
+  if (req.smartDenied) {
+    return APPROVAL_OPTS_SMART_DENY;
+  }
+  return req.allowPermanent === false ? APPROVAL_OPTS_NO_ALWAYS : APPROVAL_OPTS;
+}
 function approvalAction(ch, key, sel, opts = APPROVAL_OPTS) {
   if (key.escape) {
     return { kind: "choose", choice: "deny" };
@@ -77987,7 +78049,7 @@ function approvalAction(ch, key, sel, opts = APPROVAL_OPTS) {
 }
 function ApprovalPrompt({ cols = 80, onChoice, req, t }) {
   const [sel, setSel] = (0, import_react60.useState)(0);
-  const opts = req.allowPermanent === false ? APPROVAL_OPTS_NO_ALWAYS : APPROVAL_OPTS;
+  const opts = approvalOptions(req);
   use_input_default((ch, key) => {
     const action2 = approvalAction(ch, key, sel, opts);
     if (action2.kind === "choose") {
@@ -78134,7 +78196,7 @@ function ConfirmPrompt({ onCancel, onConfirm, req, t }) {
     /* @__PURE__ */ (0, import_jsx_runtime29.jsx)(Text, { color: t.color.muted, children: "\u2191/\u2193 select \xB7 Enter confirm \xB7 Y/N quick \xB7 Esc cancel" })
   ] });
 }
-var import_react60, import_jsx_runtime29, APPROVAL_OPTS, APPROVAL_OPTS_NO_ALWAYS, LABELS, CMD_PREVIEW_LINES;
+var import_react60, import_jsx_runtime29, APPROVAL_OPTS, APPROVAL_OPTS_NO_ALWAYS, APPROVAL_OPTS_SMART_DENY, LABELS, CMD_PREVIEW_LINES;
 var init_prompts = __esm({
   "src/components/prompts.tsx"() {
     "use strict";
@@ -78145,6 +78207,7 @@ var init_prompts = __esm({
     import_jsx_runtime29 = __toESM(require_jsx_runtime(), 1);
     APPROVAL_OPTS = ["once", "session", "always", "deny"];
     APPROVAL_OPTS_NO_ALWAYS = APPROVAL_OPTS.filter((o) => o !== "always");
+    APPROVAL_OPTS_SMART_DENY = ["once", "deny"];
     LABELS = { always: "Always allow", deny: "Deny", once: "Allow once", session: "Allow this session" };
     CMD_PREVIEW_LINES = 10;
   }
