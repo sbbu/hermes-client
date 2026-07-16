@@ -1,12 +1,22 @@
-import { cleanup, render, waitFor } from '@testing-library/react'
+import { act, cleanup, render, waitFor } from '@testing-library/react'
 import type { MutableRefObject } from 'react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getSessionMessages } from '@/hermes'
 import { $activeGatewayProfile, $newChatProfile } from '@/store/profile'
-import { $currentCwd, $messages, $resumeFailedSessionId, setMessages, setResumeFailedSessionId } from '@/store/session'
+import {
+  $activeSessionStoredId,
+  $currentCwd,
+  $messages,
+  $resumeFailedSessionId,
+  $selectedStoredSessionId,
+  setActiveSessionStoredId,
+  setMessages,
+  setResumeFailedSessionId
+} from '@/store/session'
 
+import { sessionRoute } from '../../routes'
 import type { ClientSessionState } from '../../types'
 
 import { useSessionActions } from './use-session-actions'
@@ -123,6 +133,62 @@ describe('createBackendSessionForSend profile routing', () => {
     const params = await createWith(() => {})
 
     expect(params).toMatchObject({ source: 'desktop' })
+  })
+})
+
+function StoredIdRotationHarness({
+  mappingRef,
+  navigate,
+  selectedRef
+}: {
+  mappingRef: MutableRefObject<Map<string, string>>
+  navigate: ReturnType<typeof vi.fn>
+  selectedRef: MutableRefObject<string | null>
+}) {
+  useSessionActions({
+    activeSessionId: 'runtime-1',
+    activeSessionIdRef: { current: 'runtime-1' },
+    busyRef: { current: false },
+    creatingSessionRef: { current: false },
+    ensureSessionState: () => ({}) as ClientSessionState,
+    getRouteToken: () => 'token',
+    navigate: navigate as never,
+    requestGateway: vi.fn(),
+    resetViewSync: vi.fn(),
+    runtimeIdByStoredSessionIdRef: mappingRef,
+    selectedStoredSessionId: selectedRef.current,
+    selectedStoredSessionIdRef: selectedRef,
+    sessionStateByRuntimeIdRef: { current: new Map() },
+    syncSessionStateToView: vi.fn(),
+    updateSessionState: () => ({}) as ClientSessionState
+  })
+
+  return null
+}
+
+describe('stored-session rotation', () => {
+  afterEach(() => {
+    cleanup()
+    setActiveSessionStoredId(null)
+    $selectedStoredSessionId.set(null)
+  })
+
+  it('re-anchors the route after compression rotates the stored id', async () => {
+    const navigate = vi.fn()
+    const selectedRef = { current: 'stored-old' }
+    const mappingRef = { current: new Map([['stored-old', 'runtime-1']]) }
+
+    render(<StoredIdRotationHarness mappingRef={mappingRef} navigate={navigate} selectedRef={selectedRef} />)
+
+    act(() => setActiveSessionStoredId('stored-new'))
+
+    await waitFor(() => {
+      expect(navigate).toHaveBeenCalledWith(sessionRoute('stored-new'), { replace: true })
+    })
+    expect($activeSessionStoredId.get()).toBe('stored-new')
+    expect($selectedStoredSessionId.get()).toBe('stored-new')
+    expect(selectedRef.current).toBe('stored-new')
+    expect(mappingRef.current.has('stored-old')).toBe(false)
   })
 })
 

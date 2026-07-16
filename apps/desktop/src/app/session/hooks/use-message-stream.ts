@@ -812,17 +812,24 @@ export function useMessageStream({
         }
 
         if (sessionId && hasStatePatch) {
-          updateSessionState(sessionId, state => ({
-            ...state,
-            ...statePatch,
-            branch: statePatch.branch ?? state.branch,
-            cwd: statePatch.cwd ?? state.cwd
-          }))
+          updateSessionState(
+            sessionId,
+            state => ({
+              ...state,
+              ...statePatch,
+              branch: statePatch.branch ?? state.branch,
+              cwd: statePatch.cwd ?? state.cwd
+            }),
+            payload?.stored_session_id || undefined
+          )
         }
 
-        if (apply) {
-          if (runningChanged && sessionId) {
-            updateSessionState(sessionId, state => {
+        // Per-session busy state drives every sidebar row, not only the focused
+        // chat. View publication remains guarded inside syncSessionStateToView.
+        if (runningChanged && sessionId) {
+          updateSessionState(
+            sessionId,
+            state => {
               const busy = Boolean(payload!.running)
 
               if (state.busy === busy && (busy || !state.awaitingResponse)) {
@@ -849,8 +856,9 @@ export function useMessageStream({
                 streamId: null,
                 turnStartedAt: null
               }
-            })
-          }
+            },
+            payload?.stored_session_id || undefined
+          )
         }
 
         if (payload?.usage && (!explicitSid || isActiveEvent)) {

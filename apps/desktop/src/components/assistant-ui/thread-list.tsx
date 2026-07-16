@@ -1,7 +1,7 @@
 import { ThreadPrimitive, useAuiEvent, useAuiState } from '@assistant-ui/react'
 import {
-  type CSSProperties,
   type ComponentProps,
+  type CSSProperties,
   type FC,
   memo,
   type ReactNode,
@@ -41,6 +41,7 @@ type MessageGroup = { id: string; weight: number } & (
 // WITHOUT a virtualizer — pure rendering, never touches scrollTop, so it can't
 // fight use-stick-to-bottom (the single scroll owner).
 const RENDER_BUDGET = 300
+const FIRST_PAINT_BUDGET = 60
 
 interface ThreadMessageListProps {
   clampToComposer: boolean
@@ -145,6 +146,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   // sticky user bubble falls back to its ~4px default and slides under the OS
   // traffic lights.
   const secondaryTitlebarGap = 'calc(var(--titlebar-height) + 0.75rem)'
+
   const threadContentTopPad = secondaryWindow
     ? 'pt-[calc(var(--titlebar-height)+0.75rem)]'
     : 'pt-[calc(var(--titlebar-height)-0.5rem)]'
@@ -186,7 +188,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   // Instead: quiet it, glue to the true bottom until the height holds steady,
   // then hand back locked. Live streaming afterward uses the normal resize follow.
   useLayoutEffect(() => {
-    setRenderBudget(RENDER_BUDGET)
+    setRenderBudget(FIRST_PAINT_BUDGET)
 
     const el = scrollRef.current
 
@@ -214,8 +216,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
       lastHeight = height
       node.scrollTop = height
 
-      // ~5 steady frames ≈ layout has settled; the frame cap bounds slow loads.
-      if (stableFrames >= 5 || ++frame > 90) {
+      if (stableFrames >= 2 || ++frame > 15) {
         void scrollToBottom('instant')
 
         return
@@ -225,8 +226,12 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
     }
 
     let rafId = requestAnimationFrame(settle)
+    const budgetRafId = requestAnimationFrame(() => setRenderBudget(RENDER_BUDGET))
 
-    return () => cancelAnimationFrame(rafId)
+    return () => {
+      cancelAnimationFrame(rafId)
+      cancelAnimationFrame(budgetRafId)
+    }
   }, [scrollRef, scrollToBottom, sessionKey, stopScroll])
 
   // Prepend an older page while preserving the on-screen position. The user is

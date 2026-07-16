@@ -39,7 +39,7 @@ if (new URLSearchParams(window.location.search).get('win') === 'overlay') {
           <I18nProvider>
             <ThemeProvider>
               <HapticsProvider>
-                <HashRouter>
+                <HashRouter useTransitions={false}>
                   <App />
                 </HashRouter>
               </HapticsProvider>

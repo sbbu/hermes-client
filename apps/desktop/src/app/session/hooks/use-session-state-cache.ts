@@ -6,9 +6,11 @@ import { preserveLocalAssistantErrors } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { setMutableRef } from '@/lib/mutable-ref'
 import {
+  $activeSessionId,
   $busy,
   $messages,
   noteSessionActivity,
+  setActiveSessionStoredId,
   setCurrentFastMode,
   setCurrentModel,
   setCurrentPersonality,
@@ -113,6 +115,10 @@ export function useSessionStateCache({
 
         if (previousStoredSessionId && previousStoredSessionId !== storedSessionId) {
           setSessionWorking(previousStoredSessionId, false)
+
+          if (sessionId === $activeSessionId.get()) {
+            setActiveSessionStoredId(storedSessionId)
+          }
         }
       }
 

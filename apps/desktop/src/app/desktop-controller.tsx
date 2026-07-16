@@ -564,7 +564,6 @@ export function DesktopController() {
   })
 
   const { refreshCurrentModel, selectModel, updateModelOptionsCache } = useModelControls({
-    activeSessionId,
     queryClient,
     requestGateway
   })

@@ -1,5 +1,6 @@
+import { useStore } from '@nanostores/react'
 import type { MutableRefObject } from 'react'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 
 import { deleteSession, getSession, getSessionMessages, setSessionArchived } from '@/hermes'
@@ -20,6 +21,7 @@ import {
   normalizeProfileKey
 } from '@/store/profile'
 import {
+  $activeSessionStoredId,
   $currentCwd,
   $currentFastMode,
   $currentModel,
@@ -116,7 +118,39 @@ function preserveReasoningParts(message: ChatMessage, previous: ChatMessage): Ch
   return reasoningParts.length ? { ...message, parts: [...reasoningParts, ...message.parts] } : message
 }
 
-function chatMessagesEquivalent(a: ChatMessage, b: ChatMessage): boolean {
+export function chatPartsEquivalent(aPart: ChatMessage['parts'][number], bPart: ChatMessage['parts'][number]): boolean {
+  if (aPart === bPart) {
+    return true
+  }
+
+  if (aPart.type !== bPart.type) {
+    return false
+  }
+
+  if (aPart.type === 'text' || aPart.type === 'reasoning') {
+    return aPart.text === (bPart as typeof aPart).text
+  }
+
+  if (aPart.type === 'tool-call') {
+    const aCall = aPart as { result?: unknown; toolCallId?: string; toolName?: string }
+    const bCall = bPart as { result?: unknown; toolCallId?: string; toolName?: string }
+
+    return (
+      aCall.toolCallId === bCall.toolCallId &&
+      aCall.toolName === bCall.toolName &&
+      (aCall.result !== undefined) === (bCall.result !== undefined)
+    )
+  }
+
+  const aPrimitive = aPart as Record<string, unknown>
+  const bPrimitive = bPart as Record<string, unknown>
+  const aKeys = Object.keys(aPrimitive).filter(key => typeof aPrimitive[key] !== 'object' || aPrimitive[key] === null)
+  const bKeys = Object.keys(bPrimitive).filter(key => typeof bPrimitive[key] !== 'object' || bPrimitive[key] === null)
+
+  return aKeys.length === bKeys.length && aKeys.every(key => aPrimitive[key] === bPrimitive[key])
+}
+
+export function chatMessagesEquivalent(a: ChatMessage, b: ChatMessage): boolean {
   if (
     a.id !== b.id ||
     a.role !== b.role ||
@@ -132,10 +166,14 @@ function chatMessagesEquivalent(a: ChatMessage, b: ChatMessage): boolean {
     return false
   }
 
-  return a.parts.every((part, index) => JSON.stringify(part) === JSON.stringify(b.parts[index]))
+  return a.parts.every((part, index) => chatPartsEquivalent(part, b.parts[index]))
 }
 
-function chatMessageArraysEquivalent(a: ChatMessage[], b: ChatMessage[]): boolean {
+export function chatMessageArraysEquivalent(a: ChatMessage[], b: ChatMessage[]): boolean {
+  if (a === b) {
+    return true
+  }
+
   return a.length === b.length && a.every((message, index) => chatMessagesEquivalent(message, b[index]))
 }
 
@@ -398,6 +436,23 @@ export function useSessionActions({
   const { t } = useI18n()
   const copy = t.desktop
   const resumeRequestRef = useRef(0)
+  const rotatedStoredId = useStore($activeSessionStoredId)
+
+  useEffect(() => {
+    if (!rotatedStoredId || rotatedStoredId === selectedStoredSessionIdRef.current) {
+      return
+    }
+
+    const previousStoredId = selectedStoredSessionIdRef.current
+
+    setSelectedStoredSessionId(rotatedStoredId)
+    selectedStoredSessionIdRef.current = rotatedStoredId
+    navigate(sessionRoute(rotatedStoredId), { replace: true })
+
+    if (previousStoredId) {
+      runtimeIdByStoredSessionIdRef.current.delete(previousStoredId)
+    }
+  }, [navigate, rotatedStoredId, runtimeIdByStoredSessionIdRef, selectedStoredSessionIdRef])
 
   const startFreshSessionDraft = useCallback(
     (replaceRoute = false) => {

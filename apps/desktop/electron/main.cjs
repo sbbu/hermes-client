@@ -35,6 +35,7 @@ const {
 } = require('./session-windows.cjs')
 const { canImportHermesCli, verifyHermesCli } = require('./backend-probes.cjs')
 const { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } = require('./link-title-window.cjs')
+const { ensureMainWindow } = require('./main-window-lifecycle.cjs')
 const { probeGatewayWebSocket } = require('./gateway-ws-probe.cjs')
 const { adoptServedDashboardToken } = require('./dashboard-token.cjs')
 const { waitForDashboardPort } = require('./backend-ready.cjs')
@@ -5657,10 +5658,15 @@ function createWindow() {
   mainWindow.on('unmaximize', schedulePersistWindowState)
   mainWindow.on('close', () => schedulePersistWindowState.flush())
 
-  // The overlay rides the main window — closing the app's primary window must
-  // tear it down too (otherwise it strands as an orphan that blocks
-  // window-all-closed from quitting on Windows/Linux).
-  mainWindow.on('closed', () => closePetOverlay())
+  const createdMainWindow = mainWindow
+  mainWindow.on('closed', () => {
+    closePetOverlay()
+
+    if (mainWindow === createdMainWindow) {
+      mainWindow = null
+      _rendererReadyForDeepLink = false
+    }
+  })
 
   wireCommonWindowHandlers(mainWindow)
 
@@ -7051,11 +7057,16 @@ if (!_gotSingleInstanceLock) {
 } else {
   app.on('second-instance', (_event, argv) => {
     const url = _extractDeepLink(argv)
-    if (url) handleDeepLink(url)
-    else if (mainWindow) {
-      if (mainWindow.isMinimized()) mainWindow.restore()
-      mainWindow.focus()
+    if (url) {
+      handleDeepLink(url)
     }
+
+    ensureMainWindow(mainWindow, {
+      isReady: app.isReady(),
+      createWindow,
+      focusWindow,
+      focusExisting: !url
+    })
   })
 }
 
