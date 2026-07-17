@@ -837,6 +837,13 @@ export function useMessageStream({
               }
 
               if (busy) {
+                // Don't re-arm busy from a stale session.info if the user
+                // just clicked Stop. The backend's cooperative interrupt may
+                // not have propagated yet, so running can still be true.
+                if (state.interrupted) {
+                  return state
+                }
+
                 return {
                   ...state,
                   busy,
@@ -895,14 +902,22 @@ export function useMessageStream({
           triggerHaptic('streamStart')
         }
 
-        updateSessionState(sessionId, state => ({
-          ...state,
-          busy: true,
-          awaitingResponse: true,
-          sawAssistantPayload: false,
-          interrupted: false,
-          turnStartedAt: Date.now()
-        }))
+        updateSessionState(sessionId, state => {
+          // Stop is user intent. Ignore a stale message.start from a chained
+          // turn or in-flight response until running=false settles the turn.
+          if (state.interrupted) {
+            return state
+          }
+
+          return {
+            ...state,
+            busy: true,
+            awaitingResponse: true,
+            sawAssistantPayload: false,
+            interrupted: false,
+            turnStartedAt: Date.now()
+          }
+        })
 
         if (isActiveEvent) {
           setTurnStartedAt(Date.now())

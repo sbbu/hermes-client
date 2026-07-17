@@ -22,6 +22,7 @@ const fs = require('node:fs')
 const http = require('node:http')
 const https = require('node:https')
 const path = require('node:path')
+const tls = require('node:tls')
 const { pathToFileURL } = require('node:url')
 const { execFileSync, spawn } = require('node:child_process')
 const { detectRemoteDisplay, isWindowsBinaryPathInWsl, isWslEnvironment } = require('./bootstrap-platform.cjs')
@@ -57,6 +58,8 @@ const { gitRootForIpc } = require('./git-root.cjs')
 const { worktreesForIpc } = require('./git-worktrees.cjs')
 const { OFFICIAL_REPO_HTTPS_URL, isOfficialSshRemote } = require('./update-remote.cjs')
 const { runRebuildWithRetry } = require('./update-rebuild.cjs')
+const { spawnUpdaterProcess } = require('./updater-process.cjs')
+const { installWindowsSystemCaTrust } = require('./windows-system-ca.cjs')
 const {
   buildPosixCleanupScript,
   buildWindowsCleanupScript,
@@ -1984,7 +1987,7 @@ async function handOffWindowsBootstrapRecovery(reason) {
 
   await releaseBackendLockForUpdate(updateRoot)
 
-  const child = spawn(updater, updaterArgs, {
+  const child = spawnUpdaterProcess(updater, updaterArgs, {
     cwd: HERMES_HOME,
     env: {
       ...process.env,
@@ -1992,10 +1995,8 @@ async function handOffWindowsBootstrapRecovery(reason) {
       PATH: pathWithHermesManagedNode(venvBin)
     },
     detached: true,
-    stdio: 'ignore',
-    windowsHide: false
+    stdio: 'ignore'
   })
-  child.unref()
 
   // Write the update-in-progress marker immediately after handing off. The
   // updater writes its own marker later, but without this pre-write a renderer
@@ -7078,6 +7079,16 @@ app.on('open-url', (event, url) => {
 })
 
 app.whenReady().then(() => {
+  const systemCa = installWindowsSystemCaTrust(tls)
+
+  if (systemCa.applied) {
+    rememberLog(
+      `[tls] trusting ${systemCa.systemCertificateCount} Windows system CA certificate(s) for remote gateway connections`
+    )
+  } else if (systemCa.error) {
+    rememberLog(`[tls] could not load Windows system CA certificates: ${systemCa.error}`)
+  }
+
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())
   } else {

@@ -7,6 +7,7 @@ import type { EnvVarInfo, OAuthProvider } from '@/types/hermes'
 const listOAuthProviders = vi.fn()
 const disconnectOAuthProvider = vi.fn()
 const getEnvVars = vi.fn()
+const startManualLocalEndpoint = vi.fn()
 const startManualProviderOAuth = vi.fn()
 const onboarding = atom({ manual: false })
 
@@ -18,6 +19,7 @@ vi.mock('@/hermes', () => ({
 
 vi.mock('@/store/onboarding', () => ({
   $desktopOnboarding: onboarding,
+  startManualLocalEndpoint: (reason: null | string) => startManualLocalEndpoint(reason),
   startManualProviderOAuth: (providerId: string) => startManualProviderOAuth(providerId)
 }))
 
@@ -102,7 +104,7 @@ describe('ProvidersSettings', () => {
       providers: [
         provider('qwen-oauth', true, {
           cli_command: 'hermes auth add qwen-oauth',
-          disconnect_hint: 'Use `hermes auth add qwen-oauth` or that provider\'s CLI to remove it.',
+          disconnect_hint: "Use `hermes auth add qwen-oauth` or that provider's CLI to remove it.",
           disconnectable: false,
           flow: 'external',
           name: 'Qwen (via Qwen CLI)'
@@ -135,6 +137,17 @@ describe('ProvidersSettings', () => {
     render(<ProvidersSettings onClose={vi.fn()} onViewChange={vi.fn()} view="keys" />)
 
     expect(await screen.findByText('WidgetAI')).toBeTruthy()
+  })
+
+  it('opens local/custom endpoint setup from the API-keys view', async () => {
+    listOAuthProviders.mockResolvedValue({ providers: [] })
+
+    const { ProvidersSettings } = await import('./providers-settings')
+    render(<ProvidersSettings onClose={vi.fn()} onViewChange={vi.fn()} view="keys" />)
+
+    fireEvent.click(await screen.findByRole('button', { name: /Local \/ custom endpoint/ }))
+
+    expect(startManualLocalEndpoint).toHaveBeenCalledWith(null)
   })
 
   it('orders API-key providers by priority then name, and filters them via search', async () => {

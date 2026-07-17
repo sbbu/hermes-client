@@ -1500,7 +1500,9 @@ export function usePromptActions({
   )
 
   const cancelRun = useCallback(async () => {
-    const sessionId = activeSessionId || activeSessionIdRef.current
+    // The actions bag is stable while the active session can change. The ref
+    // is current; the closure-captured id can point at the previous session.
+    const sessionId = activeSessionIdRef.current
 
     const releaseBusy = () => {
       setMutableRef(busyRef, false)
@@ -1570,15 +1572,7 @@ export function usePromptActions({
       releaseBusy()
       notifyError(stopError, copy.stopFailed)
     }
-  }, [
-    activeSessionId,
-    activeSessionIdRef,
-    busyRef,
-    copy.stopFailed,
-    requestGateway,
-    selectedStoredSessionIdRef,
-    updateSessionState
-  ])
+  }, [activeSessionIdRef, busyRef, copy.stopFailed, requestGateway, selectedStoredSessionIdRef, updateSessionState])
 
   // Steer = nudge the live turn without interrupting: the gateway appends the
   // text to the next tool result so the model reads it on its next iteration

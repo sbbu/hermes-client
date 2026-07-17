@@ -18,7 +18,7 @@ import { useI18n } from '@/i18n'
 import { Check, ChevronDown, ChevronRight, KeyRound, Loader2, Terminal, Trash2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
-import { $desktopOnboarding, startManualProviderOAuth } from '@/store/onboarding'
+import { $desktopOnboarding, startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
 import type { EnvVarInfo, OAuthProvider } from '@/types/hermes'
 
 import { isKeyVar, ProviderKeyRows } from './credential-key-ui'
@@ -294,6 +294,27 @@ function NoProviderKeys() {
   )
 }
 
+function LocalEndpointRow() {
+  const { t } = useI18n()
+  const copy = t.settings.providers.localEndpoint
+
+  return (
+    <button
+      className="group grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-[6px] px-3 py-2.5 text-left transition-colors hover:bg-(--ui-control-hover-background)"
+      onClick={() => startManualLocalEndpoint(null)}
+      type="button"
+    >
+      <span className="flex min-w-0 flex-col gap-0.5">
+        <span className="truncate text-[length:var(--conversation-text-font-size)] font-semibold">{copy.title}</span>
+        <span className="truncate text-[length:var(--conversation-caption-font-size)] leading-5 text-muted-foreground">
+          {copy.description}
+        </span>
+      </span>
+      <ChevronRight className="size-4 text-muted-foreground transition group-hover:text-foreground" />
+    </button>
+  )
+}
+
 export function ProvidersSettings({ onClose, onViewChange, view }: ProvidersSettingsProps) {
   const { t } = useI18n()
   const { rowProps, vars } = useEnvCredentials()
@@ -355,7 +376,11 @@ export function ProvidersSettings({ onClose, onViewChange, view }: ProvidersSett
     // Leave the settings overlay so the terminal pane (chat-only) is visible.
     onClose()
     runInTerminal(command)
-    notify({ kind: 'info', title: t.settings.providers.removedTitle, message: t.settings.providers.removeTerminalRunning(name) })
+    notify({
+      kind: 'info',
+      title: t.settings.providers.removedTitle,
+      message: t.settings.providers.removeTerminalRunning(name)
+    })
   }
 
   async function handleDisconnect(provider: OAuthProvider) {
@@ -369,7 +394,12 @@ export function ProvidersSettings({ onClose, onViewChange, view }: ProvidersSett
 
     try {
       await disconnectOAuthProvider(provider.id)
-      notify({ durationMs: 3_000, kind: 'success', title: t.settings.providers.removedTitle, message: t.settings.providers.removedMessage(name) })
+      notify({
+        durationMs: 3_000,
+        kind: 'success',
+        title: t.settings.providers.removedTitle,
+        message: t.settings.providers.removedMessage(name)
+      })
       await refreshOAuthProviders().catch(() => undefined)
     } catch (err) {
       notifyError(err, t.settings.providers.failedRemove(name))
@@ -391,14 +421,10 @@ export function ProvidersSettings({ onClose, onViewChange, view }: ProvidersSett
 
   if (showApiKeys) {
     const q = keyQuery.trim().toLowerCase()
+
     const visibleGroups = q
       ? keyGroups.filter(group => {
-          const haystack = [
-            group.name,
-            group.description ?? '',
-            group.primary[0],
-            ...group.advanced.map(([k]) => k)
-          ]
+          const haystack = [group.name, group.description ?? '', group.primary[0], ...group.advanced.map(([k]) => k)]
 
           return haystack.some(s => s.toLowerCase().includes(q))
         })
@@ -406,6 +432,7 @@ export function ProvidersSettings({ onClose, onViewChange, view }: ProvidersSett
 
     return (
       <SettingsContent>
+        <LocalEndpointRow />
         {keyGroups.length > 0 ? (
           <div className="grid gap-3">
             <SearchField

@@ -15,10 +15,12 @@ import { useMessageStream } from './use-message-stream'
 const SID = 'session-1'
 const OTHER_SID = 'session-2'
 let handleEvent: ((event: RpcEvent) => void) | null = null
+let sessionStates: Map<string, ClientSessionState> | null = null
 
 function Harness() {
   const activeSessionIdRef = useRef<string | null>(SID)
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
+  sessionStates = sessionStateByRuntimeIdRef.current
   const queryClientRef = useRef(new QueryClient())
 
   const stream = useMessageStream({
@@ -56,6 +58,7 @@ function emit(type: string, payload: Record<string, unknown> = {}) {
 describe('useMessageStream lifecycle recovery', () => {
   beforeEach(() => {
     handleEvent = null
+    sessionStates = null
     $activeSessionId.set(SID)
     $compactingSessions.set({})
     clearAllPrompts()
@@ -105,5 +108,22 @@ describe('useMessageStream lifecycle recovery', () => {
 
     emit('secret.expire', { request_id: 'secret-new' })
     expect($secretRequest.get()).toBeNull()
+  })
+
+  it('does not re-arm a stopped turn from stale running events', async () => {
+    await mountStream()
+    sessionStates!.set(SID, {
+      ...createClientSessionState(),
+      busy: false,
+      interrupted: true
+    })
+
+    emit('session.info', { running: true })
+    expect(sessionStates!.get(SID)?.busy).toBe(false)
+    expect(sessionStates!.get(SID)?.interrupted).toBe(true)
+
+    emit('message.start')
+    expect(sessionStates!.get(SID)?.busy).toBe(false)
+    expect(sessionStates!.get(SID)?.interrupted).toBe(true)
   })
 })

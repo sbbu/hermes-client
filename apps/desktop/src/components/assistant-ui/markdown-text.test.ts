@@ -210,4 +210,28 @@ describe('preprocessMarkdown', () => {
 
     expect(() => preprocessMarkdown(input)).not.toThrow()
   })
+
+  it('preserves display and numeric inline math while escaping currency', () => {
+    expect(preprocessMarkdown('The result is $$2+2=4$$.')).toContain('$$2+2=4$$')
+
+    for (const math of ['$4$', '$2/3$', '$5x=10$', '$4xy$', '$10kg$']) {
+      expect(preprocessMarkdown(`Result: ${math}`)).toContain(math)
+    }
+
+    expect(preprocessMarkdown('Costs $5 and $19.99.')).toBe('Costs \\$5 and \\$19.99.')
+    expect(preprocessMarkdown('Plans run $5-$10 or $20 to $30.')).toBe('Plans run \\$5-\\$10 or \\$20 to \\$30.')
+  })
+
+  it.each(['Costs $5; delta is $-x$.', 'Costs $5; result is $(x+1)$.', 'Costs $5; set is $[1,2]$.'])(
+    'escapes a price before a later complete math span: %s',
+    input => {
+      expect(preprocessMarkdown(input)).toBe(input.replace('$5', '\\$5'))
+    }
+  )
+
+  it('does not mistake a numeric formula closer for a later price opener', () => {
+    expect(preprocessMarkdown('Given $5x = 10$, compute $10 and then $y$.')).toBe(
+      'Given $5x = 10$, compute \\$10 and then $y$.'
+    )
+  })
 })

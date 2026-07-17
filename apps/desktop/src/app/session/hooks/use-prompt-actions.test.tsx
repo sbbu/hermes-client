@@ -54,6 +54,7 @@ interface HarnessHandle {
 }
 
 function Harness({
+  activeSessionIdRefOverride,
   busyRef,
   onReady,
   onSeedState,
@@ -66,6 +67,7 @@ function Harness({
   createBackendSessionForSend,
   getRouteToken
 }: {
+  activeSessionIdRefOverride?: MutableRefObject<string | null>
   activeSessionId?: null | string
   busyRef?: MutableRefObject<boolean>
   createBackendSessionForSend?: () => Promise<null | string>
@@ -78,7 +80,7 @@ function Harness({
   seedMessages?: unknown[]
   storedSessionId?: null | string
 }) {
-  const activeSessionIdRef: MutableRefObject<string | null> = {
+  const activeSessionIdRef: MutableRefObject<string | null> = activeSessionIdRefOverride ?? {
     current: activeSessionId === undefined ? RUNTIME_SESSION_ID : activeSessionId
   }
 
@@ -1017,6 +1019,28 @@ describe('usePromptActions sleep/wake session recovery', () => {
     expect(calls[0]?.params).toEqual({ session_id: RUNTIME_SESSION_ID })
     expect(calls[1]?.params).toEqual({ session_id: STORED_SESSION_ID, source: 'desktop' })
     expect(calls[2]?.params).toEqual({ session_id: RECOVERED_SESSION_ID })
+  })
+
+  it('interrupts the ref-current session when the closure id is stale', async () => {
+    const requestGateway = vi.fn(async () => ({}) as never)
+    const activeSessionIdRef = { current: 'runtime-current' }
+    let handle: HarnessHandle | null = null
+
+    render(
+      <Harness
+        activeSessionId="runtime-stale"
+        activeSessionIdRefOverride={activeSessionIdRef}
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+      />
+    )
+    await waitFor(() => expect(handle).not.toBeNull())
+
+    await handle!.cancelRun()
+
+    expect(requestGateway).toHaveBeenCalledWith('session.interrupt', { session_id: 'runtime-current' })
+    expect(requestGateway).not.toHaveBeenCalledWith('session.interrupt', { session_id: 'runtime-stale' })
   })
 
   it('surfaces the original error (no resume) when the failure is not "session not found"', async () => {

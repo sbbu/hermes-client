@@ -328,21 +328,99 @@ function rewriteLatexBracketDelimiters(text: string): string {
     .replace(LATEX_DISPLAY_RE, (_, body: string) => `$$${body}$$`)
 }
 
-// Escape `$<digit>` patterns so they don't get eaten as math delimiters.
-// Models commonly write currency amounts ($5, $19.99, $1,299) in prose.
-// With `singleDollarTextMath: true`, remark-math is greedy and matches
-// EVERY pair of `$`s — including the open of `$5` to the next `$10`,
-// rendering "5 in my pocket and you have " as italicized math text.
-// The de-facto convention across math-supporting LLM UIs is to treat
-// `$` followed by a digit as currency rather than math, since math
-// expressions almost always start with a letter or `\command`. Trade-
-// off: a math expression like `$5x = 10$` would have its leading 5
-// escaped — annoying but rare. The escape `\$` survives to render as
-// a literal `$` in the final output.
-const CURRENCY_DOLLAR_RE = /(^|[^\\])\$(?=\d)/g
+// Escape currency dollars without corrupting numeric math. A leading digit
+// alone cannot distinguish `$5` from `$5x=10$`, so inspect complete delimiter
+// pairs first and preserve numeric-looking inline spans.
+const CURRENCY_DOLLAR_EXACT = /^\$(?=\d)/
+const INLINE_NUMERIC_MATH = /^\s*\d+(?:[a-zA-Z]|\s|[+\-*/=^_{}()[\].,\\]|\d)*$/
+const CURRENCY_SUFFIX = /^\d+(?:[.,]\d+)?(?:[kKmMbB])?(?:\s?(?:USD|EUR|GBP|AUD|CAD|JPY|CNY))?(?=$|[\s,.;:!?)}\]])/
+const CURRENCY_RANGE = /^\d+(?:[.,]\d+)?(?:[kKmMbB])?\s*(?:-|–|—|to)\s*\$\d/
 
-function escapeCurrencyDollars(text: string): string {
-  return text.replace(CURRENCY_DOLLAR_RE, '$1\\$')
+function isLikelyCurrencyAt(text: string, dollarIndex: number): boolean {
+  const suffix = text.slice(dollarIndex + 1)
+
+  return CURRENCY_RANGE.test(suffix) || CURRENCY_SUFFIX.test(suffix)
+}
+
+function shouldKeepInlineMathCandidate(candidate: string): boolean {
+  return !candidate.includes('\n') && candidate.trim().length > 0 && !CURRENCY_DOLLAR_EXACT.test(candidate.trim())
+}
+
+function isInlineNumericMathCandidate(candidate: string): boolean {
+  const trimmed = candidate.trim()
+
+  // Formula units/variables are adjacent (`10kg`, `4xy`) or single-letter
+  // terms. Reject ordinary prose after a number (`5 and`, `10 dollars`) so a
+  // later dollar sign cannot turn two prices into one giant math span.
+  return INLINE_NUMERIC_MATH.test(trimmed) && !/\s+[a-zA-Z]{2,}\b/.test(trimmed)
+}
+
+function escapeCurrencyDollarsPreservingMath(text: string): string {
+  let result = ''
+  let index = 0
+
+  while (index < text.length) {
+    const char = text[index]
+
+    if (char !== '$' || (index > 0 && text[index - 1] === '\\')) {
+      result += char
+      index += 1
+
+      continue
+    }
+
+    if (text[index + 1] === '$') {
+      const displayEnd = text.indexOf('$$', index + 2)
+
+      if (displayEnd !== -1) {
+        result += text.slice(index, displayEnd + 2)
+        index = displayEnd + 2
+
+        continue
+      }
+    }
+
+    if (/\d/.test(text[index + 1] ?? '')) {
+      const numericEnd = text.indexOf('$', index + 1)
+
+      if (numericEnd !== -1) {
+        const numericCandidate = text.slice(index + 1, numericEnd)
+
+        if (isInlineNumericMathCandidate(numericCandidate) && !CURRENCY_RANGE.test(text.slice(index + 1))) {
+          result += text.slice(index, numericEnd + 1)
+          index = numericEnd + 1
+
+          continue
+        }
+      }
+    }
+
+    const inlineEnd = text.indexOf('$', index + 1)
+
+    if (inlineEnd !== -1) {
+      const candidate = text.slice(index + 1, inlineEnd)
+      const numericOpener = /\d/.test(text[index + 1] ?? '')
+
+      if (!numericOpener && !isLikelyCurrencyAt(text, index) && shouldKeepInlineMathCandidate(candidate)) {
+        result += text.slice(index, inlineEnd + 1)
+        index = inlineEnd + 1
+
+        continue
+      }
+    }
+
+    if (/\d/.test(text[index + 1] ?? '')) {
+      result += '\\$'
+      index += 1
+
+      continue
+    }
+
+    result += char
+    index += 1
+  }
+
+  return result
 }
 
 export function preprocessMarkdown(text: string): string {
@@ -377,12 +455,10 @@ export function preprocessMarkdown(text: string): string {
       const leading = part.match(/^\s*/)?.[0] ?? ''
       const trailing = part.match(/\s*$/)?.[0] ?? ''
 
-      // rewriteLatexBracketDelimiters runs only on prose segments so
-      // we don't accidentally touch `\(` inside a code block.
-      // escapeCurrencyDollars likewise only runs on prose, so legit
-      // `$5` literals inside fenced code stay intact.
+      // Bracket-delimiter normalization and currency handling run only on
+      // prose segments so code remains byte-for-byte intact.
       const transformed = normalizeVisibleProse(
-        stripPreviewTargets(rewriteLatexBracketDelimiters(escapeCurrencyDollars(part)))
+        stripPreviewTargets(escapeCurrencyDollarsPreservingMath(rewriteLatexBracketDelimiters(part)))
       )
 
       return leading + transformed + trailing

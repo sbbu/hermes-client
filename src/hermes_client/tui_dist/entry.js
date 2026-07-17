@@ -57922,7 +57922,7 @@ function createWheelKey(s, name, button) {
     isPasted: false
   };
 }
-var META_KEY_CODE_RE, FN_KEY_RE, CSI_U_RE, MODIFY_OTHER_KEYS_RE, DECRPM_RE, DA1_RE, DA2_RE, KITTY_FLAGS_RE, CURSOR_POSITION_RE, OSC_RESPONSE_RE, XTVERSION_RE, SGR_MOUSE_RE, INITIAL_STATE, keyName, nonAlphanumericKeys, isShiftKey, isCtrlKey;
+var META_KEY_CODE_RE, FN_KEY_RE, CSI_U_RE, MODIFY_OTHER_KEYS_RE, DECRPM_RE, DA1_RE, DA2_RE, KITTY_FLAGS_RE, CURSOR_POSITION_RE, OSC_RESPONSE_RE, XTVERSION_RE, SGR_MOUSE_RE, DECRPM_STATUS, INITIAL_STATE, keyName, nonAlphanumericKeys, isShiftKey, isCtrlKey;
 var init_parse_keypress = __esm({
   "packages/hermes-ink/src/ink/parse-keypress.ts"() {
     "use strict";
@@ -57941,6 +57941,13 @@ var init_parse_keypress = __esm({
     OSC_RESPONSE_RE = /^\x1b\](\d+);(.*?)(?:\x07|\x1b\\)$/s;
     XTVERSION_RE = /^\x1bP>\|(.*?)(?:\x07|\x1b\\)$/s;
     SGR_MOUSE_RE = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
+    DECRPM_STATUS = {
+      NOT_RECOGNIZED: 0,
+      SET: 1,
+      RESET: 2,
+      PERMANENTLY_SET: 3,
+      PERMANENTLY_RESET: 4
+    };
     INITIAL_STATE = {
       mode: "NORMAL",
       incomplete: "",
@@ -58181,6 +58188,12 @@ var init_terminal_focus_event = __esm({
 });
 
 // packages/hermes-ink/src/ink/terminal-querier.ts
+function decrqm(mode) {
+  return {
+    request: csi(`?${mode}$p`),
+    match: (r) => r.type === "decrpm" && r.mode === mode
+  };
+}
 function xtversion() {
   return {
     request: csi(">0q"),
@@ -58829,8 +58842,12 @@ function processKeysInBatch(app, items, _unused1, _unused2) {
       continue;
     }
     if (item.kind === "mouse") {
+      app.lastMouseEventTime = Date.now();
       handleMouseEvent(app, item);
       continue;
+    }
+    if (item.kind === "key" && (item.name === "wheelup" || item.name === "wheeldown")) {
+      app.lastMouseEventTime = Date.now();
     }
     const sequence = item.sequence;
     if (sequence === FOCUS_IN) {
@@ -58983,7 +59000,7 @@ function handleMouseEvent(app, m) {
   }
   app.props.onSelectionChange();
 }
-var import_react26, import_jsx_runtime14, SUPPORTS_SUSPEND, STDIN_RESUME_GAP_MS, MULTI_CLICK_TIMEOUT_MS, MULTI_CLICK_DISTANCE, App;
+var import_react26, import_jsx_runtime14, SUPPORTS_SUSPEND, STDIN_RESUME_GAP_MS, MOUSE_WATCHDOG_INTERVAL_MS, MULTI_CLICK_TIMEOUT_MS, MULTI_CLICK_DISTANCE, App;
 var init_App = __esm({
   "packages/hermes-ink/src/ink/components/App.tsx"() {
     "use strict";
@@ -59016,6 +59033,7 @@ var init_App = __esm({
     import_jsx_runtime14 = __toESM(require_jsx_runtime(), 1);
     SUPPORTS_SUSPEND = false;
     STDIN_RESUME_GAP_MS = 5e3;
+    MOUSE_WATCHDOG_INTERVAL_MS = 2e3;
     MULTI_CLICK_TIMEOUT_MS = 500;
     MULTI_CLICK_DISTANCE = 1;
     App = class extends import_react26.PureComponent {
@@ -59065,6 +59083,20 @@ var init_App = __esm({
       // ssh reconnect, laptop wake) and trigger terminal mode re-assert.
       // Initialized to now so startup doesn't false-trigger.
       lastStdinTime = Date.now();
+      // Mouse-mode watchdog (see MOUSE_WATCHDOG_INTERVAL_MS). Runs while raw
+      // mode is on; each tick DECRQM-probes mode 1000 unless a mouse event
+      // arrived within the last interval (tracking provably alive → zero
+      // probe chatter during normal mouse use).
+      mouseWatchdogTimer = null;
+      // A probe round-trip is outstanding. Also latches permanently when the
+      // terminal never answers the DA1 sentinel (non-conforming) so a dead
+      // querier can't accumulate pending promises.
+      mouseWatchdogProbeInFlight = false;
+      // Terminal ignored DECRQM (or reported the mode permanently reset) —
+      // probing is useless; the watchdog disables itself for the session.
+      mouseWatchdogUnsupported = false;
+      // Timestamp of the last parsed mouse event (any kind).
+      lastMouseEventTime = 0;
       // Determines if TTY is supported on the provided stdin
       isRawModeSupported() {
         return this.props.stdin.isTTY;
@@ -59111,6 +59143,10 @@ var init_App = __esm({
         if (this.incompleteEscapeTimer) {
           clearTimeout(this.incompleteEscapeTimer);
           this.incompleteEscapeTimer = null;
+        }
+        if (this.mouseWatchdogTimer) {
+          clearInterval(this.mouseWatchdogTimer);
+          this.mouseWatchdogTimer = null;
         }
         if (this.pendingHyperlinkTimer) {
           clearTimeout(this.pendingHyperlinkTimer);
@@ -59162,11 +59198,17 @@ var init_App = __esm({
             setImmediate(() => {
               instances_default.get(this.props.stdout)?.reassertTerminalModes();
             });
+            this.mouseWatchdogTimer = setInterval(this.probeMouseTracking, MOUSE_WATCHDOG_INTERVAL_MS);
+            this.mouseWatchdogTimer.unref?.();
           }
           this.rawModeEnabledCount++;
           return;
         }
         if (--this.rawModeEnabledCount === 0) {
+          if (this.mouseWatchdogTimer) {
+            clearInterval(this.mouseWatchdogTimer);
+            this.mouseWatchdogTimer = null;
+          }
           this.props.stdout.write(DISABLE_MODIFY_OTHER_KEYS);
           this.props.stdout.write(DISABLE_KITTY_KEYBOARD);
           this.props.stdout.write(DFE);
@@ -59176,6 +59218,40 @@ var init_App = __esm({
           stdin.removeListener("readable", this.handleReadable);
           stdin.unref();
         }
+      };
+      // Mouse-mode watchdog tick. Asks the terminal whether DEC mode 1000 is
+      // still set (DECRQM); if the terminal reports RESET while we expect
+      // tracking on, someone cleared our modes out from under us (terminal
+      // "disable mouse reporting" toggle, an external app, tmux) — re-assert.
+      // See MOUSE_WATCHDOG_INTERVAL_MS for the full rationale. Timeout-free:
+      // the querier's DA1 sentinel resolves the probe with `undefined` when
+      // the terminal ignores DECRQM, which permanently disables the watchdog.
+      probeMouseTracking = () => {
+        if (this.mouseWatchdogUnsupported || this.mouseWatchdogProbeInFlight) {
+          return;
+        }
+        const ink3 = instances_default.get(this.props.stdout);
+        if (!ink3?.expectsMouseTracking || !this.props.stdout.isTTY) {
+          return;
+        }
+        if (Date.now() - this.lastMouseEventTime < MOUSE_WATCHDOG_INTERVAL_MS) {
+          return;
+        }
+        this.mouseWatchdogProbeInFlight = true;
+        void Promise.all([this.querier.send(decrqm(DEC.MOUSE_NORMAL)), this.querier.flush()]).then(([r]) => {
+          this.mouseWatchdogProbeInFlight = false;
+          if (!r || r.status === DECRPM_STATUS.NOT_RECOGNIZED || r.status === DECRPM_STATUS.PERMANENTLY_RESET) {
+            this.mouseWatchdogUnsupported = true;
+            logForDebugging("mouse watchdog: DECRQM unsupported, disabling");
+            return;
+          }
+          if (r.status === DECRPM_STATUS.RESET && instances_default.get(this.props.stdout)?.expectsMouseTracking) {
+            logForDebugging("mouse watchdog: terminal lost mouse tracking, re-asserting");
+            instances_default.get(this.props.stdout)?.reassertTerminalModes();
+          }
+        }).catch(() => {
+          this.mouseWatchdogProbeInFlight = false;
+        });
       };
       // Helper to flush incomplete escape sequences
       flushIncomplete = () => {
@@ -62439,6 +62515,17 @@ var init_ink = __esm({
       }
       get isAltScreenActive() {
         return this.altScreenActive;
+      }
+      /**
+       * True while the terminal is expected to have DEC mouse tracking armed:
+       * alt screen active, not paused for an editor handoff, and the current
+       * preset isn't 'off'. Gates App's mouse-mode watchdog (DECRQM probe) so
+       * it never probes when tracking is intentionally disabled (/mouse off),
+       * during pause (probe bytes would leak into the external editor's
+       * session), or after unmount.
+       */
+      get expectsMouseTracking() {
+        return this.altScreenActive && !this.isPaused && !this.isUnmounted && this.altScreenMouseTracking !== "off";
       }
       /**
        * Re-assert terminal modes after a gap (>5s stdin silence or event-loop
@@ -71626,6 +71713,7 @@ function useSessionLifecycle(opts) {
     colsRef,
     composerActions,
     gw: gw2,
+    onFreshSessionStarted,
     panel,
     rpc,
     scrollRef,
@@ -71685,8 +71773,9 @@ function useSessionLifecycle(opts) {
         patchUiState({ status: "setup required" });
         return null;
       }
+      const previousSid = getUiState().sid;
       if (!keepCurrent) {
-        await closeSession(getUiState().sid);
+        await closeSession(previousSid);
       }
       const r = await rpc("session.create", { cols: colsRef.current });
       if (!r) {
@@ -71735,9 +71824,10 @@ function useSessionLifecycle(opts) {
           sys(`warning: failed to set session title: ${message}`);
         });
       }
+      signalFreshSessionBoundary(previousSid, r.session_id, onFreshSessionStarted);
       return r.session_id;
     },
-    [closeSession, colsRef, panel, resetSession, rpc, setHistoryItems, setSessionStartedAt, sys]
+    [closeSession, colsRef, onFreshSessionStarted, panel, resetSession, rpc, setHistoryItems, setSessionStartedAt, sys]
   );
   const newSession = (0, import_react41.useCallback)(
     (msg, title) => startNewSession(msg, title, false),
@@ -71851,7 +71941,7 @@ function useSessionLifecycle(opts) {
     trimLastExchange: trimTail
   };
 }
-var import_react41, usageFrom, statusFromLiveSession, writeActiveSessionFile, liveSessionInflightMessages, hydrateLiveSessionInflight, scheduleResumeScrollToBottom, trimTail;
+var import_react41, usageFrom, statusFromLiveSession, writeActiveSessionFile, liveSessionInflightMessages, hydrateLiveSessionInflight, signalFreshSessionBoundary, scheduleResumeScrollToBottom, trimTail;
 var init_useSessionLifecycle = __esm({
   "src/app/useSessionLifecycle.ts"() {
     "use strict";
@@ -71894,6 +71984,13 @@ var init_useSessionLifecycle = __esm({
         return;
       }
       turnController.hydrateStreamingText(assistant);
+    };
+    signalFreshSessionBoundary = (previousSid, nextSid, onFreshSessionStarted) => {
+      if (!previousSid || !nextSid || previousSid === nextSid || !onFreshSessionStarted) {
+        return false;
+      }
+      onFreshSessionStarted(nextSid);
+      return true;
     };
     scheduleResumeScrollToBottom = (scrollRef, delays = [0, 80, 240]) => {
       const startedAt = Date.now();
@@ -72319,6 +72416,7 @@ function useMainApp(gw2) {
   const [voiceProcessing, setVoiceProcessing] = (0, import_react44.useState)(false);
   const [voiceRecordKey, setVoiceRecordKey] = (0, import_react44.useState)(DEFAULT_VOICE_RECORD_KEY);
   const [sessionStartedAt, setSessionStartedAt] = (0, import_react44.useState)(() => Date.now());
+  const [dashboardFreshSessionId, setDashboardFreshSessionId] = (0, import_react44.useState)(null);
   const [turnStartedAt, setTurnStartedAt] = (0, import_react44.useState)(null);
   const [lastTurnEndedAt, setLastTurnEndedAt] = (0, import_react44.useState)(null);
   const goodVibesTick = useStore($goodVibesTick);
@@ -72546,6 +72644,7 @@ function useMainApp(gw2) {
     colsRef,
     composerActions,
     gw: gw2,
+    onFreshSessionStarted: DASHBOARD_TUI_MODE ? setDashboardFreshSessionId : void 0,
     panel,
     rpc,
     scrollRef,
@@ -72557,6 +72656,11 @@ function useMainApp(gw2) {
     setVoiceRecording,
     sys
   });
+  (0, import_react44.useEffect)(() => {
+    if (dashboardFreshSessionId) {
+      forceRedraw(stdout ?? process.stdout);
+    }
+  }, [dashboardFreshSessionId, stdout]);
   (0, import_react44.useEffect)(() => {
     if (ui.busy) {
       setTurnStartedAt((prev) => prev ?? Date.now());
@@ -79007,7 +79111,7 @@ var init_branding = __esm({
     init_text();
     import_jsx_runtime32 = __toESM(require_jsx_runtime(), 1);
     LOADER_TICK_MS = 120;
-    TAG_FULL = "Hermes \xB7 Hermes Client";
+    TAG_FULL = "Hermes Client";
     TAG_MID = "Hermes Client";
     TAG_TINY = "Hermes";
     HIDE_BELOW = 34;

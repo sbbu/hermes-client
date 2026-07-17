@@ -496,6 +496,10 @@ export interface Translations {
       noProviderKeys: string
       searchKeys: string
       noKeysMatch: string
+      localEndpoint: {
+        title: string
+        description: string
+      }
       loading: string
     }
     sessions: {

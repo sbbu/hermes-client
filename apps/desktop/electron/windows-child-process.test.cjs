@@ -45,7 +45,6 @@ test('desktop background child processes opt into hidden Windows consoles', () =
 test('intentional or interactive desktop child processes stay documented', () => {
   const source = readElectronFile('main.cjs')
 
-  assert.match(source, /windowsHide: false/)
   assert.match(source, /handOffWindowsBootstrapRecovery/)
   assert.match(source, /'--repair', '--branch'/)
   assert.match(source, /'--update', '--branch'/)
