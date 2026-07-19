@@ -44,6 +44,8 @@ import {
   setSudoRequest
 } from '@/store/prompts'
 import {
+  $currentModel,
+  $currentProvider,
   setCurrentBranch,
   setCurrentCwd,
   setCurrentFastMode,
@@ -276,6 +278,41 @@ function delegateTaskPayloads(
   })
 }
 
+function useTrailingTask(task: () => void, delayMs = 300): () => void {
+  const taskRef = useRef(task)
+  const timerRef = useRef<null | number>(null)
+  taskRef.current = task
+
+  const schedule = useCallback(() => {
+    if (timerRef.current !== null) {
+      return
+    }
+
+    if (typeof window === 'undefined') {
+      taskRef.current()
+
+      return
+    }
+
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null
+      taskRef.current()
+    }, delayMs)
+  }, [delayMs])
+
+  useEffect(
+    () => () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current)
+        timerRef.current = null
+      }
+    },
+    []
+  )
+
+  return schedule
+}
+
 export function useMessageStream({
   activeSessionIdRef,
   hydrateFromStoredSession,
@@ -289,6 +326,15 @@ export function useMessageStream({
     (sessionId: string) => sessionStateByRuntimeIdRef.current.get(sessionId)?.interrupted ?? false,
     [sessionStateByRuntimeIdRef]
   )
+
+  const scheduleConfigRefresh = useTrailingTask(() => {
+    void refreshHermesConfig()
+  })
+
+  const scheduleSessionsRefresh = useTrailingTask(() => {
+    void refreshSessions().catch(() => undefined)
+    broadcastSessionsChanged()
+  })
 
   // Patch the in-flight assistant message (or seed it). Centralises the
   // streamId/groupId bookkeeping every event callback would otherwise repeat.
@@ -665,10 +711,7 @@ export function useMessageStream({
         }
       })
 
-      void refreshSessions().catch(() => undefined)
-      // Sync the freshly-titled row to other windows (e.g. main, when the turn
-      // ran in the pop-out).
-      broadcastSessionsChanged()
+      scheduleSessionsRefresh()
 
       if (compactedTurnRef.current.delete(sessionId)) {
         shouldHydrate = false
@@ -685,7 +728,7 @@ export function useMessageStream({
         title: translateNow('notifications.native.turnDoneTitle')
       })
     },
-    [hydrateFromStoredSession, refreshSessions, updateSessionState]
+    [hydrateFromStoredSession, scheduleSessionsRefresh, updateSessionState]
   )
 
   const failAssistantMessage = useCallback(
@@ -772,6 +815,13 @@ export function useMessageStream({
         const modelChanged = typeof payload?.model === 'string'
         const providerChanged = typeof payload?.provider === 'string'
         const runningChanged = typeof payload?.running === 'boolean'
+        const knownState = sessionId ? sessionStateByRuntimeIdRef.current.get(sessionId) : undefined
+
+        const modelValueChanged =
+          modelChanged && payload!.model !== (knownState?.model ?? $currentModel.get())
+
+        const providerValueChanged =
+          providerChanged && payload!.provider !== (knownState?.provider ?? $currentProvider.get())
 
         if (apply) {
           if (modelChanged) {
@@ -878,11 +928,10 @@ export function useMessageStream({
 
         if (apply) {
           reportInstallMethodWarning(payload?.install_warning)
+          scheduleConfigRefresh()
         }
 
-        void refreshHermesConfig()
-
-        if (modelChanged || providerChanged) {
+        if (modelValueChanged || providerValueChanged) {
           void queryClient.invalidateQueries({
             queryKey: explicitSid && sessionId ? ['model-options', sessionId] : ['model-options']
           })
@@ -1271,8 +1320,9 @@ export function useMessageStream({
       failAssistantMessage,
       flushQueuedDeltas,
       queryClient,
-      refreshHermesConfig,
+      scheduleConfigRefresh,
       sessionInterrupted,
+      sessionStateByRuntimeIdRef,
       updateSessionState,
       upsertToolCall
     ]

@@ -169,6 +169,12 @@ function sameCronSignature(a: SessionInfo[], b: SessionInfo[]): boolean {
   return a.every((session, i) => session.id === b[i]?.id && session.title === b[i]?.title)
 }
 
+// Session rows carry more than id/title (timestamps, profile/project metadata,
+// counts). Preserve array identity only when the complete API payload is equal.
+function sameSessionContent(a: SessionInfo[], b: SessionInfo[]): boolean {
+  return a === b || (a.length === b.length && JSON.stringify(a) === JSON.stringify(b))
+}
+
 // Rows a session refresh must preserve even if the aggregator omits them:
 // in-flight first turns (message_count 0), pinned rows aged off the page, the
 // actively-viewed chat (its "working" flag clears a beat before the aggregator
@@ -438,7 +444,11 @@ export function DesktopController() {
   const refreshSessions = useCallback(async () => {
     const requestId = refreshSessionsRequestRef.current + 1
     refreshSessionsRequestRef.current = requestId
-    setSessionsLoading(true)
+    const showLoading = $sessions.get().length === 0
+
+    if (showLoading) {
+      setSessionsLoading(true)
+    }
 
     try {
       const limit = $sessionsLimit.get()
@@ -461,12 +471,23 @@ export function DesktopController() {
       })
 
       if (refreshSessionsRequestRef.current === requestId) {
-        setSessions(prev => mergeSessionPage(prev, result.sessions, sessionsToKeep()))
+        setSessions(prev => {
+          const next = mergeSessionPage(prev, result.sessions, sessionsToKeep())
+
+          return sameSessionContent(prev, next) ? prev : next
+        })
         setSessionsTotal(typeof result.total === 'number' ? result.total : result.sessions.length)
-        setSessionProfileTotals(result.profile_totals ?? {})
+        setSessionProfileTotals(prev => {
+          const next = result.profile_totals ?? {}
+          const prevKeys = Object.keys(prev)
+
+          return prevKeys.length === Object.keys(next).length && prevKeys.every(key => prev[key] === next[key])
+            ? prev
+            : next
+        })
       }
     } finally {
-      if (refreshSessionsRequestRef.current === requestId) {
+      if (showLoading && refreshSessionsRequestRef.current === requestId) {
         setSessionsLoading(false)
       }
     }

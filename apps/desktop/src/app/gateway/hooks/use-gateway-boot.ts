@@ -156,8 +156,10 @@ export function useGatewayBoot({
 
         reconnectAttempt = 0
         // Resync state that may have moved on the backend while we were asleep.
-        await callbacksRef.current.refreshHermesConfig().catch(() => undefined)
-        await callbacksRef.current.refreshSessions().catch(() => undefined)
+        await Promise.all([
+          callbacksRef.current.refreshHermesConfig().catch(() => undefined),
+          callbacksRef.current.refreshSessions().catch(() => undefined)
+        ])
       } catch (err) {
         // OAuth session expired mid-reconnect: surface the actionable "sign in
         // again" message once instead of silently looping the backoff against a
@@ -357,26 +359,23 @@ export function useGatewayBoot({
           message: translateNow('boot.steps.loadingSettings'),
           progress: 97
         })
-        await ensureDefaultWorkspaceCwd()
-        const remoteDefault = await desktopDefaultCwd().catch(() => null)
+
+        const [remoteDefault] = await Promise.all([
+          desktopDefaultCwd().catch(() => null),
+          ensureDefaultWorkspaceCwd(),
+          callbacksRef.current.refreshHermesConfig(),
+          callbacksRef.current.refreshSessions()
+        ])
 
         if (remoteDefault?.cwd && !$activeSessionId.get() && !$currentCwd.get()) {
           setCurrentCwd(remoteDefault.cwd)
           setCurrentBranch(remoteDefault.branch || '')
         }
 
-        await callbacksRef.current.refreshHermesConfig()
-
         if (cancelled) {
           return
         }
 
-        setDesktopBootStep({
-          phase: 'renderer.sessions',
-          message: translateNow('boot.steps.loadingSessions'),
-          progress: 99
-        })
-        await callbacksRef.current.refreshSessions()
         completeDesktopBoot()
         bootCompleted = true
       } catch (err) {

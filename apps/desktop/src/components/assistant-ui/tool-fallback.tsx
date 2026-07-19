@@ -26,7 +26,7 @@ import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 import { recordPreviewArtifact } from '@/store/preview-status'
 import { $activeSessionId, $currentCwd } from '@/store/session'
-import { $toolInlineDiffs } from '@/store/tool-diffs'
+import { $toolInlineDiff } from '@/store/tool-diffs'
 import { $toolRowDismissed, dismissToolRow } from '@/store/tool-dismiss'
 import { $toolDisclosureOpen, $toolViewMode, setToolDisclosureOpen } from '@/store/tool-view'
 
@@ -223,8 +223,9 @@ function ToolEntry({ part }: ToolEntryProps) {
   const disclosureId = `tool-entry:${messageId}:${toolPartDisclosureId(part)}`
   const dismissed = useStore($toolRowDismissed(disclosureId))
   const isPending = messageRunning && part.result === undefined
-  const liveDiffs = useStore($toolInlineDiffs)
-  const sideDiff = part.toolCallId ? liveDiffs[part.toolCallId] || '' : ''
+  // Subscribe to this tool's diff only, so a live patch for one tool does not
+  // re-render every mounted tool row (the factory caches a per-id atom).
+  const sideDiff = useStore($toolInlineDiff(part.toolCallId ?? ''))
   const inlineDiff = stripInlineDiffChrome(sideDiff) || inlineDiffFromResult(part.result)
   const isFileEdit = isFileEditTool(part.toolName)
   const defaultOpen = Boolean(inlineDiff)

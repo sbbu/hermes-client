@@ -15,11 +15,12 @@ vi.mock('@/hermes', () => ({
   setApiRequestProfile: vi.fn(),
   STARTUP_REQUEST_TIMEOUT_MS: 60_000
 }))
-vi.mock('@/lib/query-client', () => ({ queryClient: { invalidateQueries: vi.fn() } }))
+vi.mock('@/lib/query-client', () => ({ invalidateProfileScopedQueries: vi.fn() }))
 
 const { $activeGatewayProfile, $profiles, ensureGatewayProfile, refreshProfiles } = await import('./profile')
 const { $connection } = await import('./session')
 const { getProfiles } = await import('@/hermes')
+const { invalidateProfileScopedQueries } = await import('@/lib/query-client')
 
 const profile = (name: string, isDefault = false): ProfileInfo => ({
   has_env: false,
@@ -52,6 +53,7 @@ beforeEach(() => {
   $connection.set(localConn())
   $profiles.set([])
   vi.stubGlobal('window', { hermesDesktop: { getConnection } })
+  vi.mocked(invalidateProfileScopedQueries).mockClear()
 })
 
 afterEach(() => {
@@ -124,5 +126,13 @@ describe('refreshProfiles shared rail list (#49289)', () => {
     await expect(refreshProfiles()).rejects.toThrow('backend unavailable')
 
     expect($profiles.get().map(profile => profile.name)).toEqual(['default', 'test1'])
+  })
+})
+
+describe('profile-scoped cache invalidation', () => {
+  it('uses the narrow profile invalidator when the gateway profile changes', () => {
+    $activeGatewayProfile.set('coder')
+
+    expect(invalidateProfileScopedQueries).toHaveBeenCalledTimes(1)
   })
 })
