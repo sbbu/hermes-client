@@ -1,3 +1,3 @@
 """Remote-only Hermes client."""
 
-__version__ = "0.3.20"
+__version__ = "0.3.21"

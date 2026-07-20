@@ -57563,10 +57563,15 @@ function parseTerminalResponse(s) {
       return { type: "kittyKeyboard", flags: parseInt(m[1], 10) };
     }
     if (m = CURSOR_POSITION_RE.exec(s)) {
+      const hasPrivateMarker = m[1] === "?";
+      const row = parseInt(m[2], 10);
+      if (!hasPrivateMarker && row <= 1) {
+        return null;
+      }
       return {
         type: "cursorPosition",
-        row: parseInt(m[1], 10),
-        col: parseInt(m[2], 10)
+        row,
+        col: parseInt(m[3], 10)
       };
     }
     return null;
@@ -57937,7 +57942,7 @@ var init_parse_keypress = __esm({
     DA1_RE = /^\x1b\[\?([\d;]*)c$/;
     DA2_RE = /^\x1b\[>([\d;]*)c$/;
     KITTY_FLAGS_RE = /^\x1b\[\?(\d+)u$/;
-    CURSOR_POSITION_RE = /^\x1b\[\?(\d+);(\d+)R$/;
+    CURSOR_POSITION_RE = /^\x1b\[(\??)(\d+);(\d+)R$/;
     OSC_RESPONSE_RE = /^\x1b\](\d+);(.*?)(?:\x07|\x1b\\)$/s;
     XTVERSION_RE = /^\x1bP>\|(.*?)(?:\x07|\x1b\\)$/s;
     SGR_MOUSE_RE = /^\x1b\[<(\d+);(\d+);(\d+)([Mm])$/;
@@ -64795,7 +64800,7 @@ var init_messages = __esm({
 });
 
 // src/domain/paths.ts
-var shortCwd, fmtCwdBranch, composeTabTitle;
+var shortCwd, fmtCwdBranch, shortProject, fmtProjectCwdBranch, composeTabTitle;
 var init_paths = __esm({
   "src/domain/paths.ts"() {
     "use strict";
@@ -64810,6 +64815,22 @@ var init_paths = __esm({
       }
       const tag = ` (${branch.length > 16 ? `\u2026${branch.slice(-15)}` : branch})`;
       return `${shortCwd(cwd, Math.max(8, max - tag.length))}${tag}`;
+    };
+    shortProject = (projectName, max = 18) => {
+      const name = projectName.trim();
+      return name.length <= max ? name : `${name.slice(0, Math.max(1, max - 1))}\u2026`;
+    };
+    fmtProjectCwdBranch = (cwd, branch, projectName, max = 40) => {
+      const project = shortProject(projectName || "");
+      if (!project) {
+        return fmtCwdBranch(cwd, branch, max);
+      }
+      const separator = " \xB7 ";
+      const remaining = max - project.length - separator.length;
+      if (remaining < 8) {
+        return shortProject(project, max);
+      }
+      return `${project}${separator}${fmtCwdBranch(cwd, branch, remaining)}`;
     };
     composeTabTitle = (marker, sessionName, model, cwd, maxName = 28) => {
       const name = sessionName.trim();
@@ -73435,7 +73456,7 @@ function useMainApp(gw2) {
       // Cap the status-bar cwd/branch label tighter than the shared default so
       // it doesn't dominate the bar; the status rule reserves the left-side
       // essentials and truncates this further on narrow terminals.
-      cwdLabel: fmtCwdBranch(cwd, gitBranch, 28),
+      cwdLabel: fmtProjectCwdBranch(cwd, gitBranch, ui.info?.project?.name, 28),
       goodVibesTick,
       lastTurnEndedAt: ui.sid ? lastTurnEndedAt : null,
       sessionStartedAt: ui.sid ? sessionStartedAt : null,
@@ -80094,7 +80115,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, {}),
       /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Text, { color: t.color.accent, children: [
         info.model.split("/").pop(),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
       ] }),
       /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
       sid && /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Text, { children: [
@@ -80113,7 +80134,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
         /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
           /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
             info.model.split("/").pop(),
-            /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+            /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
           ] }),
           /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
           sid && /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Text, { wrap: "truncate-end", children: [
@@ -80227,9 +80248,9 @@ var init_branding = __esm({
     init_text();
     import_jsx_runtime34 = __toESM(require_jsx_runtime(), 1);
     LOADER_TICK_MS = 120;
-    TAG_FULL = "Nous Research \xB7 Messenger of the Digital Gods";
-    TAG_MID = "Messenger of the Digital Gods";
-    TAG_TINY = "Nous Research";
+    TAG_FULL = "Hermes Client";
+    TAG_MID = "Hermes Client";
+    TAG_TINY = "Hermes";
     HIDE_BELOW = 34;
     COMPACT_FROM = 58;
     clip = (s, w) => w <= 0 ? "" : s.length > w ? `${s.slice(0, Math.max(0, w - 1))}\u2026` : s;
@@ -82723,7 +82744,7 @@ var init_markdown = __esm({
 });
 
 // src/components/streamingMarkdown.tsx
-var import_react70, import_jsx_runtime39, fenceOpenAt, findStableBoundary, StreamingMd;
+var import_react70, import_jsx_runtime39, createScanState, applyLine, advanceScan, StreamingMd;
 var init_streamingMarkdown = __esm({
   "src/components/streamingMarkdown.tsx"() {
     "use strict";
@@ -82731,80 +82752,69 @@ var init_streamingMarkdown = __esm({
     import_react70 = __toESM(require_react(), 1);
     init_markdown();
     import_jsx_runtime39 = __toESM(require_jsx_runtime(), 1);
-    fenceOpenAt = (s, end) => {
-      let codeOpen = false;
-      let mathOpen = false;
-      let mathOpener = null;
-      let i = 0;
-      while (i < end) {
-        const nl = s.indexOf("\n", i);
-        const lineEnd = nl < 0 || nl > end ? end : nl;
-        const line = s.slice(i, lineEnd).trim();
-        if (/^(?:`{3,}|~{3,})/.test(line)) {
-          codeOpen = !codeOpen;
-        } else if (!codeOpen) {
-          if (!mathOpen && /^\$\$/.test(line)) {
-            const isSingleLine = line.length >= 4 && /\$\$$/.test(line);
-            if (!isSingleLine) {
-              mathOpen = true;
-              mathOpener = "$$";
-            }
-          } else if (!mathOpen && /^\\\[/.test(line)) {
-            const isSingleLine = /\\\]$/.test(line);
-            if (!isSingleLine) {
-              mathOpen = true;
-              mathOpener = "\\[";
-            }
-          } else if (mathOpen && mathOpener === "$$" && /\$\$$/.test(line)) {
-            mathOpen = false;
-            mathOpener = null;
-          } else if (mathOpen && mathOpener === "\\[" && /\\\]$/.test(line)) {
-            mathOpen = false;
-            mathOpener = null;
-          }
+    createScanState = () => ({
+      blocks: [],
+      codeOpen: false,
+      mathOpener: null,
+      scanned: "",
+      settledLen: 0
+    });
+    applyLine = (state, line) => {
+      if (/^(?:`{3,}|~{3,})/.test(line)) {
+        state.codeOpen = !state.codeOpen;
+        return;
+      }
+      if (state.codeOpen) {
+        return;
+      }
+      if (!state.mathOpener) {
+        if (/^\$\$/.test(line) && !(line.length >= 4 && /\$\$$/.test(line))) {
+          state.mathOpener = "$$";
+        } else if (/^\\\[/.test(line) && !/\\\]$/.test(line)) {
+          state.mathOpener = "\\[";
         }
-        if (nl < 0 || nl >= end) {
+      } else if (state.mathOpener === "$$" && /\$\$$/.test(line)) {
+        state.mathOpener = null;
+      } else if (state.mathOpener === "\\[" && /\\\]$/.test(line)) {
+        state.mathOpener = null;
+      }
+    };
+    advanceScan = (text, state) => {
+      const start = state.scanned.length;
+      let i = start;
+      while (i < text.length) {
+        const nl = text.indexOf("\n", i);
+        if (nl < 0) {
           break;
+        }
+        if (nl === i) {
+          if (i > 0 && !state.codeOpen && !state.mathOpener) {
+            const block = text.slice(state.settledLen, nl + 1);
+            if (/\S/.test(block)) {
+              state.blocks.push(block);
+              state.settledLen = nl + 1;
+            }
+          }
+        } else {
+          applyLine(state, text.slice(i, nl).trim());
         }
         i = nl + 1;
       }
-      return codeOpen || mathOpen;
-    };
-    findStableBoundary = (text) => {
-      let idx = text.length;
-      while (idx > 0) {
-        const boundary = text.lastIndexOf("\n\n", idx - 1);
-        if (boundary < 0) {
-          return -1;
-        }
-        const splitAt = boundary + 2;
-        if (!fenceOpenAt(text, splitAt)) {
-          return splitAt;
-        }
-        idx = boundary;
+      if (i > start) {
+        state.scanned += text.slice(start, i);
       }
-      return -1;
     };
     StreamingMd = (0, import_react70.memo)(function StreamingMd2({ cols, compact, t, text }) {
-      const stablePrefixRef = (0, import_react70.useRef)("");
-      if (!text.startsWith(stablePrefixRef.current)) {
-        stablePrefixRef.current = "";
+      const scanRef = (0, import_react70.useRef)(createScanState());
+      let state = scanRef.current;
+      if (!text.startsWith(state.scanned)) {
+        state = scanRef.current = createScanState();
       }
-      const boundary = findStableBoundary(text);
-      if (boundary > stablePrefixRef.current.length) {
-        stablePrefixRef.current = text.slice(0, boundary);
-      }
-      const stablePrefix = stablePrefixRef.current;
-      const unstableSuffix = text.slice(stablePrefix.length);
-      if (!stablePrefix) {
-        return /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: unstableSuffix });
-      }
-      if (!unstableSuffix) {
-        return /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: stablePrefix });
-      }
+      advanceScan(text, state);
+      const tail = text.slice(state.settledLen);
       return /* @__PURE__ */ (0, import_jsx_runtime39.jsxs)(Box_default, { flexDirection: "column", children: [
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: stablePrefix }),
-        /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: unstableSuffix })
+        state.blocks.map((block, i) => /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: block }, i)),
+        tail ? /* @__PURE__ */ (0, import_jsx_runtime39.jsx)(Md, { cols, compact, t, text: tail }) : null
       ] });
     });
   }
