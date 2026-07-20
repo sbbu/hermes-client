@@ -1,6 +1,15 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getGlobalModelOptions, getSessionMessages, listAllProfileSessions, listSessions } from './hermes'
+import {
+  getCronJobs,
+  getCronJobsForProfiles,
+  getGlobalModelOptions,
+  getSessionMessages,
+  listAllProfileSessions,
+  listSessions,
+  setApiRequestProfile,
+  triggerCronJob
+} from './hermes'
 
 const emptySessionsResponse = {
   limit: 0,
@@ -21,6 +30,7 @@ describe('Hermes REST session helpers', () => {
   })
 
   afterEach(() => {
+    setApiRequestProfile(null)
     vi.restoreAllMocks()
     Reflect.deleteProperty(window, 'hermesDesktop')
   })
@@ -45,6 +55,48 @@ describe('Hermes REST session helpers', () => {
         timeoutMs: 60_000
       })
     )
+  })
+
+  it('scopes cron lists by sidebar profile and active backend', async () => {
+    api.mockResolvedValue([])
+    setApiRequestProfile('coder')
+
+    await getCronJobs('all')
+
+    expect(api).toHaveBeenCalledWith({
+      path: '/api/cron/jobs?profile=all',
+      profile: 'coder',
+      timeoutMs: 60_000
+    })
+  })
+
+  it('routes cron mutations to the job-owning profile', async () => {
+    api.mockResolvedValue({ id: 'job-1' })
+    setApiRequestProfile('coder')
+
+    await triggerCronJob('job-1', 'analyst')
+
+    expect(api).toHaveBeenCalledWith({
+      method: 'POST',
+      path: '/api/cron/jobs/job-1/trigger?profile=analyst',
+      profile: 'analyst'
+    })
+  })
+
+  it('fans out all-profile cron reads through profile-specific backends', async () => {
+    api.mockImplementation(async ({ profile }: { profile?: string }) => [
+      { enabled: true, id: 'same-id', profile, state: 'scheduled' }
+    ])
+
+    const jobs = await getCronJobsForProfiles(['default', 'analyst'])
+
+    expect(api).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/cron/jobs?profile=default', profile: 'default' })
+    )
+    expect(api).toHaveBeenCalledWith(
+      expect.objectContaining({ path: '/api/cron/jobs?profile=analyst', profile: 'analyst' })
+    )
+    expect(jobs.map(job => job.profile)).toEqual(['default', 'analyst'])
   })
 
   it('tags cross-profile message reads for Electron routing and backend lookup', async () => {

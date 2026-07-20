@@ -19,6 +19,12 @@ export function jobState(job: CronJob): string {
   return state || (job.enabled === false ? 'disabled' : 'scheduled')
 }
 
+// Job ids are copied by `profile create --clone-all`, so the durable Desktop
+// identity is the owning profile plus id, never the bare id alone.
+export function cronJobKey(job: Pick<CronJob, 'id' | 'profile'>): string {
+  return `${job.profile || 'default'}:${job.id}`
+}
+
 // Human label for a job: name → first 60 of prompt → first 60 of script → id.
 // One source for the sidebar row and the Cron page so the two never drift.
 export function jobTitle(job: CronJob): string {

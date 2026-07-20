@@ -486,6 +486,7 @@ export interface CronJob {
   name?: null | string
   next_run_at?: null | string
   prompt?: null | string
+  profile?: null | string
   schedule?: CronJobSchedule
   schedule_display?: null | string
   script?: null | string

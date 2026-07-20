@@ -23,6 +23,7 @@ import {
   deleteCronJob,
   getCronJobRuns,
   getCronJobs,
+  getCronJobsForProfiles,
   pauseCronJob,
   resumeCronJob,
   type SessionInfo,
@@ -34,13 +35,14 @@ import { AlertTriangle, Clock } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $cronFocusJobId, $cronJobs, setCronFocusJobId, setCronJobs, updateCronJobs } from '@/store/cron'
 import { notify, notifyError } from '@/store/notifications'
+import { $activeGatewayProfile, $profiles, $profileScope, ALL_PROFILES, normalizeProfileKey } from '@/store/profile'
 
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import { OverlayMain, OverlayNewButton, OverlaySidebar, OverlaySplitLayout } from '../overlays/overlay-split-layout'
 import { OverlayView } from '../overlays/overlay-view'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
-import { jobState, jobTitle, STATE_DOT } from './job-state'
+import { cronJobKey, jobState, jobTitle, STATE_DOT } from './job-state'
 
 const DEFAULT_DELIVER = 'local'
 
@@ -264,16 +266,37 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   const [editor, setEditor] = useState<EditorState>({ mode: 'closed' })
   const [pendingDelete, setPendingDelete] = useState<CronJob | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const profileScope = useStore($profileScope)
+  const profiles = useStore($profiles)
+  const refreshRequestRef = useRef(0)
 
   const refresh = useCallback(async () => {
+    const requestId = refreshRequestRef.current + 1
+    refreshRequestRef.current = requestId
+
     try {
-      setCronJobs(await getCronJobs())
+      const jobs =
+        profileScope === ALL_PROFILES
+          ? await getCronJobsForProfiles(
+              profiles.length
+                ? profiles.map(profile => normalizeProfileKey(profile.name))
+                : [normalizeProfileKey($activeGatewayProfile.get())]
+            )
+          : await getCronJobs(profileScope)
+
+      if (refreshRequestRef.current === requestId) {
+        setCronJobs(jobs)
+      }
     } catch (err) {
-      notifyError(err, c.failedLoad)
+      if (refreshRequestRef.current === requestId) {
+        notifyError(err, c.failedLoad)
+      }
     } finally {
-      setLoading(false)
+      if (refreshRequestRef.current === requestId) {
+        setLoading(false)
+      }
     }
-  }, [c])
+  }, [c, profileScope, profiles])
 
   useRefreshHotkey(refresh)
 
@@ -285,13 +308,17 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   // it, queue a scroll, then clear the one-shot focus so re-opening cron
   // normally doesn't re-trigger it.
   useEffect(() => {
-    if (!focusJobId) {return}
+    if (!focusJobId) {
+      return
+    }
 
-    const match = jobs.find(job => job.id === focusJobId || jobName(job) === focusJobId)
+    const match = jobs.find(
+      job => cronJobKey(job) === focusJobId || job.id === focusJobId || jobName(job) === focusJobId
+    )
 
     if (match) {
-      setSelectedJobId(match.id)
-      pendingScrollRef.current = match.id
+      setSelectedJobId(cronJobKey(match))
+      pendingScrollRef.current = cronJobKey(match)
     }
 
     setCronFocusJobId(null)
@@ -305,7 +332,7 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   // Detail always reflects a concrete job: the explicitly selected one, else the
   // first visible row, so the right pane is never empty while jobs exist.
   const selectedJob = useMemo(
-    () => visibleJobs.find(job => job.id === selectedJobId) ?? visibleJobs[0] ?? null,
+    () => visibleJobs.find(job => cronJobKey(job) === selectedJobId) ?? visibleJobs[0] ?? null,
     [visibleJobs, selectedJobId]
   )
 
@@ -313,7 +340,9 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   useEffect(() => {
     const target = pendingScrollRef.current
 
-    if (!target || selectedJob?.id !== target) {return}
+    if (!target || (selectedJob && cronJobKey(selectedJob) !== target)) {
+      return
+    }
 
     pendingScrollRef.current = null
     requestAnimationFrame(() => {
@@ -324,12 +353,15 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   const totalCount = jobs.length
 
   async function handlePauseResume(job: CronJob) {
-    setBusyJobId(job.id)
+    const key = cronJobKey(job)
+    setBusyJobId(key)
 
     try {
       const isPaused = jobState(job) === 'paused'
-      const updated = isPaused ? await resumeCronJob(job.id) : await pauseCronJob(job.id)
-      updateCronJobs(rows => rows.map(row => (row.id === job.id ? updated : row)))
+      const updated = isPaused ? await resumeCronJob(job.id, job.profile) : await pauseCronJob(job.id, job.profile)
+      updateCronJobs(rows =>
+        rows.map(row => (cronJobKey(row) === key ? { ...updated, profile: updated.profile || job.profile } : row))
+      )
       notify({
         kind: 'success',
         title: isPaused ? c.resumed : c.paused,
@@ -343,11 +375,14 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
   }
 
   async function handleTrigger(job: CronJob) {
-    setBusyJobId(job.id)
+    const key = cronJobKey(job)
+    setBusyJobId(key)
 
     try {
-      const updated = await triggerCronJob(job.id)
-      updateCronJobs(rows => rows.map(row => (row.id === job.id ? updated : row)))
+      const updated = await triggerCronJob(job.id, job.profile)
+      updateCronJobs(rows =>
+        rows.map(row => (cronJobKey(row) === key ? { ...updated, profile: updated.profile || job.profile } : row))
+      )
       notify({ kind: 'success', title: c.triggered, message: truncate(jobTitle(job), 60) })
     } catch (err) {
       notifyError(err, c.failedTrigger)
@@ -364,8 +399,9 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
     setDeleting(true)
 
     try {
-      await deleteCronJob(pendingDelete.id)
-      updateCronJobs(rows => rows.filter(row => row.id !== pendingDelete.id))
+      await deleteCronJob(pendingDelete.id, pendingDelete.profile)
+      const pendingKey = cronJobKey(pendingDelete)
+      updateCronJobs(rows => rows.filter(row => cronJobKey(row) !== pendingKey))
       notify({ kind: 'success', title: c.deleted, message: truncate(jobTitle(pendingDelete), 60) })
       setPendingDelete(null)
     } catch (err) {
@@ -387,14 +423,23 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
       updateCronJobs(rows => [...rows, created])
       notify({ kind: 'success', title: c.created, message: truncate(jobTitle(created), 60) })
     } else if (editor.mode === 'edit') {
-      const updated = await updateCronJob(editor.job.id, {
-        prompt: values.prompt,
-        schedule: values.schedule,
-        name: values.name,
-        deliver: values.deliver
-      })
+      const updated = await updateCronJob(
+        editor.job.id,
+        {
+          prompt: values.prompt,
+          schedule: values.schedule,
+          name: values.name,
+          deliver: values.deliver
+        },
+        editor.job.profile
+      )
 
-      updateCronJobs(rows => rows.map(row => (row.id === updated.id ? updated : row)))
+      const editorKey = cronJobKey(editor.job)
+      updateCronJobs(rows =>
+        rows.map(row =>
+          cronJobKey(row) === editorKey ? { ...updated, profile: updated.profile || editor.job.profile } : row
+        )
+      )
       notify({ kind: 'success', title: c.updated, message: truncate(jobTitle(updated), 60) })
     }
 
@@ -420,11 +465,11 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
             )}
             {visibleJobs.map(job => (
               <CronJobListRow
-                active={selectedJob?.id === job.id}
+                active={selectedJob ? cronJobKey(selectedJob) === cronJobKey(job) : false}
                 c={c}
                 job={job}
-                key={job.id}
-                onSelect={() => setSelectedJobId(job.id)}
+                key={cronJobKey(job)}
+                onSelect={() => setSelectedJobId(cronJobKey(job))}
               />
             ))}
             {visibleJobs.length === 0 && (
@@ -437,7 +482,7 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
           <OverlayMain className="px-0">
             {selectedJob ? (
               <CronJobDetail
-                busy={busyJobId === selectedJob.id}
+                busy={busyJobId === cronJobKey(selectedJob)}
                 c={c}
                 job={selectedJob}
                 onDelete={() => setPendingDelete(selectedJob)}
@@ -460,30 +505,30 @@ export function CronView({ onClose, onOpenSession, setStatusbarItemGroup: _setSt
 
       <CronEditorDialog editor={editor} onClose={() => setEditor({ mode: 'closed' })} onSave={handleEditorSave} />
 
-        <Dialog onOpenChange={open => !open && !deleting && setPendingDelete(null)} open={pendingDelete !== null}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>{c.deleteTitle}</DialogTitle>
-              <DialogDescription>
-                {pendingDelete ? (
-                  <>
-                    {c.deleteDescPrefix}
-                    <span className="font-medium text-foreground">{truncate(jobTitle(pendingDelete), 60)}</span>
-                    {c.deleteDescSuffix}
-                  </>
-                ) : null}
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button disabled={deleting} onClick={() => setPendingDelete(null)} variant="outline">
-                {t.common.cancel}
-              </Button>
-              <Button disabled={deleting} onClick={() => void handleConfirmDelete()} variant="destructive">
-                {deleting ? c.deleting : t.common.delete}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+      <Dialog onOpenChange={open => !open && !deleting && setPendingDelete(null)} open={pendingDelete !== null}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{c.deleteTitle}</DialogTitle>
+            <DialogDescription>
+              {pendingDelete ? (
+                <>
+                  {c.deleteDescPrefix}
+                  <span className="font-medium text-foreground">{truncate(jobTitle(pendingDelete), 60)}</span>
+                  {c.deleteDescSuffix}
+                </>
+              ) : null}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button disabled={deleting} onClick={() => setPendingDelete(null)} variant="outline">
+              {t.common.cancel}
+            </Button>
+            <Button disabled={deleting} onClick={() => void handleConfirmDelete()} variant="destructive">
+              {deleting ? c.deleting : t.common.delete}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OverlayView>
   )
 }
@@ -507,7 +552,7 @@ function CronJobListRow({
         'flex w-full flex-col items-start gap-0.5 rounded-md px-2 py-1.5 text-left transition-colors',
         active ? 'bg-accent text-foreground' : 'text-foreground/85 hover:bg-accent/60'
       )}
-      data-cron-row={job.id}
+      data-cron-row={cronJobKey(job)}
       onClick={onSelect}
       type="button"
     >
@@ -607,7 +652,7 @@ function CronJobDetail({
             )}
           </header>
 
-          <CronJobRuns c={c} jobId={job.id} onOpenSession={onOpenSession} />
+          <CronJobRuns c={c} jobId={job.id} onOpenSession={onOpenSession} profile={job.profile} />
         </div>
       </div>
     </div>
@@ -632,11 +677,13 @@ const RUNS_POLL_INTERVAL_MS = 8000
 function CronJobRuns({
   c,
   jobId,
-  onOpenSession
+  onOpenSession,
+  profile
 }: {
   c: Translations['cron']
   jobId: string
   onOpenSession?: (sessionId: string) => void
+  profile?: null | string
 }) {
   const [runs, setRuns] = useState<null | SessionInfo[]>(null)
 
@@ -644,22 +691,30 @@ function CronJobRuns({
     let cancelled = false
 
     const load = () =>
-      getCronJobRuns(jobId)
+      getCronJobRuns(jobId, 20, profile)
         .then(result => {
-          if (!cancelled) {setRuns(result)}
+          if (!cancelled) {
+            setRuns(result)
+          }
         })
         .catch(() => {
-          if (!cancelled) {setRuns(prev => prev ?? [])}
+          if (!cancelled) {
+            setRuns(prev => prev ?? [])
+          }
         })
 
     void load()
 
     const intervalId = window.setInterval(() => {
-      if (document.visibilityState === 'visible') {void load()}
+      if (document.visibilityState === 'visible') {
+        void load()
+      }
     }, RUNS_POLL_INTERVAL_MS)
 
     const onVisible = () => {
-      if (document.visibilityState === 'visible') {void load()}
+      if (document.visibilityState === 'visible') {
+        void load()
+      }
     }
 
     document.addEventListener('visibilitychange', onVisible)
@@ -669,7 +724,7 @@ function CronJobRuns({
       window.clearInterval(intervalId)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [jobId])
+  }, [jobId, profile])
 
   return (
     <div>

@@ -13,7 +13,14 @@ import { useMediaQuery } from '@/hooks/use-media-query'
 import { useSkinCommand } from '@/themes/use-skin-command'
 
 import { formatRefValue } from '../components/assistant-ui/directive-text'
-import { getCronJobs, getSessionMessages, listAllProfileSessions, type SessionInfo, triggerCronJob } from '../hermes'
+import {
+  getCronJobs,
+  getCronJobsForProfiles,
+  getSessionMessages,
+  listAllProfileSessions,
+  type SessionInfo,
+  triggerCronJob
+} from '../hermes'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '../lib/chat-messages'
 import { storedSessionIdForNotification } from '../lib/session-ids'
 import {
@@ -47,6 +54,7 @@ import { $filePreviewTarget, $previewTarget, closeActiveRightRailTab } from '../
 import {
   $activeGatewayProfile,
   $freshSessionRequest,
+  $profiles,
   $profileScope,
   ALL_PROFILES,
   normalizeProfileKey,
@@ -208,6 +216,7 @@ export function DesktopController() {
 
   const busyRef = useRef(false)
   const creatingSessionRef = useRef(false)
+  const refreshCronJobsRequestRef = useRef(0)
   const refreshSessionsRequestRef = useRef(0)
 
   const gatewayState = useStore($gatewayState)
@@ -222,12 +231,22 @@ export function DesktopController() {
   const terminalTakeover = useStore($terminalTakeover)
   const panesFlipped = useStore($panesFlipped)
   const profileScope = useStore($profileScope)
+  const profiles = useStore($profiles)
   // Below SIDEBAR_COLLAPSE_BREAKPOINT_PX there's no room for a docked rail —
   // collapse both sidebars (without touching their stored open state) so the
   // hover-reveal overlay becomes the way in. Restores once it's wide again.
   const narrowViewport = useMediaQuery(SIDEBAR_COLLAPSE_MEDIA_QUERY)
 
   const routedSessionId = routeSessionId(location.pathname)
+  const routedSessionIdRef = useRef(routedSessionId)
+  routedSessionIdRef.current = routedSessionId
+  const getRoutedStoredSessionId = useCallback(() => routedSessionIdRef.current, [])
+
+  const replaceRoutedSessionId = useCallback(
+    (storedSessionId: string) => navigate(sessionRoute(storedSessionId), { replace: true }),
+    [navigate]
+  )
+
   const routeToken = `${location.pathname}:${location.search}:${location.hash}`
   const routeTokenRef = useRef(routeToken)
   routeTokenRef.current = routeToken
@@ -259,6 +278,7 @@ export function DesktopController() {
     activeSessionIdRef,
     ensureSessionState,
     resetViewSync,
+    resolveStoredSessionId,
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionIdRef,
     sessionStateByRuntimeIdRef,
@@ -432,14 +452,28 @@ export function DesktopController() {
   // after an agent turn surfaces a new job immediately; the interval poll keeps
   // next-run/state fresh as the scheduler advances them.
   const refreshCronJobs = useCallback(async () => {
-    try {
-      const jobs = await getCronJobs()
+    const requestId = refreshCronJobsRequestRef.current + 1
+    refreshCronJobsRequestRef.current = requestId
 
-      setCronJobs(jobs)
+    try {
+      const cronProfile = profileScope === ALL_PROFILES ? 'all' : profileScope
+
+      const jobs =
+        cronProfile === 'all'
+          ? await getCronJobsForProfiles(
+              profiles.length
+                ? profiles.map(profile => normalizeProfileKey(profile.name))
+                : [normalizeProfileKey($activeGatewayProfile.get())]
+            )
+          : await getCronJobs(cronProfile)
+
+      if (refreshCronJobsRequestRef.current === requestId) {
+        setCronJobs(jobs)
+      }
     } catch {
       // Non-fatal: the cron section just keeps its last-known jobs.
     }
-  }, [])
+  }, [profileScope, profiles])
 
   const refreshSessions = useCallback(async () => {
     const requestId = refreshSessionsRequestRef.current + 1
@@ -699,10 +733,12 @@ export function DesktopController() {
     busyRef,
     creatingSessionRef,
     ensureSessionState,
+    getRoutedStoredSessionId,
     getRouteToken,
     navigate,
     requestGateway,
     resetViewSync,
+    resolveStoredSessionId,
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionId,
     selectedStoredSessionIdRef,
@@ -748,11 +784,13 @@ export function DesktopController() {
     }
 
     lastGatewayProfileRef.current = activeGatewayProfile
-    // Force: the new profile has its own default, so reseed even if the composer
-    // already shows the previous profile's model.
+    // Force: the new profile has its own defaults, so reseed even if the composer
+    // already shows the previous profile's values. Intent guards ensure a picker
+    // click made while either refresh is in flight still wins.
     void refreshCurrentModel(true)
+    void refreshHermesConfig(true)
     void refreshActiveProfile()
-  }, [activeGatewayProfile, refreshCurrentModel])
+  }, [activeGatewayProfile, refreshCurrentModel, refreshHermesConfig])
 
   const composer = useComposerActions({
     activeSessionId,
@@ -972,6 +1010,8 @@ export function DesktopController() {
     freshDraftReady,
     gatewayState,
     locationPathname: location.pathname,
+    replaceRoutedSessionId,
+    resolveStoredSessionId,
     resumeSession,
     resumeFailedSessionId,
     resumeExhaustedSessionId,
@@ -1014,8 +1054,8 @@ export function DesktopController() {
       onNavigate={selectSidebarItem}
       onNewSessionInWorkspace={startSessionInWorkspace}
       onResumeSession={sessionId => navigate(sessionRoute(sessionId))}
-      onTriggerCronJob={jobId => {
-        void triggerCronJob(jobId)
+      onTriggerCronJob={(jobId, profile) => {
+        void triggerCronJob(jobId, profile)
           .then(() => refreshCronJobs())
           .catch(() => undefined)
       }}

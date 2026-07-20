@@ -21,7 +21,7 @@ import {
   normalizeProfileKey
 } from '@/store/profile'
 import {
-  $activeSessionStoredId,
+  $activeSessionStoredIdRotation,
   $currentCwd,
   $currentFastMode,
   $currentModel,
@@ -32,6 +32,7 @@ import {
   $yoloActive,
   sessionPinId,
   setActiveSessionId,
+  setActiveSessionStoredIdRotation,
   setAwaitingResponse,
   setBusy,
   setCurrentBranch,
@@ -76,10 +77,12 @@ interface SessionActionsOptions {
   busyRef: MutableRefObject<boolean>
   creatingSessionRef: MutableRefObject<boolean>
   ensureSessionState: (sessionId: string, storedSessionId?: string | null) => ClientSessionState
+  getRoutedStoredSessionId?: () => string | null
   getRouteToken: () => string
   navigate: NavigateFunction
   requestGateway: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
   resetViewSync: () => void
+  resolveStoredSessionId?: (storedSessionId: string) => string
   runtimeIdByStoredSessionIdRef: MutableRefObject<Map<string, string>>
   selectedStoredSessionId: string | null
   selectedStoredSessionIdRef: MutableRefObject<string | null>
@@ -422,10 +425,12 @@ export function useSessionActions({
   busyRef,
   creatingSessionRef,
   ensureSessionState,
+  getRoutedStoredSessionId = () => null,
   getRouteToken,
   navigate,
   requestGateway,
   resetViewSync,
+  resolveStoredSessionId = storedSessionId => storedSessionId,
   runtimeIdByStoredSessionIdRef,
   selectedStoredSessionId,
   selectedStoredSessionIdRef,
@@ -436,23 +441,47 @@ export function useSessionActions({
   const { t } = useI18n()
   const copy = t.desktop
   const resumeRequestRef = useRef(0)
-  const rotatedStoredId = useStore($activeSessionStoredId)
+  const storedIdRotation = useStore($activeSessionStoredIdRotation)
 
   useEffect(() => {
-    if (!rotatedStoredId || rotatedStoredId === selectedStoredSessionIdRef.current) {
+    if (!storedIdRotation) {
       return
     }
 
-    const previousStoredId = selectedStoredSessionIdRef.current
+    const consumeRotation = () =>
+      setActiveSessionStoredIdRotation(current => (current === storedIdRotation ? null : current))
 
-    setSelectedStoredSessionId(rotatedStoredId)
-    selectedStoredSessionIdRef.current = rotatedStoredId
-    navigate(sessionRoute(rotatedStoredId), { replace: true })
+    const selectedStoredSessionId = selectedStoredSessionIdRef.current
+    const routedStoredSessionId = getRoutedStoredSessionId()
 
-    if (previousStoredId) {
-      runtimeIdByStoredSessionIdRef.current.delete(previousStoredId)
+    if (
+      activeSessionIdRef.current !== storedIdRotation.runtimeSessionId ||
+      !selectedStoredSessionId ||
+      resolveStoredSessionId(selectedStoredSessionId) !== storedIdRotation.nextStoredSessionId ||
+      (routedStoredSessionId !== null &&
+        resolveStoredSessionId(routedStoredSessionId) !== storedIdRotation.nextStoredSessionId)
+    ) {
+      consumeRotation()
+
+      return
     }
-  }, [navigate, rotatedStoredId, runtimeIdByStoredSessionIdRef, selectedStoredSessionIdRef])
+
+    setSelectedStoredSessionId(storedIdRotation.nextStoredSessionId)
+    selectedStoredSessionIdRef.current = storedIdRotation.nextStoredSessionId
+
+    if (routedStoredSessionId) {
+      navigate(sessionRoute(storedIdRotation.nextStoredSessionId), { replace: true })
+    }
+
+    consumeRotation()
+  }, [
+    activeSessionIdRef,
+    getRoutedStoredSessionId,
+    navigate,
+    resolveStoredSessionId,
+    selectedStoredSessionIdRef,
+    storedIdRotation
+  ])
 
   const startFreshSessionDraft = useCallback(
     (replaceRoute = false) => {
@@ -501,6 +530,16 @@ export function useSessionActions({
       creatingSessionRef.current = true
 
       try {
+        // Enter is the linearization point for the visible selector state.
+        // Profile readiness can yield long enough for a refresh to overwrite
+        // these atoms, so snapshot them before awaiting the target backend.
+        const selection = {
+          effort: $currentReasoningEffort.get().trim(),
+          fast: $currentFastMode.get(),
+          model: $currentModel.get().trim(),
+          provider: $currentProvider.get().trim()
+        }
+
         // A plain new session (top "New Session", /new, keybind) leaves
         // $newChatProfile null to mean "use the live context"; the per-profile
         // "+" sets it explicitly. Resolve null to the active gateway profile so
@@ -512,24 +551,22 @@ export function useSessionActions({
         const newChatProfile = $newChatProfile.get() ?? normalizeProfileKey($activeGatewayProfile.get())
         await ensureGatewayProfile(newChatProfile)
         const cwd = $currentCwd.get().trim() || workspaceCwdForNewSession()
+
         // The composer's model/effort/fast is sticky UI state ($currentModel,
         // $currentProvider, $currentReasoningEffort, $currentFastMode). Ship it
         // with every session.create so the new chat opens on whatever the picker
         // shows — applied as per-session overrides, never written to the profile
         // default (that lives in Settings → Model).
-        const uiModel = $currentModel.get().trim()
-        const uiProvider = $currentProvider.get().trim()
-        const uiEffort = $currentReasoningEffort.get().trim()
-        const uiFast = $currentFastMode.get()
-
         const created = await requestGateway<SessionCreateResponse>('session.create', {
           cols: 96,
           ...(cwd && { cwd }),
           source: 'desktop',
           ...(newChatProfile ? { profile: newChatProfile } : {}),
-          ...(uiModel ? { model: uiModel, ...(uiProvider ? { provider: uiProvider } : {}) } : {}),
-          ...(uiEffort ? { reasoning_effort: uiEffort } : {}),
-          ...(uiFast ? { fast: true } : {})
+          ...(selection.model
+            ? { model: selection.model, ...(selection.provider ? { provider: selection.provider } : {}) }
+            : {}),
+          ...(selection.effort ? { reasoning_effort: selection.effort } : {}),
+          fast: selection.fast
         })
 
         const stored = created.stored_session_id ?? null

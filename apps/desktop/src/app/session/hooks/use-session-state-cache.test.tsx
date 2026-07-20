@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ChatMessage } from '@/lib/chat-messages'
 import {
   $activeSessionId,
-  $activeSessionStoredId,
+  $activeSessionStoredIdRotation,
   $currentFastMode,
   $currentModel,
   $currentProvider,
@@ -13,7 +13,7 @@ import {
   $currentServiceTier,
   $messages,
   $turnStartedAt,
-  setActiveSessionStoredId,
+  setActiveSessionStoredIdRotation,
   setCurrentFastMode,
   setCurrentModel,
   setCurrentProvider,
@@ -66,7 +66,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     })
     setTurnStartedAt(null)
     $activeSessionId.set(null)
-    setActiveSessionStoredId(null)
+    setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
     setCurrentProvider('')
     setCurrentReasoningEffort('')
@@ -79,7 +79,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     vi.restoreAllMocks()
     setTurnStartedAt(null)
     $activeSessionId.set(null)
-    setActiveSessionStoredId(null)
+    setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
     setCurrentProvider('')
     setCurrentReasoningEffort('')
@@ -149,7 +149,14 @@ describe('useSessionStateCache — per-session turn timer', () => {
       cache.ensureSessionState('fg-runtime', 'stored-new')
     })
 
-    expect($activeSessionStoredId.get()).toBe('stored-new')
+    expect($activeSessionStoredIdRotation.get()).toEqual({
+      nextStoredSessionId: 'stored-new',
+      previousStoredSessionId: 'stored-old',
+      runtimeSessionId: 'fg-runtime'
+    })
+    expect(cache.runtimeIdByStoredSessionIdRef.current.has('stored-old')).toBe(false)
+    expect(cache.runtimeIdByStoredSessionIdRef.current.get('stored-new')).toBe('fg-runtime')
+    expect(cache.resolveStoredSessionId('stored-old')).toBe('stored-new')
   })
 
   it('mirrors the focused session model metadata when switching from a cached session', () => {

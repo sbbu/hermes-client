@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils'
 import { $selectedStoredSessionId } from '@/store/session'
 import type { CronJob } from '@/types/hermes'
 
-import { jobState, jobTitle, STATE_DOT } from '../../cron/job-state'
+import { cronJobKey, jobState, jobTitle, STATE_DOT } from '../../cron/job-state'
 import { SidebarPanelLabel } from '../../shell/sidebar-label'
 
 import { SidebarLoadMoreRow } from './load-more-row'
@@ -89,7 +89,7 @@ interface SidebarCronJobsSectionProps {
   // Open the full Cron page focused on this job (manage / full history).
   onManageJob: (jobId: string) => void
   // Fire the job now.
-  onTriggerJob: (jobId: string) => void
+  onTriggerJob: (jobId: string, profile?: null | string) => void
   onToggle: () => void
   open: boolean
 }
@@ -171,14 +171,17 @@ export function SidebarCronJobsSection({
         <SidebarGroupContent className="flex max-h-72 flex-col gap-px overflow-x-hidden overflow-y-auto overscroll-contain pb-1.75 compact:max-h-none compact:overflow-visible">
           {shown.map(job => (
             <CronJobSidebarRow
-              expanded={peekJobId === job.id}
+              expanded={peekJobId === cronJobKey(job)}
               job={job}
-              key={job.id}
+              key={cronJobKey(job)}
               nowMs={nowMs}
-              onManage={() => onManageJob(job.id)}
+              onManage={() => onManageJob(cronJobKey(job))}
               onOpenRun={onOpenRun}
-              onTogglePeek={() => setPeekJobId(prev => (prev === job.id ? null : job.id))}
-              onTrigger={() => onTriggerJob(job.id)}
+              onTogglePeek={() => {
+                const key = cronJobKey(job)
+                setPeekJobId(prev => (prev === key ? null : key))
+              }}
+              onTrigger={() => onTriggerJob(job.id, job.profile)}
             />
           ))}
           {hiddenCount > 0 && (
@@ -283,12 +286,20 @@ function CronJobSidebarRow({
           </div>
         </div>
       </div>
-      {expanded && <CronJobSidebarRuns jobId={job.id} onOpenRun={onOpenRun} />}
+      {expanded && <CronJobSidebarRuns jobId={job.id} onOpenRun={onOpenRun} profile={job.profile} />}
     </div>
   )
 }
 
-function CronJobSidebarRuns({ jobId, onOpenRun }: { jobId: string; onOpenRun: (sessionId: string) => void }) {
+function CronJobSidebarRuns({
+  jobId,
+  onOpenRun,
+  profile
+}: {
+  jobId: string
+  onOpenRun: (sessionId: string) => void
+  profile?: null | string
+}) {
   const { t } = useI18n()
   const c = t.cron
   const selectedSessionId = useStore($selectedStoredSessionId)
@@ -298,7 +309,7 @@ function CronJobSidebarRuns({ jobId, onOpenRun }: { jobId: string; onOpenRun: (s
     let cancelled = false
 
     const load = () =>
-      getCronJobRuns(jobId, PEEK_RUN_LIMIT)
+      getCronJobRuns(jobId, PEEK_RUN_LIMIT, profile)
         .then(result => {
           if (!cancelled) {
             setRuns(result)
@@ -322,7 +333,7 @@ function CronJobSidebarRuns({ jobId, onOpenRun }: { jobId: string; onOpenRun: (s
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [jobId])
+  }, [jobId, profile])
 
   return (
     <div className="mb-1 ml-[1.375rem] flex flex-col gap-px">

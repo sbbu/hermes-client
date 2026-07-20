@@ -57,11 +57,13 @@ export type UpdateTarget = 'client' | 'backend'
 export const $updateOverlayTarget = atom<UpdateTarget>('client')
 
 export const setUpdateOverlayOpen = (open: boolean) => $updateOverlayOpen.set(open)
+
 export const openUpdateOverlayFor = (target: UpdateTarget) => {
   $updateOverlayTarget.set(target)
   $updateOverlayOpen.set(true)
   void (target === 'backend' ? checkBackendUpdates() : checkUpdates())
 }
+
 export const resetUpdateApplyState = () => {
   $updateApply.set(IDLE)
   $backendUpdateApply.set(IDLE)
@@ -89,7 +91,9 @@ function isUpdateToastSnoozed(): boolean {
 // against. The backend reports its own value in session runtime info; a lower
 // value (or none — a pre-GUI checkout) means GUI<->backend skew.
 // v2: requires the file.attach RPC (remote-gateway non-image file upload).
-const REQUIRED_BACKEND_CONTRACT = 2
+// v3: adds approvals.mode config RPCs and session.info reconciliation.
+// v4: session.create fast=false is an explicit per-session normal-tier override.
+const REQUIRED_BACKEND_CONTRACT = 4
 const SKEW_TOAST_ID = 'backend-contract-skew'
 // The contract check runs on every session.resume (applyRuntimeInfo), so
 // without a snooze the warning re-popped on every thread the user opened, even
@@ -282,6 +286,7 @@ function isRemoteMode(): boolean {
 
 const FORK_SAFE_BACKEND_UPDATE_MESSAGE =
   'remote Hermes updates are managed by the fork rebase/update workflow, not by the stock desktop updater.'
+
 const FORK_SAFE_BACKEND_UPDATE_COMMAND = 'ask Hermes to run the Nightly Hermes Custom Update job'
 
 function mapBackendCheck(res: BackendUpdateCheckResponse): DesktopUpdateStatus {
@@ -468,6 +473,7 @@ const BACKEND_RETURN_MAX_ATTEMPTS = 40
 async function waitForBackendReturn(): Promise<boolean> {
   for (let attempt = 0; attempt < BACKEND_RETURN_MAX_ATTEMPTS; attempt += 1) {
     await new Promise(resolve => globalThis.setTimeout(resolve, BACKEND_RETURN_POLL_MS))
+
     try {
       await checkHermesUpdate()
 
@@ -512,6 +518,7 @@ export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
 function ingestProgress(payload: DesktopUpdateProgress): void {
   const current = $updateApply.get()
   const log = [...current.log, { stage: payload.stage, message: payload.message, at: payload.at }].slice(-50)
+
   const terminal =
     payload.stage === 'error' ||
     payload.stage === 'restart' ||
@@ -561,7 +568,9 @@ export function startUpdatePoller(): void {
     if (conn?.mode === lastConnectionMode) {
       return
     }
+
     lastConnectionMode = conn?.mode
+
     if (conn?.mode === 'remote') {
       void checkBackendUpdates()
     }

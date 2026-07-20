@@ -148,8 +148,10 @@ export function setApiRequestProfile(profile: null | string): void {
   _apiProfile = profile || null
 }
 
-function profileScoped(): { profile?: string } {
-  return _apiProfile ? { profile: _apiProfile } : {}
+function profileScoped(profile?: null | string): { profile?: string } {
+  const routedProfile = profile || _apiProfile
+
+  return routedProfile ? { profile: routedProfile } : {}
 }
 
 export async function listSessions(
@@ -590,22 +592,68 @@ export function testMessagingPlatform(platformId: string): Promise<MessagingPlat
   })
 }
 
-export function getCronJobs(): Promise<CronJob[]> {
+export function getCronJobs(profile?: string): Promise<CronJob[]> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob[]>({
-    path: '/api/cron/jobs',
+    ...profileScoped(),
+    path: `/api/cron/jobs${suffix}`,
     timeoutMs: STARTUP_REQUEST_TIMEOUT_MS
   })
 }
 
-export function getCronJob(jobId: string): Promise<CronJob> {
+// In per-profile-remote mode, no single backend can aggregate every profile's
+// cron store. Fan out through Electron's profile router; the same code also
+// works in global-remote/local modes and preserves the owning profile on rows.
+export async function getCronJobsForProfiles(profiles: string[]): Promise<CronJob[]> {
+  const profileKeys = [...new Set(profiles.map(profile => profile.trim()).filter(Boolean))]
+
+  const results = await Promise.allSettled(
+    profileKeys.map(async profile => ({
+      jobs: await window.hermesDesktop.api<CronJob[]>({
+        profile,
+        path: `/api/cron/jobs?profile=${encodeURIComponent(profile)}`,
+        timeoutMs: STARTUP_REQUEST_TIMEOUT_MS
+      }),
+      profile
+    }))
+  )
+
+  const successful = results.filter(
+    (result): result is PromiseFulfilledResult<{ jobs: CronJob[]; profile: string }> => result.status === 'fulfilled'
+  )
+
+  if (!successful.length && results.length) {
+    throw results.find((result): result is PromiseRejectedResult => result.status === 'rejected')?.reason
+  }
+
+  const jobs = new Map<string, CronJob>()
+
+  for (const { value } of successful) {
+    for (const job of value.jobs) {
+      const ownerProfile = job.profile || value.profile
+      jobs.set(`${ownerProfile}:${job.id}`, { ...job, profile: ownerProfile })
+    }
+  }
+
+  return [...jobs.values()]
+}
+
+export function getCronJob(jobId: string, profile?: null | string): Promise<CronJob> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}`
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}${suffix}`
   })
 }
 
-export async function getCronJobRuns(jobId: string, limit = 20): Promise<SessionInfo[]> {
+export async function getCronJobRuns(jobId: string, limit = 20, profile?: null | string): Promise<SessionInfo[]> {
+  const profileParam = profile ? `&profile=${encodeURIComponent(profile)}` : ''
+
   const { runs } = await window.hermesDesktop.api<{ runs: SessionInfo[] }>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/runs?limit=${limit}`
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/runs?limit=${limit}${profileParam}`
   })
 
   return runs ?? []
@@ -613,44 +661,60 @@ export async function getCronJobRuns(jobId: string, limit = 20): Promise<Session
 
 export function createCronJob(body: CronJobCreatePayload): Promise<CronJob> {
   return window.hermesDesktop.api<CronJob>({
+    ...profileScoped(),
     path: '/api/cron/jobs',
     method: 'POST',
     body
   })
 }
 
-export function updateCronJob(jobId: string, updates: CronJobUpdates): Promise<CronJob> {
+export function updateCronJob(jobId: string, updates: CronJobUpdates, profile?: null | string): Promise<CronJob> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}`,
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}${suffix}`,
     method: 'PUT',
     body: { updates }
   })
 }
 
-export function pauseCronJob(jobId: string): Promise<CronJob> {
+export function pauseCronJob(jobId: string, profile?: null | string): Promise<CronJob> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/pause`,
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/pause${suffix}`,
     method: 'POST'
   })
 }
 
-export function resumeCronJob(jobId: string): Promise<CronJob> {
+export function resumeCronJob(jobId: string, profile?: null | string): Promise<CronJob> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/resume`,
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/resume${suffix}`,
     method: 'POST'
   })
 }
 
-export function triggerCronJob(jobId: string): Promise<CronJob> {
+export function triggerCronJob(jobId: string, profile?: null | string): Promise<CronJob> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<CronJob>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/trigger`,
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}/trigger${suffix}`,
     method: 'POST'
   })
 }
 
-export function deleteCronJob(jobId: string): Promise<{ ok: boolean }> {
+export function deleteCronJob(jobId: string, profile?: null | string): Promise<{ ok: boolean }> {
+  const suffix = profile ? `?profile=${encodeURIComponent(profile)}` : ''
+
   return window.hermesDesktop.api<{ ok: boolean }>({
-    path: `/api/cron/jobs/${encodeURIComponent(jobId)}`,
+    ...profileScoped(profile),
+    path: `/api/cron/jobs/${encodeURIComponent(jobId)}${suffix}`,
     method: 'DELETE'
   })
 }

@@ -10,7 +10,7 @@ import {
   $busy,
   $messages,
   noteSessionActivity,
-  setActiveSessionStoredId,
+  setActiveSessionStoredIdRotation,
   setCurrentFastMode,
   setCurrentModel,
   setCurrentPersonality,
@@ -79,6 +79,7 @@ export function useSessionStateCache({
   const selectedStoredSessionIdRef = useRef<string | null>(null)
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
+  const storedSessionIdRedirectsRef = useRef(new Map<string, string>())
   const pendingViewStateRef = useRef<{ sessionId: string; state: ClientSessionState } | null>(null)
   const viewSyncRafRef = useRef<number | null>(null)
   // Runtime id whose transcript currently occupies `$messages` — lets the
@@ -97,43 +98,79 @@ export function useSessionStateCache({
     selectedStoredSessionIdRef.current = selectedStoredSessionId
   }, [selectedStoredSessionId])
 
-  const ensureSessionState = useCallback((sessionId: string, storedSessionId?: string | null) => {
-    const existing = sessionStateByRuntimeIdRef.current.get(sessionId)
+  const resolveStoredSessionId = useCallback((storedSessionId: string): string => {
+    const visited: string[] = []
+    let current = storedSessionId
 
-    if (existing) {
-      if (storedSessionId !== undefined) {
-        const previousStoredSessionId = existing.storedSessionId
-        existing.storedSessionId = storedSessionId
+    while (!visited.includes(current)) {
+      visited.push(current)
+      const next = storedSessionIdRedirectsRef.current.get(current)
 
-        if (storedSessionId) {
-          runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
-
-          if (existing.busy) {
-            setSessionWorking(storedSessionId, true)
-          }
-        }
-
-        if (previousStoredSessionId && previousStoredSessionId !== storedSessionId) {
-          setSessionWorking(previousStoredSessionId, false)
-
-          if (sessionId === $activeSessionId.get()) {
-            setActiveSessionStoredId(storedSessionId)
-          }
-        }
+      if (!next || next === current) {
+        break
       }
 
-      return existing
+      current = next
     }
 
-    const created = createClientSessionState(storedSessionId ?? null)
-    sessionStateByRuntimeIdRef.current.set(sessionId, created)
-
-    if (storedSessionId) {
-      runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
+    for (const alias of visited) {
+      if (alias !== current) {
+        storedSessionIdRedirectsRef.current.set(alias, current)
+      }
     }
 
-    return created
+    return current
   }, [])
+
+  const ensureSessionState = useCallback(
+    (sessionId: string, storedSessionId?: string | null) => {
+      const existing = sessionStateByRuntimeIdRef.current.get(sessionId)
+
+      if (existing) {
+        if (storedSessionId !== undefined && storedSessionId !== existing.storedSessionId) {
+          const previousStoredSessionId = existing.storedSessionId
+          existing.storedSessionId = storedSessionId
+
+          if (storedSessionId) {
+            runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
+
+            if (existing.busy) {
+              setSessionWorking(storedSessionId, true)
+            }
+          }
+
+          if (previousStoredSessionId) {
+            runtimeIdByStoredSessionIdRef.current.delete(previousStoredSessionId)
+            setSessionWorking(previousStoredSessionId, false)
+
+            if (storedSessionId) {
+              storedSessionIdRedirectsRef.current.set(previousStoredSessionId, resolveStoredSessionId(storedSessionId))
+
+              if (sessionId === $activeSessionId.get()) {
+                setActiveSessionStoredIdRotation({
+                  nextStoredSessionId: storedSessionId,
+                  previousStoredSessionId,
+                  runtimeSessionId: sessionId
+                })
+              }
+            }
+          }
+        }
+
+        return existing
+      }
+
+      const created = createClientSessionState(storedSessionId ?? null)
+      sessionStateByRuntimeIdRef.current.set(sessionId, created)
+
+      if (storedSessionId) {
+        runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
+      }
+
+      return created
+    },
+    [resolveStoredSessionId]
+  )
 
   const resetViewSync = useCallback(() => {
     // Drop any RAF-pending transcript stage so a backgrounded turn cannot
@@ -299,6 +336,7 @@ export function useSessionStateCache({
     activeSessionIdRef,
     ensureSessionState,
     resetViewSync,
+    resolveStoredSessionId,
     runtimeIdByStoredSessionIdRef,
     selectedStoredSessionIdRef,
     sessionStateByRuntimeIdRef,

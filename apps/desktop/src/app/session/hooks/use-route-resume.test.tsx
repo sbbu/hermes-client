@@ -14,6 +14,8 @@ interface HarnessProps {
   freshDraftReady: boolean
   gatewayState: string
   locationPathname: string
+  replaceRoutedSessionId?: (sessionId: string) => void
+  resolveStoredSessionId?: (sessionId: string) => string
   resumeSession: (sessionId: string, focus: boolean) => Promise<unknown>
   resumeFailedSessionId?: null | string
   resumeExhaustedSessionId?: null | string
@@ -24,11 +26,7 @@ interface HarnessProps {
   startFreshSessionDraft: (focus: boolean) => unknown
 }
 
-function RouteResumeHarness({
-  resumeFailedSessionId = null,
-  resumeExhaustedSessionId = null,
-  ...props
-}: HarnessProps) {
+function RouteResumeHarness({ resumeFailedSessionId = null, resumeExhaustedSessionId = null, ...props }: HarnessProps) {
   useRouteResume({ ...props, resumeExhaustedSessionId, resumeFailedSessionId })
 
   return null
@@ -38,6 +36,34 @@ describe('useRouteResume', () => {
   afterEach(() => {
     cleanup()
     vi.restoreAllMocks()
+  })
+
+  it('canonicalizes a rotated stored-id alias before resume', () => {
+    const replaceRoutedSessionId = vi.fn()
+    const resumeSession = vi.fn(async () => undefined)
+
+    render(
+      <RouteResumeHarness
+        activeSessionId="runtime-1"
+        activeSessionIdRef={{ current: 'runtime-1' }}
+        creatingSessionRef={{ current: false }}
+        currentView="chat"
+        freshDraftReady={false}
+        gatewayState="open"
+        locationPathname="/stored-old"
+        replaceRoutedSessionId={replaceRoutedSessionId}
+        resolveStoredSessionId={sessionId => (sessionId === 'stored-old' ? 'stored-new' : sessionId)}
+        resumeSession={resumeSession}
+        routedSessionId="stored-old"
+        runtimeIdByStoredSessionIdRef={{ current: new Map([['stored-new', 'runtime-1']]) }}
+        selectedStoredSessionId="stored-new"
+        selectedStoredSessionIdRef={{ current: 'stored-new' }}
+        startFreshSessionDraft={vi.fn()}
+      />
+    )
+
+    expect(replaceRoutedSessionId).toHaveBeenCalledWith('stored-new')
+    expect(resumeSession).not.toHaveBeenCalled()
   })
 
   it('does not re-resume the old session during a /:sid -> /new transition', () => {
@@ -424,11 +450,13 @@ describe('useRouteResume bounded auto-retry after a failed resume', () => {
     // the store, which doesn't feed back into the prop in this harness.
     const { rerender } = render(<RouteResumeHarness {...props} resumeFailedSessionId="session-1" />)
     resumeSession.mockClear()
+
     for (let i = 0; i < 8; i += 1) {
       vi.advanceTimersByTime(8_000)
       rerender(<RouteResumeHarness {...props} resumeFailedSessionId={null} />)
       rerender(<RouteResumeHarness {...props} resumeFailedSessionId="session-1" />)
     }
+
     expect(resumeSession.mock.calls.length).toBe(4) // capped
     expect($resumeExhaustedSessionId.get()).toBe('session-1')
 
@@ -464,6 +492,7 @@ describe('useRouteResume bounded auto-retry after a failed resume', () => {
     const { rerender } = render(
       <RouteResumeHarness {...props} resumeFailedSessionId="session-1" resumeSession={vi.fn(async () => undefined)} />
     )
+
     for (let j = 0; j < 8; j += 1) {
       rerender(
         <RouteResumeHarness {...props} resumeFailedSessionId="session-1" resumeSession={vi.fn(async () => undefined)} />

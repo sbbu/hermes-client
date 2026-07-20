@@ -207,9 +207,15 @@ export const $sessionsLoading = atom(true)
 export const $workingSessionIds = atom<string[]>([])
 export const $activeSessionId = atom<string | null>(null)
 export const $selectedStoredSessionId = atom<string | null>(null)
-// Auto-compression rotates the stored id while preserving the live runtime.
-// Route/selection consumers follow this signal instead of resuming the stale id.
-export const $activeSessionStoredId = atom<string | null>(null)
+export interface ActiveSessionStoredIdRotation {
+  nextStoredSessionId: string
+  previousStoredSessionId: string
+  runtimeSessionId: string
+}
+
+// Edge-triggered handoff for auto-compression's stored-id rotation. Carrying
+// source identity lets delayed consumers reject stale events after navigation.
+export const $activeSessionStoredIdRotation = atom<ActiveSessionStoredIdRotation | null>(null)
 export const $messages = atom<ChatMessage[]>([])
 
 // Streaming-stable derivations of $messages. During a token stream the array
@@ -281,7 +287,8 @@ export const setSessionProfileTotals = (next: Updater<Record<string, number>>) =
 export const setSessionsLoading = (next: Updater<boolean>) => updateAtom($sessionsLoading, next)
 export const setWorkingSessionIds = (next: Updater<string[]>) => updateAtom($workingSessionIds, next)
 export const setActiveSessionId = (next: Updater<string | null>) => updateAtom($activeSessionId, next)
-export const setActiveSessionStoredId = (next: Updater<string | null>) => updateAtom($activeSessionStoredId, next)
+export const setActiveSessionStoredIdRotation = (next: Updater<ActiveSessionStoredIdRotation | null>) =>
+  updateAtom($activeSessionStoredIdRotation, next)
 export const setSelectedStoredSessionId = (next: Updater<string | null>) => updateAtom($selectedStoredSessionId, next)
 export const setMessages = (next: Updater<ChatMessage[]>) => updateAtom($messages, next)
 export const setFreshDraftReady = (next: Updater<boolean>) => updateAtom($freshDraftReady, next)
@@ -308,6 +315,18 @@ export const getCurrentModelSource = (): ComposerModelSource => {
 
 export const setCurrentModelSource = (source: ComposerModelSource) => {
   persistString(COMPOSER_MODEL_SOURCE_KEY, source || null)
+}
+
+// Monotonic intent token for async default refreshes. A picker interaction
+// must win over an older in-flight profile/config response even when the user
+// re-selects the same value.
+let composerSelectionGeneration = 0
+
+export const getComposerSelectionGeneration = (): number => composerSelectionGeneration
+
+export const markComposerSelectionManual = (): void => {
+  composerSelectionGeneration += 1
+  setCurrentModelSource('manual')
 }
 
 export const setCurrentReasoningEffort = (next: Updater<string>) => {

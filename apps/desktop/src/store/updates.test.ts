@@ -54,6 +54,7 @@ const {
   resetUpdateApplyState,
   reportInstallMethodWarning
 } = await import('./updates')
+
 const { setConnection } = await import('./session')
 
 const status = (over: Partial<DesktopUpdateStatus> = {}): DesktopUpdateStatus => ({
@@ -116,7 +117,7 @@ describe('reportBackendContract', () => {
   })
 
   it('dismisses the toast when the backend meets the contract', () => {
-    reportBackendContract(2)
+    reportBackendContract(4)
     expect(dismissSpy).toHaveBeenCalledWith('backend-contract-skew')
     expect(notifySpy).not.toHaveBeenCalled()
   })
@@ -156,7 +157,7 @@ describe('reportBackendContract', () => {
     lastToast().onDismiss()
     notifySpy.mockClear()
 
-    reportBackendContract(2) // backend updated → satisfied, snooze cleared
+    reportBackendContract(4) // backend updated → satisfied, snooze cleared
     reportBackendContract(1) // a later regression must warn immediately
     expect(notifySpy).toHaveBeenCalledTimes(1)
   })

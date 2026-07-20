@@ -4,14 +4,18 @@ import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getSessionMessages } from '@/hermes'
-import { $activeGatewayProfile, $newChatProfile } from '@/store/profile'
+import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
 import {
-  $activeSessionStoredId,
+  $activeSessionStoredIdRotation,
   $currentCwd,
+  $currentFastMode,
+  $currentModel,
+  $currentProvider,
+  $currentReasoningEffort,
   $messages,
   $resumeFailedSessionId,
   $selectedStoredSessionId,
-  setActiveSessionStoredId,
+  setActiveSessionStoredIdRotation,
   setMessages,
   setResumeFailedSessionId
 } from '@/store/session'
@@ -28,6 +32,11 @@ vi.mock('@/hermes', async importOriginal => ({
   listAllProfileSessions: vi.fn(),
   setApiRequestProfile: vi.fn(),
   setSessionArchived: vi.fn()
+}))
+
+vi.mock('@/store/profile', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  ensureGatewayProfile: vi.fn(async () => undefined)
 }))
 
 const RUNTIME_SESSION_ID = 'rt-new-001'
@@ -95,7 +104,12 @@ describe('createBackendSessionForSend profile routing', () => {
     cleanup()
     $newChatProfile.set(null)
     $activeGatewayProfile.set('default')
+    $currentModel.set('')
+    $currentProvider.set('')
+    $currentReasoningEffort.set('')
+    $currentFastMode.set(false)
     vi.restoreAllMocks()
+    vi.mocked(ensureGatewayProfile).mockResolvedValue(undefined)
   })
 
   it('routes a plain new chat (no explicit profile) to the live gateway profile', async () => {
@@ -134,15 +148,61 @@ describe('createBackendSessionForSend profile routing', () => {
 
     expect(params).toMatchObject({ source: 'desktop' })
   })
+
+  it('snapshots selector choices before waiting for the target profile', async () => {
+    let releaseProfile!: () => void
+    vi.mocked(ensureGatewayProfile).mockImplementationOnce(
+      () => new Promise<void>(resolve => (releaseProfile = resolve))
+    )
+    $activeGatewayProfile.set('coder')
+    $newChatProfile.set(null)
+    $currentModel.set('chosen/model')
+    $currentProvider.set('chosen-provider')
+    $currentReasoningEffort.set('high')
+    $currentFastMode.set(false)
+
+    let createParams: Record<string, unknown> | undefined
+
+    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
+      if (method === 'session.create') {
+        createParams = params
+
+        return { session_id: RUNTIME_SESSION_ID, stored_session_id: null } as never
+      }
+
+      return {} as never
+    })
+
+    let create: ((preview?: string | null) => Promise<string | null>) | null = null
+    render(<Harness onReady={c => (create = c)} requestGateway={requestGateway} />)
+    await waitFor(() => expect(create).not.toBeNull())
+
+    const pending = create!()
+    await waitFor(() => expect(ensureGatewayProfile).toHaveBeenCalledWith('coder'))
+    $currentModel.set('refreshed/model')
+    $currentProvider.set('refreshed-provider')
+    $currentReasoningEffort.set('low')
+    $currentFastMode.set(true)
+    releaseProfile()
+    await pending
+
+    expect(createParams).toMatchObject({
+      fast: false,
+      model: 'chosen/model',
+      profile: 'coder',
+      provider: 'chosen-provider',
+      reasoning_effort: 'high'
+    })
+  })
 })
 
 function StoredIdRotationHarness({
-  mappingRef,
   navigate,
+  routedStoredSessionId,
   selectedRef
 }: {
-  mappingRef: MutableRefObject<Map<string, string>>
   navigate: ReturnType<typeof vi.fn>
+  routedStoredSessionId: string | null
   selectedRef: MutableRefObject<string | null>
 }) {
   useSessionActions({
@@ -151,11 +211,13 @@ function StoredIdRotationHarness({
     busyRef: { current: false },
     creatingSessionRef: { current: false },
     ensureSessionState: () => ({}) as ClientSessionState,
+    getRoutedStoredSessionId: () => routedStoredSessionId,
     getRouteToken: () => 'token',
     navigate: navigate as never,
     requestGateway: vi.fn(),
     resetViewSync: vi.fn(),
-    runtimeIdByStoredSessionIdRef: mappingRef,
+    resolveStoredSessionId: storedSessionId => (storedSessionId === 'stored-old' ? 'stored-new' : storedSessionId),
+    runtimeIdByStoredSessionIdRef: { current: new Map([['stored-new', 'runtime-1']]) },
     selectedStoredSessionId: selectedRef.current,
     selectedStoredSessionIdRef: selectedRef,
     sessionStateByRuntimeIdRef: { current: new Map() },
@@ -169,26 +231,49 @@ function StoredIdRotationHarness({
 describe('stored-session rotation', () => {
   afterEach(() => {
     cleanup()
-    setActiveSessionStoredId(null)
+    setActiveSessionStoredIdRotation(null)
     $selectedStoredSessionId.set(null)
   })
 
   it('re-anchors the route after compression rotates the stored id', async () => {
     const navigate = vi.fn()
     const selectedRef = { current: 'stored-old' }
-    const mappingRef = { current: new Map([['stored-old', 'runtime-1']]) }
 
-    render(<StoredIdRotationHarness mappingRef={mappingRef} navigate={navigate} selectedRef={selectedRef} />)
+    render(<StoredIdRotationHarness navigate={navigate} routedStoredSessionId="stored-old" selectedRef={selectedRef} />)
 
-    act(() => setActiveSessionStoredId('stored-new'))
+    act(() =>
+      setActiveSessionStoredIdRotation({
+        nextStoredSessionId: 'stored-new',
+        previousStoredSessionId: 'stored-old',
+        runtimeSessionId: 'runtime-1'
+      })
+    )
 
     await waitFor(() => {
       expect(navigate).toHaveBeenCalledWith(sessionRoute('stored-new'), { replace: true })
     })
-    expect($activeSessionStoredId.get()).toBe('stored-new')
+    expect($activeSessionStoredIdRotation.get()).toBeNull()
     expect($selectedStoredSessionId.get()).toBe('stored-new')
     expect(selectedRef.current).toBe('stored-new')
-    expect(mappingRef.current.has('stored-old')).toBe(false)
+  })
+
+  it('updates selection without leaving a non-chat route', async () => {
+    const navigate = vi.fn()
+    const selectedRef = { current: 'stored-old' }
+
+    render(<StoredIdRotationHarness navigate={navigate} routedStoredSessionId={null} selectedRef={selectedRef} />)
+
+    act(() =>
+      setActiveSessionStoredIdRotation({
+        nextStoredSessionId: 'stored-new',
+        previousStoredSessionId: 'stored-old',
+        runtimeSessionId: 'runtime-1'
+      })
+    )
+
+    await waitFor(() => expect($activeSessionStoredIdRotation.get()).toBeNull())
+    expect(selectedRef.current).toBe('stored-new')
+    expect(navigate).not.toHaveBeenCalled()
   })
 })
 
