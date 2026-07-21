@@ -425,10 +425,23 @@ export function ChatBar({
       return undefined
     }
 
-    const offFocus = onComposerFocusRequest(target => {
-      if (target === 'main') {
-        setFocusRequestId(id => id + 1)
+    const offFocus = onComposerFocusRequest(({ target, typeChar }) => {
+      if (target !== 'main') {
+        return
       }
+
+      if (typeChar) {
+        const next = `${draftRef.current}${typeChar}`
+        draftRef.current = next
+        setComposerText(next)
+
+        if (editorRef.current) {
+          renderComposerContents(editorRef.current, next)
+          placeCaretEnd(editorRef.current)
+        }
+      }
+
+      setFocusRequestId(id => id + 1)
     })
 
     const offInsert = onComposerInsertRequest(({ mode, target, text }) => {
@@ -441,7 +454,7 @@ export function ChatBar({
       offFocus()
       offInsert()
     }
-  }, [appendExternalText, inputDisabled])
+  }, [appendExternalText, inputDisabled, setComposerText])
 
   // Keep draftRef in sync with the assistant-ui composer state for callers
   // that read the latest text outside the React render cycle. We don't push

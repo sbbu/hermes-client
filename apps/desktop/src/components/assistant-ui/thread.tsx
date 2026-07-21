@@ -1218,7 +1218,13 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
   const at = useAtCompletions({ cwd, gateway, sessionId })
   const slash = useSlashCompletions({ gateway })
 
-  useEffect(() => () => notifyThreadEditClose(), [])
+  useEffect(
+    () => () => {
+      notifyThreadEditClose()
+      markActiveComposer('main')
+    },
+    []
+  )
 
   const focusEditor = useCallback(() => {
     const editor = editorRef.current
@@ -1285,10 +1291,23 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
   }, [focusEditor, focusRequestId])
 
   useEffect(() => {
-    const offFocus = onComposerFocusRequest(target => {
-      if (target === 'edit') {
-        setFocusRequestId(id => id + 1)
+    const offFocus = onComposerFocusRequest(({ target, typeChar }) => {
+      if (target !== 'edit') {
+        return
       }
+
+      if (typeChar) {
+        const next = `${draftRef.current}${typeChar}`
+        draftRef.current = next
+        aui.composer().setText(next)
+
+        if (editorRef.current) {
+          renderComposerContents(editorRef.current, next)
+          placeCaretEnd(editorRef.current)
+        }
+      }
+
+      setFocusRequestId(id => id + 1)
     })
 
     const offInsert = onComposerInsertRequest(({ mode, target, text }) => {
@@ -1301,7 +1320,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
       offFocus()
       offInsert()
     }
-  }, [appendExternalText])
+  }, [appendExternalText, aui])
 
   const syncDraftFromEditor = useCallback(
     (editor: HTMLDivElement) => {

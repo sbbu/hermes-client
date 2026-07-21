@@ -6,6 +6,7 @@ import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
 import { matchesQuery } from '@/hooks/use-media-query'
 import { PROFILE_SLOT_COUNT, SESSION_SLOT_COUNT } from '@/lib/keybinds/actions'
 import { comboAllowedInInput, comboFromEvent, isEditableTarget } from '@/lib/keybinds/combo'
+import { composerFocusKeysAllowed, isComposerFocusSoftCombo, typeToFocusChar } from '@/lib/keybinds/composer-focus-keys'
 import { toggleCommandPalette } from '@/store/command-palette'
 import { $capture, $comboIndex, endCapture, setBinding, toggleKeybindPanel } from '@/store/keybinds'
 import {
@@ -112,7 +113,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
   handlersRef.current = {
     'keybinds.openPanel': toggleKeybindPanel,
 
-    'composer.focus': () => requestComposerFocus('main'),
+    'composer.focus': () => requestComposerFocus('active'),
     'composer.modelPicker': () => setModelPickerOpen(true),
 
     'nav.commandPalette': toggleCommandPalette,
@@ -214,11 +215,31 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
 
       const actionId = $comboIndex.get().get(combo)
 
+      // Unbound printable → type-to-focus. Bound chords win above.
       if (!actionId) {
+        const typeChar = typeToFocusChar(event)
+
+        if (typeChar && composerFocusKeysAllowed(event, 'type')) {
+          event.preventDefault()
+          requestComposerFocus('active', { typeChar })
+        }
+
         return
       }
 
       if (isEditableTarget(event.target) && !comboAllowedInInput(combo)) {
+        return
+      }
+
+      // Soft `/` / Enter: gated so dialogs/buttons/terminal keep those keys.
+      if (actionId === 'composer.focus' && isComposerFocusSoftCombo(combo)) {
+        if (!composerFocusKeysAllowed(event, combo)) {
+          return
+        }
+
+        event.preventDefault()
+        requestComposerFocus('active', { typeChar: combo === '/' ? '/' : undefined })
+
         return
       }
 
