@@ -9,6 +9,7 @@ import {
   $activeSessionId,
   $busy,
   $messages,
+  getCurrentModelSource,
   noteSessionActivity,
   setActiveSessionStoredIdRotation,
   setCurrentFastMode,
@@ -57,11 +58,17 @@ interface SessionStateCacheOptions {
 }
 
 function syncRuntimeMetadataToView(state: ClientSessionState) {
-  setCurrentModel(state.model ?? '')
-  setCurrentProvider(state.provider ?? '')
-  setCurrentReasoningEffort(state.reasoningEffort ?? '')
-  setCurrentServiceTier(state.serviceTier ?? '')
-  setCurrentFastMode(state.fast ?? false)
+  // A manual picker choice is composer intent, not runtime telemetry. Keep
+  // caching heartbeat metadata per session, but do not republish it over the
+  // user's explicit next-turn selection.
+  if (getCurrentModelSource() !== 'manual') {
+    setCurrentModel(state.model ?? '')
+    setCurrentProvider(state.provider ?? '')
+    setCurrentReasoningEffort(state.reasoningEffort ?? '')
+    setCurrentServiceTier(state.serviceTier ?? '')
+    setCurrentFastMode(state.fast ?? false)
+  }
+
   setYoloActive(state.yolo ?? false)
   setCurrentPersonality(state.personality ?? '')
 }

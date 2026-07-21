@@ -16,6 +16,7 @@ import {
   setActiveSessionStoredIdRotation,
   setCurrentFastMode,
   setCurrentModel,
+  setCurrentModelSource,
   setCurrentProvider,
   setCurrentReasoningEffort,
   setCurrentServiceTier,
@@ -68,6 +69,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
+    setCurrentModelSource('')
     setCurrentProvider('')
     setCurrentReasoningEffort('')
     setCurrentServiceTier('')
@@ -81,6 +83,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
+    setCurrentModelSource('')
     setCurrentProvider('')
     setCurrentReasoningEffort('')
     setCurrentServiceTier('')
@@ -200,6 +203,46 @@ describe('useSessionStateCache — per-session turn timer', () => {
     expect($currentReasoningEffort.get()).toBe('high')
     expect($currentServiceTier.get()).toBe('priority')
     expect($currentFastMode.get()).toBe(true)
+  })
+
+  it('preserves a manual composer choice while caching active-session heartbeat metadata', () => {
+    setCurrentModel('manual-model')
+    setCurrentProvider('manual-provider')
+    setCurrentReasoningEffort('high')
+    setCurrentServiceTier('standard')
+    setCurrentFastMode(false)
+    setCurrentModelSource('manual')
+
+    let cache!: Cache
+    render(<Harness activeSessionId="fg-runtime" onReady={c => (cache = c)} selectedStoredSessionId="fg-stored" />)
+
+    act(() => {
+      cache.updateSessionState(
+        'fg-runtime',
+        state => ({
+          ...state,
+          fast: true,
+          model: 'profile-default',
+          provider: 'profile-provider',
+          reasoningEffort: 'low',
+          serviceTier: 'priority'
+        }),
+        'fg-stored'
+      )
+    })
+
+    expect(cache.sessionStateByRuntimeIdRef.current.get('fg-runtime')).toMatchObject({
+      fast: true,
+      model: 'profile-default',
+      provider: 'profile-provider',
+      reasoningEffort: 'low',
+      serviceTier: 'priority'
+    })
+    expect($currentModel.get()).toBe('manual-model')
+    expect($currentProvider.get()).toBe('manual-provider')
+    expect($currentReasoningEffort.get()).toBe('high')
+    expect($currentServiceTier.get()).toBe('standard')
+    expect($currentFastMode.get()).toBe(false)
   })
 
   it('clears stale model metadata when the newly focused session has no cached value', () => {

@@ -4,10 +4,24 @@ import { useEffect, useRef } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
+import { chatMessageText } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $compactingSessions, setSessionCompacting } from '@/store/compaction'
 import { $secretRequest, $sudoRequest, clearAllPrompts, setSecretRequest, setSudoRequest } from '@/store/prompts'
-import { $activeSessionId } from '@/store/session'
+import {
+  $activeSessionId,
+  $currentFastMode,
+  $currentModel,
+  $currentProvider,
+  $currentReasoningEffort,
+  $currentServiceTier,
+  setCurrentFastMode,
+  setCurrentModel,
+  setCurrentModelSource,
+  setCurrentProvider,
+  setCurrentReasoningEffort,
+  setCurrentServiceTier
+} from '@/store/session'
 import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './use-message-stream'
@@ -61,6 +75,12 @@ describe('useMessageStream lifecycle recovery', () => {
     sessionStates = null
     $activeSessionId.set(SID)
     $compactingSessions.set({})
+    setCurrentModel('')
+    setCurrentProvider('')
+    setCurrentReasoningEffort('')
+    setCurrentServiceTier('')
+    setCurrentFastMode(false)
+    setCurrentModelSource('')
     clearAllPrompts()
   })
 
@@ -68,6 +88,12 @@ describe('useMessageStream lifecycle recovery', () => {
     cleanup()
     $activeSessionId.set(null)
     $compactingSessions.set({})
+    setCurrentModel('')
+    setCurrentProvider('')
+    setCurrentReasoningEffort('')
+    setCurrentServiceTier('')
+    setCurrentFastMode(false)
+    setCurrentModelSource('')
     clearAllPrompts()
     vi.restoreAllMocks()
   })
@@ -125,5 +151,62 @@ describe('useMessageStream lifecycle recovery', () => {
     emit('message.start')
     expect(sessionStates!.get(SID)?.busy).toBe(false)
     expect(sessionStates!.get(SID)?.interrupted).toBe(true)
+  })
+
+  it('preserves interim commentary as a separate bubble before the final answer', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.delta', { text: 'Draft commentary' })
+    emit('message.interim', { text: 'Draft commentary' })
+    emit('message.complete', { text: 'Final answer' })
+
+    const messages = sessionStates!.get(SID)?.messages ?? []
+    expect(messages.map(chatMessageText)).toEqual(['Draft commentary', 'Final answer'])
+    expect(messages.some(message => message.pending)).toBe(false)
+  })
+
+  it('settles a previewed interim prefix in place', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.delta', { text: 'Candidate' })
+    emit('message.interim', { text: 'Candidate' })
+    emit('message.complete', { response_previewed: true, text: 'Candidate plus tail' })
+
+    const messages = sessionStates!.get(SID)?.messages ?? []
+    expect(messages).toHaveLength(1)
+    expect(chatMessageText(messages[0])).toBe('Candidate plus tail')
+  })
+
+  it('routes session metadata through the cache without directly writing composer atoms', async () => {
+    await mountStream()
+    setCurrentModel('manual-model')
+    setCurrentProvider('manual-provider')
+    setCurrentReasoningEffort('high')
+    setCurrentServiceTier('standard')
+    setCurrentFastMode(false)
+    setCurrentModelSource('manual')
+
+    emit('session.info', {
+      fast: true,
+      model: 'profile-default',
+      provider: 'profile-provider',
+      reasoning_effort: 'low',
+      service_tier: 'priority'
+    })
+
+    expect(sessionStates!.get(SID)).toMatchObject({
+      fast: true,
+      model: 'profile-default',
+      provider: 'profile-provider',
+      reasoningEffort: 'low',
+      serviceTier: 'priority'
+    })
+    expect($currentModel.get()).toBe('manual-model')
+    expect($currentProvider.get()).toBe('manual-provider')
+    expect($currentReasoningEffort.get()).toBe('high')
+    expect($currentServiceTier.get()).toBe('standard')
+    expect($currentFastMode.get()).toBe(false)
   })
 })

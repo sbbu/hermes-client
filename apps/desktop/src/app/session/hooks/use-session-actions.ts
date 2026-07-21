@@ -30,6 +30,8 @@ import {
   $messages,
   $sessions,
   $yoloActive,
+  getComposerSelectionGeneration,
+  getCurrentModelSource,
   sessionPinId,
   setActiveSessionId,
   setActiveSessionStoredIdRotation,
@@ -39,6 +41,7 @@ import {
   setCurrentCwd,
   setCurrentFastMode,
   setCurrentModel,
+  setCurrentModelSource,
   setCurrentPersonality,
   setCurrentProvider,
   setCurrentReasoningEffort,
@@ -357,12 +360,10 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
   }
 
   if (typeof info.model === 'string') {
-    setCurrentModel(info.model)
     sessionState.model = info.model
   }
 
   if (typeof info.provider === 'string') {
-    setCurrentProvider(info.provider)
     sessionState.provider = info.provider
   }
 
@@ -383,17 +384,14 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
   }
 
   if (typeof info.reasoning_effort === 'string') {
-    setCurrentReasoningEffort(info.reasoning_effort)
     sessionState.reasoningEffort = info.reasoning_effort
   }
 
   if (typeof info.service_tier === 'string') {
-    setCurrentServiceTier(info.service_tier)
     sessionState.serviceTier = info.service_tier
   }
 
   if (typeof info.fast === 'boolean') {
-    setCurrentFastMode(info.fast)
     sessionState.fast = info.fast
   }
 
@@ -409,12 +407,18 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
   return sessionState
 }
 
-function applyStoredSessionPreviewRuntimeInfo(stored: { model?: null | string } | undefined) {
-  setCurrentModel(stored?.model || '')
-  setCurrentProvider('')
-  setCurrentReasoningEffort('')
-  setCurrentServiceTier('')
-  setCurrentFastMode(false)
+function applyStoredSessionPreviewRuntimeInfo(
+  stored: { model?: null | string } | undefined,
+  preserveComposerIntent = false
+) {
+  if (!preserveComposerIntent) {
+    setCurrentModel(stored?.model || '')
+    setCurrentProvider('')
+    setCurrentReasoningEffort('')
+    setCurrentServiceTier('')
+    setCurrentFastMode(false)
+  }
+
   setYoloActive(false)
   setCurrentPersonality('')
 }
@@ -667,7 +671,21 @@ export function useSessionActions({
   const resumeSession = useCallback(
     async (storedSessionId: string, replaceRoute = false) => {
       const requestId = resumeRequestRef.current + 1
+      const switchingSessions = selectedStoredSessionIdRef.current !== storedSessionId
       resumeRequestRef.current = requestId
+
+      if (switchingSessions) {
+        // Release the prior session's manual composer intent before any async
+        // profile/resume work. A new picker action during that work can then
+        // re-arm manual intent without a late completion clearing it.
+        setCurrentModelSource('')
+      }
+
+      const composerIntentGeneration = getComposerSelectionGeneration()
+
+      const preserveComposerIntent = () =>
+        getCurrentModelSource() === 'manual' &&
+        (!switchingSessions || getComposerSelectionGeneration() !== composerIntentGeneration)
 
       const isCurrentResume = () =>
         resumeRequestRef.current === requestId && selectedStoredSessionIdRef.current === storedSessionId
@@ -791,7 +809,7 @@ export function useSessionActions({
       selectedStoredSessionIdRef.current = storedSessionId
       setSessionStartedAt(Date.now())
       const stored = $sessions.get().find(session => sessionMatchesStoredId(session, storedSessionId))
-      applyStoredSessionPreviewRuntimeInfo(stored)
+      applyStoredSessionPreviewRuntimeInfo(stored, preserveComposerIntent())
 
       if (stored) {
         setCurrentUsage(current => ({

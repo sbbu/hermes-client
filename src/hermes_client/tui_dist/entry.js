@@ -64285,7 +64285,7 @@ var init_theme = __esm({
     ];
     ANSI_MUTED_FOREGROUNDS = ["muted", "sessionLabel", "sessionBorder"];
     BRAND = {
-      name: "Hermes Agent",
+      name: "Hermes Client",
       icon: "\u2695",
       prompt: "\u276F",
       welcome: "Type your message or /help for commands.",
@@ -66736,6 +66736,7 @@ var init_turnController = __esm({
       activeTools = [];
       activeReasoningText = "";
       reasoningSegmentIndex = null;
+      interimBoundaryIndex = null;
       activityId = 0;
       reasoningStreamingTimer = null;
       reasoningTimer = null;
@@ -67062,7 +67063,8 @@ ${stripped}
         this.closeReasoningSegment();
         const rawText = (payload.text ?? payload.rendered ?? this.bufRef).trimStart();
         const split = splitReasoning(rawText);
-        const finalText = finalTail(split.text, this.segmentMessages);
+        const dedupeStart = payload.response_previewed ? 0 : this.interimBoundaryIndex ?? 0;
+        const finalText = finalTail(split.text, this.segmentMessages.slice(dedupeStart));
         const existingReasoning = this.reasoningText.trim() || String(payload.reasoning ?? "").trim();
         const savedReasoning = [existingReasoning, existingReasoning ? "" : split.reasoning].filter(Boolean).join("\n\n");
         const savedToolTokens = this.toolTokenAcc;
@@ -67127,6 +67129,20 @@ ${stripped}
         if (getUiState().streaming) {
           this.scheduleStreaming();
         }
+      }
+      recordInterimMessage(text) {
+        if (this.interrupted) {
+          return;
+        }
+        const authoritativeText = text.trimStart();
+        if (!authoritativeText) {
+          return;
+        }
+        if (this.bufRef.trimStart() !== authoritativeText) {
+          this.bufRef = authoritativeText;
+        }
+        this.flushStreamingSegment();
+        this.interimBoundaryIndex = this.segmentMessages.length;
       }
       recordReasoningAvailable(text, force = false) {
         if (this.interrupted || !force && !getUiState().showReasoning) {
@@ -67277,6 +67293,7 @@ ${body}` : header;
         this.pendingSegmentTools = [];
         this.protocolWarned = false;
         this.reasoningSegmentIndex = null;
+        this.interimBoundaryIndex = null;
         this.segmentMessages = [];
         this.turnTools = [];
         this.toolTokenAcc = 0;
@@ -67324,6 +67341,7 @@ ${body}` : header;
         this.activeTools = [];
         this.activeReasoningText = "";
         this.reasoningSegmentIndex = null;
+        this.interimBoundaryIndex = null;
         this.turnTools = [];
         this.toolTokenAcc = 0;
         this.interrupted = false;
@@ -67949,6 +67967,13 @@ function createGatewayEventHandler(ctx) {
       case "message.delta":
         turnController.recordMessageDelta(ev.payload ?? {});
         return;
+      case "message.interim": {
+        const text = ev.payload?.text;
+        if (typeof text === "string" && text.trim()) {
+          turnController.recordInterimMessage(text);
+        }
+        return;
+      }
       case "message.complete": {
         const { finalMessages, finalText, wasInterrupted } = turnController.recordMessageComplete(ev.payload ?? {});
         if (!wasInterrupted) {
@@ -68381,7 +68406,7 @@ var init_core = __esm({
         }
       },
       {
-        help: "update Hermes Agent to the latest version (exits TUI)",
+        help: "update Hermes Client to the latest version (exits TUI)",
         name: "update",
         run: (_arg, ctx) => {
           if (DASHBOARD_TUI_MODE) {
@@ -69466,7 +69491,7 @@ var init_overlayPrimitives = __esm({
 });
 
 // src/app/slash/commands/session.ts
-var USAGE_CTA, TUI_SESSION_MODEL_RE, modelValueForConfigSet, sessionCommands;
+var USAGE_CTA, TUI_SESSION_MODEL_RE, REASONING_SESSION_FLAGS, REASONING_GLOBAL_FLAGS, modelValueForConfigSet, reasoningConfigPayload, sessionCommands;
 var init_session = __esm({
   "src/app/slash/commands/session.ts"() {
     "use strict";
@@ -69480,6 +69505,8 @@ var init_session = __esm({
     init_uiStore();
     USAGE_CTA = "Run /subscription to change plan \xB7 /topup to add to your balance";
     TUI_SESSION_MODEL_RE = new RegExp(`(?:^|\\s)${TUI_SESSION_MODEL_FLAG}(?:\\s|$)`);
+    REASONING_SESSION_FLAGS = /* @__PURE__ */ new Set(["--session"]);
+    REASONING_GLOBAL_FLAGS = /* @__PURE__ */ new Set(["--global"]);
     modelValueForConfigSet = (arg) => {
       const trimmed = arg.trim();
       if (!trimmed) {
@@ -69489,6 +69516,32 @@ var init_session = __esm({
         return sessionScopedModelArg(trimmed);
       }
       return trimmed;
+    };
+    reasoningConfigPayload = (arg, sid) => {
+      const parts = arg.trim().split(/\s+/).filter(Boolean);
+      let scope = "";
+      const valueParts = [];
+      for (const part of parts) {
+        const flag = part.toLowerCase();
+        if (REASONING_GLOBAL_FLAGS.has(flag)) {
+          scope = "global";
+          continue;
+        }
+        if (REASONING_SESSION_FLAGS.has(flag)) {
+          if (!scope) {
+            scope = "session";
+          }
+          continue;
+        }
+        valueParts.push(part);
+      }
+      const value = valueParts.join(" ");
+      return {
+        key: "reasoning",
+        session_id: sid,
+        value,
+        ...scope ? { scope } : {}
+      };
     };
     sessionCommands = [
       {
@@ -69783,13 +69836,13 @@ ${body}` : body);
         name: "reasoning",
         run: (arg, ctx) => {
           if (!arg) {
-            return ctx.gateway.rpc("config.get", { key: "reasoning" }).then(
+            return ctx.gateway.rpc("config.get", { key: "reasoning", session_id: ctx.sid }).then(
               ctx.guarded(
                 (r) => r.value && ctx.transcript.sys(`reasoning: ${r.value} \xB7 display ${r.display || "hide"}`)
               )
             );
           }
-          ctx.gateway.rpc("config.set", { key: "reasoning", session_id: ctx.sid, value: arg }).then(
+          ctx.gateway.rpc("config.set", reasoningConfigPayload(arg, ctx.sid ?? "")).then(
             ctx.guarded((r) => {
               if (!r.value) {
                 return;
@@ -80210,7 +80263,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
           "- run",
           " "
         ] }),
-        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { bold: true, color: t.color.warn, children: info.update_command || "hermes update" }),
+        /* @__PURE__ */ (0, import_jsx_runtime34.jsx)(Text, { bold: true, color: t.color.warn, children: "the update command on the remote Hermes host" }),
         /* @__PURE__ */ (0, import_jsx_runtime34.jsxs)(Text, { bold: false, color: t.color.warn, dimColor: true, children: [
           " ",
           "to update"

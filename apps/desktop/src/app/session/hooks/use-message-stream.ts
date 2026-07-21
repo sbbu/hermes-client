@@ -11,6 +11,7 @@ import {
   type ChatMessagePart,
   chatMessageText,
   type GatewayEventPayload,
+  mergeFinalAssistantText,
   reasoningPart,
   renderMediaTags,
   textPart,
@@ -46,12 +47,11 @@ import {
 import {
   $currentModel,
   $currentProvider,
+  getCurrentModelSource,
   setCurrentBranch,
   setCurrentCwd,
   setCurrentFastMode,
-  setCurrentModel,
   setCurrentPersonality,
-  setCurrentProvider,
   setCurrentReasoningEffort,
   setCurrentServiceTier,
   setCurrentUsage,
@@ -179,6 +179,7 @@ const SUBAGENT_EVENT_TYPES = new Set([
 
 const COMPACTION_RESUME_EVENT_TYPES = new Set([
   'message.delta',
+  'message.interim',
   'thinking.delta',
   'reasoning.delta',
   'reasoning.available',
@@ -597,8 +598,59 @@ export function useMessageStream({
     [flushQueuedDeltas, mutateStream, sessionInterrupted]
   )
 
-  const completeAssistantMessage = useCallback(
+  const finalizeInterimAssistantMessage = useCallback(
     (sessionId: string, text: string) => {
+      updateSessionState(sessionId, state => {
+        if (state.interrupted) {
+          return state
+        }
+
+        const authoritativeText = renderMediaTags(text).trim()
+
+        if (!authoritativeText) {
+          return state
+        }
+
+        const replaceTextPart = (parts: ChatMessagePart[]) => {
+          const visibleText = stripGeneratedImageEchoes(authoritativeText, generatedImageEchoSources(parts)).trim()
+
+          return mergeFinalAssistantText(parts, visibleText)
+        }
+
+        const streamId = state.streamId
+
+        const messages =
+          streamId && state.messages.some(message => message.id === streamId)
+            ? state.messages.map(message =>
+                message.id === streamId
+                  ? { ...message, parts: replaceTextPart(message.parts), pending: false }
+                  : message
+              )
+            : [
+                ...state.messages,
+                {
+                  id: `assistant-interim-${Date.now()}`,
+                  role: 'assistant' as const,
+                  parts: [assistantTextPart(authoritativeText)],
+                  pending: false,
+                  branchGroupId: state.pendingBranchGroup ?? undefined
+                }
+              ]
+
+        return {
+          ...state,
+          messages,
+          streamId: null,
+          interimBoundaryPending: true,
+          sawAssistantPayload: true
+        }
+      })
+    },
+    [updateSessionState]
+  )
+
+  const completeAssistantMessage = useCallback(
+    (sessionId: string, text: string, responsePreviewed?: boolean) => {
       let shouldHydrate = false
 
       const completedState = updateSessionState(sessionId, state => {
@@ -614,6 +666,7 @@ export function useMessageStream({
             needsInput: false,
             pendingBranchGroup: null,
             streamId: null,
+            interimBoundaryPending: false,
             turnStartedAt: null
           }
         }
@@ -621,27 +674,12 @@ export function useMessageStream({
         const streamId = state.streamId
         const finalText = renderMediaTags(text).trim()
         const completionError = completionErrorText(finalText)
-        const normalize = (value: string) => value.replace(/\s+/g, ' ').trim()
+        const interimBoundaryPending = state.interimBoundaryPending
 
         const replaceTextPart = (parts: ChatMessagePart[]) => {
           const visibleFinalText = stripGeneratedImageEchoes(finalText, generatedImageEchoSources(parts)).trim()
-          const dedupeReference = normalize(visibleFinalText)
 
-          const kept = parts.filter(part => {
-            if (part.type === 'text') {
-              return false
-            }
-
-            if (part.type !== 'reasoning' || !dedupeReference) {
-              return true
-            }
-
-            const r = normalize(part.text)
-
-            return !(r && (dedupeReference.startsWith(r) || r.startsWith(dedupeReference)))
-          })
-
-          return visibleFinalText ? [...kept, assistantTextPart(visibleFinalText)] : kept
+          return mergeFinalAssistantText(parts, visibleFinalText)
         }
 
         const completeMessage = (message: ChatMessage): ChatMessage =>
@@ -681,7 +719,17 @@ export function useMessageStream({
             const existing = prev[index]
             const existingText = chatMessageText(existing).trim()
 
-            if (existing.pending || (finalText && existingText === finalText)) {
+            if (existing.pending || (!interimBoundaryPending && finalText && existingText === finalText)) {
+              nextMessages = prev.map((message, messageIndex) =>
+                messageIndex === index ? completeMessage(message) : message
+              )
+            } else if (
+              interimBoundaryPending &&
+              responsePreviewed &&
+              finalText &&
+              existingText &&
+              finalText.startsWith(existingText)
+            ) {
               nextMessages = prev.map((message, messageIndex) =>
                 messageIndex === index ? completeMessage(message) : message
               )
@@ -707,6 +755,7 @@ export function useMessageStream({
           awaitingResponse: false,
           busy: false,
           needsInput: false,
+          interimBoundaryPending: false,
           turnStartedAt: null
         }
       })
@@ -770,6 +819,7 @@ export function useMessageStream({
           awaitingResponse: false,
           busy: false,
           needsInput: false,
+          interimBoundaryPending: false,
           turnStartedAt: null
         }
       })
@@ -817,21 +867,15 @@ export function useMessageStream({
         const runningChanged = typeof payload?.running === 'boolean'
         const knownState = sessionId ? sessionStateByRuntimeIdRef.current.get(sessionId) : undefined
 
-        const modelValueChanged =
-          modelChanged && payload!.model !== (knownState?.model ?? $currentModel.get())
+        const modelValueChanged = modelChanged && payload!.model !== (knownState?.model ?? $currentModel.get())
 
         const providerValueChanged =
           providerChanged && payload!.provider !== (knownState?.provider ?? $currentProvider.get())
 
         if (apply) {
-          if (modelChanged) {
-            setCurrentModel(payload!.model || '')
-          }
-
-          if (providerChanged) {
-            setCurrentProvider(payload!.provider || '')
-          }
-
+          // Composer model/provider is sticky UI state. Session heartbeat
+          // values still flow through the per-session cache below, but must not
+          // silently overwrite a manual picker choice.
           if (typeof payload?.cwd === 'string') {
             setCurrentCwd(payload.cwd)
           }
@@ -844,16 +888,18 @@ export function useMessageStream({
             setCurrentPersonality(normalizePersonalityValue(payload.personality))
           }
 
-          if (typeof payload?.reasoning_effort === 'string') {
-            setCurrentReasoningEffort(payload.reasoning_effort)
-          }
+          if (getCurrentModelSource() !== 'manual') {
+            if (typeof payload?.reasoning_effort === 'string') {
+              setCurrentReasoningEffort(payload.reasoning_effort)
+            }
 
-          if (typeof payload?.service_tier === 'string') {
-            setCurrentServiceTier(payload.service_tier)
-          }
+            if (typeof payload?.service_tier === 'string') {
+              setCurrentServiceTier(payload.service_tier)
+            }
 
-          if (typeof payload?.fast === 'boolean') {
-            setCurrentFastMode(payload.fast)
+            if (typeof payload?.fast === 'boolean') {
+              setCurrentFastMode(payload.fast)
+            }
           }
 
           if (typeof payload?.yolo === 'boolean') {
@@ -964,6 +1010,7 @@ export function useMessageStream({
             awaitingResponse: true,
             sawAssistantPayload: false,
             interrupted: false,
+            interimBoundaryPending: false,
             turnStartedAt: Date.now()
           }
         })
@@ -974,6 +1021,15 @@ export function useMessageStream({
       } else if (event.type === 'message.delta') {
         if (sessionId) {
           appendAssistantDelta(sessionId, coerceGatewayText(payload?.text))
+        }
+      } else if (event.type === 'message.interim') {
+        if (sessionId) {
+          flushQueuedDeltas(sessionId)
+          const interimText = coerceGatewayText(payload?.text)
+
+          if (interimText) {
+            finalizeInterimAssistantMessage(sessionId, interimText)
+          }
         }
       } else if (event.type === 'thinking.delta') {
         // thinking.delta carries the kawaii spinner status (face + verb from
@@ -1013,7 +1069,7 @@ export function useMessageStream({
         playCompletionSound()
 
         const finalText = coerceGatewayText(payload?.text) || coerceGatewayText(payload?.rendered)
-        completeAssistantMessage(sessionId, finalText)
+        completeAssistantMessage(sessionId, finalText, payload?.response_previewed)
 
         if (isActiveEvent) {
           setTurnStartedAt(null)
@@ -1318,6 +1374,7 @@ export function useMessageStream({
       activeSessionIdRef,
       completeAssistantMessage,
       failAssistantMessage,
+      finalizeInterimAssistantMessage,
       flushQueuedDeltas,
       queryClient,
       scheduleConfigRefresh,
@@ -1332,6 +1389,7 @@ export function useMessageStream({
     appendAssistantDelta,
     appendReasoningDelta,
     completeAssistantMessage,
+    finalizeInterimAssistantMessage,
     handleGatewayEvent,
     upsertToolCall
   }

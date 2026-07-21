@@ -5,6 +5,7 @@ import {
   appendAssistantTextPart,
   appendReasoningPart,
   chatMessageText,
+  mergeFinalAssistantText,
   preserveLocalAssistantErrors,
   renderMediaTags,
   toChatMessages,
@@ -783,5 +784,28 @@ describe('upsertToolPart', () => {
       data: { web: [{ title: 'Suva forecast' }] },
       summary: 'Did 1 search in 0.5s'
     })
+  })
+
+  it('replaces streamed text while preserving distinct longer reasoning', () => {
+    const parts: ChatMessagePart[] = [
+      { type: 'reasoning', text: 'Done, after checking several details.' },
+      { type: 'text', text: 'partial' }
+    ]
+
+    expect(mergeFinalAssistantText(parts, 'Done.')).toEqual([
+      { type: 'reasoning', text: 'Done, after checking several details.' },
+      { type: 'text', text: 'Done.' }
+    ])
+  })
+
+  it('deduplicates reasoning fully covered by the final answer', () => {
+    const parts: ChatMessagePart[] = [
+      { type: 'reasoning', text: 'Checked it.' },
+      { type: 'text', text: 'partial' }
+    ]
+
+    expect(mergeFinalAssistantText(parts, 'Checked it. Everything passes.')).toEqual([
+      { type: 'text', text: 'Checked it. Everything passes.' }
+    ])
   })
 })

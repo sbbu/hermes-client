@@ -16,40 +16,60 @@ export function useStatusSnapshot(gatewayState: string | undefined, requestGatew
 
   useEffect(() => {
     let cancelled = false
+    let timer: number | undefined
+
+    if (gatewayState !== 'open') {
+      setInferenceStatus(null)
+    }
+
+    const scheduleRefresh = () => {
+      if (!cancelled) {
+        timer = window.setTimeout(() => void refresh(), REFRESH_MS)
+      }
+    }
 
     const refresh = async () => {
       try {
-        const [next, logs, inference] = await Promise.all([
+        const [statusResult, logsResult, inferenceResult] = await Promise.allSettled([
           getStatus(),
-          getLogs({ file: 'gui', lines: LOG_TAIL }).catch(() => ({ lines: [] })),
-          gatewayState === 'open'
-            ? evaluateRuntimeReadiness(requestGateway).catch(error => ({
-                checksDisagree: false,
-                ready: false,
-                reason: error instanceof Error ? error.message : String(error),
-                source: 'fallback' as const
-              }))
-            : Promise.resolve(null)
+          getLogs({ file: 'gui', lines: LOG_TAIL }),
+          gatewayState === 'open' ? evaluateRuntimeReadiness(requestGateway) : Promise.resolve(null)
         ])
 
         if (cancelled) {
           return
         }
 
-        setStatusSnapshot(next)
-        setGatewayLogLines(logs.lines.map(line => line.trim()).filter(Boolean))
-        setInferenceStatus(inference)
-      } catch {
-        // Keep last snapshot through transient gateway flaps.
+        if (statusResult.status === 'fulfilled') {
+          setStatusSnapshot(statusResult.value)
+        }
+
+        if (logsResult.status === 'fulfilled') {
+          setGatewayLogLines(logsResult.value.lines.map(line => line.trim()).filter(Boolean))
+        }
+
+        if (inferenceResult.status === 'fulfilled') {
+          const inference = inferenceResult.value
+
+          if (inference === null) {
+            setInferenceStatus(null)
+          } else if (inference.source !== 'fallback') {
+            setInferenceStatus(inference)
+          }
+        }
+      } finally {
+        scheduleRefresh()
       }
     }
 
     void refresh()
-    const timer = window.setInterval(() => void refresh(), REFRESH_MS)
 
     return () => {
       cancelled = true
-      window.clearInterval(timer)
+
+      if (timer !== undefined) {
+        window.clearTimeout(timer)
+      }
     }
   }, [gatewayState, requestGateway])
 

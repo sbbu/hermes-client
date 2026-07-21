@@ -71,6 +71,9 @@ export type GatewayEventPayload = {
   count?: number
   // status.update (kind=process → background process completion/watch-match)
   kind?: string
+  // message.complete — signals the final text was already previewed via
+  // message.interim, so the UI can settle instead of duplicating it.
+  response_previewed?: boolean
 }
 
 export function textPart(text: string): ChatMessagePart {
@@ -118,6 +121,29 @@ export function chatMessageText(message: ChatMessage): string {
     .filter((part): part is Extract<ChatMessagePart, { type: 'text' }> => part.type === 'text')
     .map(part => part.text)
     .join('')
+}
+
+const normalizeWs = (value: string) => value.replace(/\s+/g, ' ').trim()
+
+/** Merge authoritative final text without discarding distinct reasoning. */
+export function mergeFinalAssistantText(parts: ChatMessagePart[], finalText: string): ChatMessagePart[] {
+  const dedupeReference = normalizeWs(finalText)
+
+  const kept = parts.filter(part => {
+    if (part.type === 'text') {
+      return false
+    }
+
+    if (part.type !== 'reasoning' || !dedupeReference) {
+      return true
+    }
+
+    const reasoning = normalizeWs(part.text)
+
+    return !(reasoning && dedupeReference.startsWith(reasoning))
+  })
+
+  return finalText ? [...kept, assistantTextPart(finalText)] : kept
 }
 
 const ATTACHED_CONTEXT_MARKER_RE = /(?:^|\n)--- Attached Context ---\s*\n/

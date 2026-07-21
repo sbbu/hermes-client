@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  AUDIO_SPEAK_MAX_REQUEST_TIMEOUT_MS,
+  AUDIO_SPEAK_MIN_REQUEST_TIMEOUT_MS,
+  AUDIO_TRANSCRIBE_MAX_REQUEST_TIMEOUT_MS,
+  AUDIO_TRANSCRIBE_MIN_REQUEST_TIMEOUT_MS,
+  audioSpeakRequestTimeoutMs,
+  audioTranscribeRequestTimeoutMs,
   getCronJobs,
   getCronJobsForProfiles,
   getGlobalModelOptions,
@@ -8,6 +14,8 @@ import {
   listAllProfileSessions,
   listSessions,
   setApiRequestProfile,
+  speakText,
+  transcribeAudio,
   triggerCronJob
 } from './hermes'
 
@@ -128,5 +136,35 @@ describe('Hermes REST session helpers', () => {
         path: '/api/model/options?refresh=1&include_unconfigured=1'
       })
     )
+  })
+
+  it('bounds audio request timeouts by payload size', () => {
+    expect(audioSpeakRequestTimeoutMs('short')).toBe(AUDIO_SPEAK_MIN_REQUEST_TIMEOUT_MS)
+    expect(audioSpeakRequestTimeoutMs('x'.repeat(100_000))).toBe(AUDIO_SPEAK_MAX_REQUEST_TIMEOUT_MS)
+    expect(audioTranscribeRequestTimeoutMs('short')).toBe(AUDIO_TRANSCRIBE_MIN_REQUEST_TIMEOUT_MS)
+    expect(audioTranscribeRequestTimeoutMs('x'.repeat(9_000_000))).toBe(AUDIO_TRANSCRIBE_MAX_REQUEST_TIMEOUT_MS)
+  })
+
+  it('routes blocking audio calls to the active profile with extended timeouts', async () => {
+    api.mockResolvedValue({ ok: true })
+    setApiRequestProfile('analyst')
+
+    await speakText('Read this aloud')
+    await transcribeAudio('data:audio/webm;base64,AA==', 'audio/webm')
+
+    expect(api).toHaveBeenNthCalledWith(1, {
+      body: { text: 'Read this aloud' },
+      method: 'POST',
+      path: '/api/audio/speak',
+      profile: 'analyst',
+      timeoutMs: AUDIO_SPEAK_MIN_REQUEST_TIMEOUT_MS
+    })
+    expect(api).toHaveBeenNthCalledWith(2, {
+      body: { data_url: 'data:audio/webm;base64,AA==', mime_type: 'audio/webm' },
+      method: 'POST',
+      path: '/api/audio/transcribe',
+      profile: 'analyst',
+      timeoutMs: AUDIO_TRANSCRIBE_MIN_REQUEST_TIMEOUT_MS
+    })
   })
 })

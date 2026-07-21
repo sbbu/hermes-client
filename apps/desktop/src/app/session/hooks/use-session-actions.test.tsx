@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getSessionMessages } from '@/hermes'
+import { createClientSessionState } from '@/lib/chat-runtime'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
 import {
   $activeSessionStoredIdRotation,
@@ -15,7 +16,10 @@ import {
   $messages,
   $resumeFailedSessionId,
   $selectedStoredSessionId,
+  getCurrentModelSource,
+  markComposerSelectionManual,
   setActiveSessionStoredIdRotation,
+  setCurrentModelSource,
   setMessages,
   setResumeFailedSessionId
 } from '@/store/session'
@@ -277,6 +281,94 @@ describe('stored-session rotation', () => {
   })
 })
 
+function WarmResumeHarness({
+  onReady,
+  syncSessionStateToView
+}: {
+  onReady: (resume: (storedSessionId: string, replaceRoute?: boolean) => Promise<unknown>) => void
+  syncSessionStateToView: (sessionId: string, state: ClientSessionState) => void
+}) {
+  const cachedState = {
+    ...createClientSessionState(),
+    model: 'session-b-model',
+    provider: 'session-b-provider',
+    storedSessionId: 'stored-b'
+  }
+
+  const selectedRef = { current: 'stored-a' as string | null }
+
+  const actions = useSessionActions({
+    activeSessionId: 'runtime-a',
+    activeSessionIdRef: { current: 'runtime-a' },
+    busyRef: { current: false },
+    creatingSessionRef: { current: false },
+    ensureSessionState: () => cachedState,
+    getRouteToken: () => 'token',
+    navigate: vi.fn() as never,
+    requestGateway: vi.fn(async () => ({}) as never),
+    resetViewSync: vi.fn(),
+    runtimeIdByStoredSessionIdRef: { current: new Map([['stored-b', 'runtime-b']]) },
+    selectedStoredSessionId: selectedRef.current,
+    selectedStoredSessionIdRef: selectedRef,
+    sessionStateByRuntimeIdRef: { current: new Map([['runtime-b', cachedState]]) },
+    syncSessionStateToView,
+    updateSessionState: () => cachedState
+  })
+
+  useEffect(() => {
+    onReady(actions.resumeSession)
+  }, [actions.resumeSession, onReady])
+
+  return null
+}
+
+describe('resumeSession composer model intent', () => {
+  afterEach(() => {
+    cleanup()
+    setCurrentModelSource('')
+    vi.restoreAllMocks()
+    vi.mocked(ensureGatewayProfile).mockResolvedValue(undefined)
+  })
+
+  it('releases a manual model guard when intentionally switching warm sessions', async () => {
+    setCurrentModelSource('manual')
+    const syncSessionStateToView = vi.fn()
+    let resume: ((storedSessionId: string, replaceRoute?: boolean) => Promise<unknown>) | null = null
+
+    render(<WarmResumeHarness onReady={next => (resume = next)} syncSessionStateToView={syncSessionStateToView} />)
+    await waitFor(() => expect(resume).not.toBeNull())
+    await resume!('stored-b')
+
+    expect(getCurrentModelSource()).toBe('')
+    expect(syncSessionStateToView).toHaveBeenCalledWith(
+      'runtime-b',
+      expect.objectContaining({ model: 'session-b-model', provider: 'session-b-provider' })
+    )
+  })
+
+  it('does not clear a newer picker action when the session switch finishes', async () => {
+    let releaseProfile!: () => void
+    vi.mocked(ensureGatewayProfile).mockImplementationOnce(
+      () => new Promise<void>(resolve => (releaseProfile = resolve))
+    )
+    setCurrentModelSource('manual')
+    const syncSessionStateToView = vi.fn()
+    let resume: ((storedSessionId: string, replaceRoute?: boolean) => Promise<unknown>) | null = null
+
+    render(<WarmResumeHarness onReady={next => (resume = next)} syncSessionStateToView={syncSessionStateToView} />)
+    await waitFor(() => expect(resume).not.toBeNull())
+    const pending = resume!('stored-b')
+    await waitFor(() => expect(ensureGatewayProfile).toHaveBeenCalled())
+    expect(getCurrentModelSource()).toBe('')
+
+    setCurrentModelSource('manual')
+    releaseProfile()
+    await pending
+
+    expect(getCurrentModelSource()).toBe('manual')
+  })
+})
+
 // ── Resume failure recovery (the "stuck loading session window" bug) ──────────
 // When session.resume rejects AND the REST transcript fallback ALSO fails, the
 // hook must (a) not throw out of the fallback (which stranded the loader), and
@@ -321,7 +413,13 @@ describe('resumeSession failure recovery', () => {
     cleanup()
     setResumeFailedSessionId(null)
     setMessages([])
+    setCurrentModelSource('')
+    $currentModel.set('')
+    $currentProvider.set('')
+    $currentReasoningEffort.set('')
+    $currentFastMode.set(false)
     vi.restoreAllMocks()
+    vi.mocked(ensureGatewayProfile).mockResolvedValue(undefined)
   })
 
   async function runResume(
@@ -332,6 +430,51 @@ describe('resumeSession failure recovery', () => {
     await waitFor(() => expect(resume).not.toBeNull())
     await resume!('stored-1', true)
   }
+
+  it('preserves a newer picker action through a cold resume response', async () => {
+    let releaseProfile!: () => void
+    vi.mocked(ensureGatewayProfile).mockImplementationOnce(
+      () => new Promise<void>(resolve => (releaseProfile = resolve))
+    )
+    vi.mocked(getSessionMessages).mockResolvedValue({ messages: [] } as never)
+    setCurrentModelSource('manual')
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.resume') {
+        return {
+          info: {
+            fast: true,
+            model: 'stored-model',
+            provider: 'stored-provider',
+            reasoning_effort: 'low'
+          },
+          messages: [],
+          running: false,
+          session_id: 'runtime-b'
+        } as never
+      }
+
+      return {} as never
+    })
+
+    const pending = runResume(requestGateway)
+    await waitFor(() => expect(ensureGatewayProfile).toHaveBeenCalled())
+    expect(getCurrentModelSource()).toBe('')
+
+    $currentModel.set('new-picker-model')
+    $currentProvider.set('new-picker-provider')
+    $currentReasoningEffort.set('high')
+    $currentFastMode.set(false)
+    markComposerSelectionManual()
+    releaseProfile()
+    await pending
+
+    expect(getCurrentModelSource()).toBe('manual')
+    expect($currentModel.get()).toBe('new-picker-model')
+    expect($currentProvider.get()).toBe('new-picker-provider')
+    expect($currentReasoningEffort.get()).toBe('high')
+    expect($currentFastMode.get()).toBe(false)
+  })
 
   it('arms $resumeFailedSessionId when resume RPC and REST fallback both fail', async () => {
     // session.resume rejects (e.g. timeout against a wedged backend)...

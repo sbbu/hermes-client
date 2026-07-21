@@ -214,15 +214,20 @@ def cmd_chat(args) -> None:
 
 def cmd_tui(args) -> None:
     url = _configured_url(args)
-    raise SystemExit(
-        run_tui(
-            url,
-            query=getattr(args, "query", None),
-            resume=getattr(args, "resume", None),
-            inline=getattr(args, "inline", None),
-            mouse=getattr(args, "mouse", None),
-        )
+    code = run_tui(
+        url,
+        query=getattr(args, "query", None),
+        resume=getattr(args, "resume", None),
+        inline=getattr(args, "inline", None),
+        mouse=getattr(args, "mouse", None),
     )
+    if code == 42:
+        print()
+        print("⚕ Updating Hermes Client...")
+        print()
+        cmd_update(args)
+        return
+    raise SystemExit(code)
 
 
 def cmd_worker(args) -> None:

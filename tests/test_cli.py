@@ -20,6 +20,28 @@ def test_update_command_and_legacy_alias():
     assert cli.build_parser().parse_args(["self-update"]).func is cli.cmd_update
 
 
+def test_tui_update_exit_runs_client_updater(monkeypatch, capsys):
+    args = SimpleNamespace(inline=None, mouse=None, query=None, resume=None, url="http://remote.example")
+    monkeypatch.setattr(cli, "run_tui", lambda *args, **kwargs: 42)
+    updates = []
+    monkeypatch.setattr(cli, "cmd_update", lambda update_args: updates.append(update_args))
+
+    cli.cmd_tui(args)
+
+    assert updates == [args]
+    assert "Updating Hermes Client" in capsys.readouterr().out
+
+
+def test_tui_propagates_non_update_exit_codes(monkeypatch):
+    args = SimpleNamespace(inline=None, mouse=None, query=None, resume=None, url="http://remote.example")
+    monkeypatch.setattr(cli, "run_tui", lambda *args, **kwargs: 7)
+
+    with pytest.raises(SystemExit) as excinfo:
+        cli.cmd_tui(args)
+
+    assert excinfo.value.code == 7
+
+
 def test_main_prints_connection_errors_without_traceback(monkeypatch, capsys):
     def fail(args):
         raise DashboardConnectionError("cannot reach remote")
