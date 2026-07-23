@@ -97,6 +97,117 @@ SHELL_HOME_SUFFIX_RE = re.compile(r"\$\{HOME(?P<op>%%|%)(?P<pattern>[^{}]*)\}")
 SHELL_IDENTITY_REF_RE = re.compile(r"\$\{(?:USER|LOGNAME)\}|\$(?:USER|LOGNAME)\b")
 
 
+_ANSI_C_SIMPLE_ESCAPES = {
+    "a": "\a",
+    "b": "\b",
+    "e": "\x1b",
+    "E": "\x1b",
+    "f": "\f",
+    "n": "\n",
+    "r": "\r",
+    "t": "\t",
+    "v": "\v",
+    "\\": "\\",
+    "'": "'",
+    '"': '"',
+}
+
+
+def _decode_shell_ansi_c_content(content: str) -> str:
+    """Decode the escape forms that Bash/Zsh support inside $'...' words."""
+    out: list[str] = []
+    index = 0
+    while index < len(content):
+        char = content[index]
+        if char != "\\" or index + 1 >= len(content):
+            out.append(char)
+            index += 1
+            continue
+
+        escape = content[index + 1]
+        if escape in _ANSI_C_SIMPLE_ESCAPES:
+            out.append(_ANSI_C_SIMPLE_ESCAPES[escape])
+            index += 2
+            continue
+        if escape in "01234567":
+            end = index + 2
+            while end < len(content) and end < index + 4 and content[end] in "01234567":
+                end += 1
+            out.append(chr(int(content[index + 1 : end], 8)))
+            index = end
+            continue
+        if escape in {"x", "u", "U"}:
+            limit = {"x": 2, "u": 4, "U": 8}[escape]
+            start = index + 2
+            end = start
+            while end < len(content) and end < start + limit and content[end] in "0123456789abcdefABCDEF":
+                end += 1
+            if end > start:
+                try:
+                    out.append(chr(int(content[start:end], 16)))
+                    index = end
+                    continue
+                except ValueError:
+                    pass
+        if escape == "c" and index + 2 < len(content):
+            out.append(chr(ord(content[index + 2].upper()) & 0x1F))
+            index += 3
+            continue
+
+        # Bash preserves the slash for escape forms that ANSI-C quoting does
+        # not recognize. Keep that behavior so the safety parser does not
+        # invent a different target.
+        out.extend(("\\", escape))
+        index += 2
+    return "".join(out)
+
+
+def _shell_ansi_c_quote_variant(text: str) -> str:
+    """Return a shell-equivalent variant with unquoted $'...' words decoded."""
+    out: list[str] = []
+    index = 0
+    quote: str | None = None
+    changed = False
+    while index < len(text):
+        char = text[index]
+        if char == "\\" and quote != "'" and index + 1 < len(text):
+            out.append(text[index : index + 2])
+            index += 2
+            continue
+        if char == "'" and quote in {None, "'"}:
+            quote = None if quote == "'" else "'"
+            out.append(char)
+            index += 1
+            continue
+        if char == '"' and quote in {None, '"'}:
+            quote = None if quote == '"' else '"'
+            out.append(char)
+            index += 1
+            continue
+        if quote is None and char == "$" and index + 1 < len(text) and text[index + 1] == "'":
+            cursor = index + 2
+            escaped = False
+            while cursor < len(text):
+                current = text[cursor]
+                if current == "'" and not escaped:
+                    break
+                if current == "\\" and not escaped:
+                    escaped = True
+                else:
+                    escaped = False
+                cursor += 1
+            if cursor >= len(text):
+                return text
+            decoded = _decode_shell_ansi_c_content(text[index + 2 : cursor])
+            out.append(shlex.quote(decoded))
+            index = cursor + 1
+            changed = True
+            continue
+        out.append(char)
+        index += 1
+    return "".join(out) if changed else text
+
+
 def _shell_words(fragment: str) -> list[str]:
     # Unquoted $IFS expands to shell word separators before command execution.
     # Normalize it before shlex parsing so payloads like rm${IFS}-rf${IFS}/
@@ -313,10 +424,15 @@ def _dangerous_rm_target_reason(text: str) -> str | None:
         if variants is None:
             return SHELL_PARAMETER_GUARD_REASON
         for candidate in (fragment, *variants):
-            fragments.append(candidate)
-            home_variant = _known_home_parameter_variant(candidate)
-            if home_variant != candidate:
-                fragments.append(home_variant)
+            candidate_variants = [candidate]
+            ansi_c_variant = _shell_ansi_c_quote_variant(candidate)
+            if ansi_c_variant != candidate:
+                candidate_variants.append(ansi_c_variant)
+            for expanded_candidate in candidate_variants:
+                fragments.append(expanded_candidate)
+                home_variant = _known_home_parameter_variant(expanded_candidate)
+                if home_variant != expanded_candidate:
+                    fragments.append(home_variant)
     seen: set[str] = set()
     for fragment in fragments:
         if fragment in seen:

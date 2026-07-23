@@ -61,6 +61,13 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf /tmp/${X:-..}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-../*}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-.}/..")
+    assert blocked_type_pattern("rm -r $'/'")
+    assert blocked_type_pattern(r"rm -r $'\x2f'")
+    assert blocked_type_pattern(r"rm -r $'\057'")
+    assert blocked_type_pattern(r"rm -r $'\u002f'")
+    assert blocked_type_pattern(r"$'\x72\x6d' $'\x2d\x72' $'\x2f'")
+    assert blocked_type_pattern(r"r$'\x6d' -$'\x72' $'\x2f'")
+    assert blocked_type_pattern("rm -rf $'/tmp/..'")
     assert blocked_type_pattern("rm -rf ${HOME%%/*}/")
     assert blocked_type_pattern("rm -r ${HOME%%/*}/*")
     assert blocked_type_pattern("rm ${FLAGS:--rf} /")
@@ -109,6 +116,7 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -fr /Users/${USER:-example}")
     assert blocked_type_pattern("rm -fr /home/${USER:-example}/Documents")
     assert blocked_type_pattern("rm -rf /tmp") is None
+    assert blocked_type_pattern("rm -rf $'/tmp/cache'") is None
     assert blocked_type_pattern("rm -rf /tmp/{a,b}") is None
     assert blocked_type_pattern("rm -rf /tmp/${USER:-cache}") is None
     assert blocked_type_pattern("rm ${FLAGS:--rf} /tmp") is None
