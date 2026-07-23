@@ -388,4 +388,34 @@ describe('useSessionStateCache — cross-thread error isolation', () => {
 
     expect($messages.get().some(message => message.error === 'OpenRouter 403')).toBe(true)
   })
+
+  it('keeps the current transcript reference when warm-resume content is equivalent', () => {
+    $messages.set([])
+    let cache!: Cache
+    render(<ViewHarness activeSessionId="thread-A" onReady={value => (cache = value)} />)
+
+    act(() => {
+      cache.updateSessionState(
+        'thread-A',
+        state => ({
+          ...state,
+          busy: false,
+          messages: [userMessage('user-a', 'hello'), assistantText('assistant-a', 'hi')]
+        }),
+        'stored-A'
+      )
+    })
+
+    const firstPaint = $messages.get()
+
+    act(() => {
+      cache.updateSessionState('thread-A', state => ({
+        ...state,
+        busy: false,
+        messages: [userMessage('user-a', 'hello'), assistantText('assistant-a', 'hi')]
+      }))
+    })
+
+    expect($messages.get()).toBe(firstPaint)
+  })
 })

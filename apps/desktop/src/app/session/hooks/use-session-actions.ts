@@ -74,6 +74,10 @@ import type {
 import { NEW_CHAT_ROUTE, sessionRoute, SETTINGS_ROUTE } from '../../routes'
 import type { ClientSessionState, SidebarNavItem } from '../../types'
 
+import { chatMessageArraysEquivalent } from './session-message-equivalence'
+
+export { chatMessageArraysEquivalent, chatMessagesEquivalent, chatPartsEquivalent } from './session-message-equivalence'
+
 interface SessionActionsOptions {
   activeSessionId: string | null
   activeSessionIdRef: MutableRefObject<string | null>
@@ -122,65 +126,6 @@ function preserveReasoningParts(message: ChatMessage, previous: ChatMessage): Ch
   const reasoningParts = previous.parts.filter(part => part.type === 'reasoning')
 
   return reasoningParts.length ? { ...message, parts: [...reasoningParts, ...message.parts] } : message
-}
-
-export function chatPartsEquivalent(aPart: ChatMessage['parts'][number], bPart: ChatMessage['parts'][number]): boolean {
-  if (aPart === bPart) {
-    return true
-  }
-
-  if (aPart.type !== bPart.type) {
-    return false
-  }
-
-  if (aPart.type === 'text' || aPart.type === 'reasoning') {
-    return aPart.text === (bPart as typeof aPart).text
-  }
-
-  if (aPart.type === 'tool-call') {
-    const aCall = aPart as { result?: unknown; toolCallId?: string; toolName?: string }
-    const bCall = bPart as { result?: unknown; toolCallId?: string; toolName?: string }
-
-    return (
-      aCall.toolCallId === bCall.toolCallId &&
-      aCall.toolName === bCall.toolName &&
-      (aCall.result !== undefined) === (bCall.result !== undefined)
-    )
-  }
-
-  const aPrimitive = aPart as Record<string, unknown>
-  const bPrimitive = bPart as Record<string, unknown>
-  const aKeys = Object.keys(aPrimitive).filter(key => typeof aPrimitive[key] !== 'object' || aPrimitive[key] === null)
-  const bKeys = Object.keys(bPrimitive).filter(key => typeof bPrimitive[key] !== 'object' || bPrimitive[key] === null)
-
-  return aKeys.length === bKeys.length && aKeys.every(key => aPrimitive[key] === bPrimitive[key])
-}
-
-export function chatMessagesEquivalent(a: ChatMessage, b: ChatMessage): boolean {
-  if (
-    a.id !== b.id ||
-    a.role !== b.role ||
-    a.pending !== b.pending ||
-    a.error !== b.error ||
-    a.hidden !== b.hidden ||
-    a.branchGroupId !== b.branchGroupId
-  ) {
-    return false
-  }
-
-  if (a.parts.length !== b.parts.length) {
-    return false
-  }
-
-  return a.parts.every((part, index) => chatPartsEquivalent(part, b.parts[index]))
-}
-
-export function chatMessageArraysEquivalent(a: ChatMessage[], b: ChatMessage[]): boolean {
-  if (a === b) {
-    return true
-  }
-
-  return a.length === b.length && a.every((message, index) => chatMessagesEquivalent(message, b[index]))
 }
 
 function reconcileResumeMessages(nextMessages: ChatMessage[], previousMessages: ChatMessage[]): ChatMessage[] {

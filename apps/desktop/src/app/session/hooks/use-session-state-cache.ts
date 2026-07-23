@@ -26,27 +26,7 @@ import {
 
 import type { ClientSessionState } from '../../types'
 
-// Shallow per-message identity check. When a flush carries no transcript
-// changes, `preserveLocalAssistantErrors` returns the same message objects in
-// the same order, so reference equality per slot is enough to detect "nothing
-// to publish" and avoid a needless `$messages` churn.
-function sameMessageList(a: ChatMessage[], b: ChatMessage[]): boolean {
-  if (a === b) {
-    return true
-  }
-
-  if (a.length !== b.length) {
-    return false
-  }
-
-  for (let index = 0; index < a.length; index += 1) {
-    if (a[index] !== b[index]) {
-      return false
-    }
-  }
-
-  return true
-}
+import { chatMessageArraysEquivalent } from './session-message-equivalence'
 
 interface SessionStateCacheOptions {
   activeSessionId: string | null
@@ -205,7 +185,10 @@ export function useSessionStateCache({
     // the transcript. That churns ChatView → runtimeMessageRepository → the
     // assistant-ui runtime → the virtualizer, which re-measures and visibly
     // jerks the scroll position while the user is reading. Skip the publish when
-    // the merged result is content-identical to what's already on screen.
+    // the merged result is content-equivalent to what's already on screen.
+    // Warm resume reconciliation creates fresh message objects even when their
+    // content is unchanged, so reference equality would cause a redundant
+    // second paint and visible transcript jitter.
     const currentMessages = $messages.get()
 
     // On a thread switch `$messages` still holds the *previous* thread, so
@@ -218,7 +201,7 @@ export function useSessionStateCache({
         ? preserveLocalAssistantErrors(pending.state.messages, currentMessages)
         : pending.state.messages
 
-    if (!sameMessageList(nextMessages, currentMessages)) {
+    if (!chatMessageArraysEquivalent(nextMessages, currentMessages)) {
       setMessages(nextMessages)
     }
 
