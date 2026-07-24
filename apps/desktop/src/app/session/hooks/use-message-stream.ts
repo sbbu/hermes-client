@@ -623,7 +623,7 @@ export function useMessageStream({
           streamId && state.messages.some(message => message.id === streamId)
             ? state.messages.map(message =>
                 message.id === streamId
-                  ? { ...message, parts: replaceTextPart(message.parts), pending: false }
+                  ? { ...message, parts: replaceTextPart(message.parts), pending: false, interim: true }
                   : message
               )
             : [
@@ -633,6 +633,7 @@ export function useMessageStream({
                   role: 'assistant' as const,
                   parts: [assistantTextPart(authoritativeText)],
                   pending: false,
+                  interim: true,
                   branchGroupId: state.pendingBranchGroup ?? undefined
                 }
               ]
@@ -682,19 +683,20 @@ export function useMessageStream({
           return mergeFinalAssistantText(parts, visibleFinalText)
         }
 
-        const completeMessage = (message: ChatMessage): ChatMessage =>
-          completionError
+        const completeMessage = (message: ChatMessage): ChatMessage => {
+          const settled = { ...message, pending: false, interim: false }
+
+          return completionError
             ? {
-                ...message,
+                ...settled,
                 error: completionError,
-                parts: message.parts.filter(part => part.type !== 'text'),
-                pending: false
+                parts: message.parts.filter(part => part.type !== 'text')
               }
             : {
-                ...message,
-                parts: replaceTextPart(message.parts),
-                pending: false
+                ...settled,
+                parts: replaceTextPart(message.parts)
               }
+        }
 
         const newAssistantFromCompletion = (): ChatMessage => ({
           id: `assistant-${Date.now()}`,
@@ -719,17 +721,18 @@ export function useMessageStream({
             const existing = prev[index]
             const existingText = chatMessageText(existing).trim()
 
+            const finalContinuesInterim = Boolean(
+              existing.interim &&
+              finalText &&
+              existingText &&
+              (finalText === existingText || finalText.startsWith(existingText) || existingText.startsWith(finalText))
+            )
+
             if (existing.pending || (!interimBoundaryPending && finalText && existingText === finalText)) {
               nextMessages = prev.map((message, messageIndex) =>
                 messageIndex === index ? completeMessage(message) : message
               )
-            } else if (
-              interimBoundaryPending &&
-              responsePreviewed &&
-              finalText &&
-              existingText &&
-              finalText.startsWith(existingText)
-            ) {
+            } else if (interimBoundaryPending && (responsePreviewed || finalContinuesInterim)) {
               nextMessages = prev.map((message, messageIndex) =>
                 messageIndex === index ? completeMessage(message) : message
               )

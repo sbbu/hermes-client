@@ -65015,6 +65015,8 @@ var init_blockLayout = __esm({
           return "intro";
         case "slash":
           return "slash";
+        case "event":
+          return "event";
         case "diff":
           return "diff";
         case "trail":
@@ -65025,8 +65027,8 @@ var init_blockLayout = __esm({
       }
       return msg.role === "assistant" ? "model" : "note";
     };
-    SELF_SPACED = /* @__PURE__ */ new Set(["diff", "intro", "slash", "user"]);
-    PAINTS_TRAILING_GAP = /* @__PURE__ */ new Set(["diff", "user"]);
+    SELF_SPACED = /* @__PURE__ */ new Set(["diff", "event", "intro", "slash", "user"]);
+    PAINTS_TRAILING_GAP = /* @__PURE__ */ new Set(["diff", "event", "user"]);
     hasLeadGap = (prev, cur) => {
       const group = messageGroup(cur);
       if (SELF_SPACED.has(group)) {
@@ -65270,12 +65272,29 @@ var init_messages = __esm({
         if (!row || typeof row !== "object") {
           continue;
         }
-        const { context, name, role, text } = row;
+        const { context, display_kind, name, role, text } = row;
+        if (display_kind === "hidden") {
+          pending = [];
+          continue;
+        }
         if (role === "tool") {
           pending.push(buildToolTrailLine(name ?? "tool", context ?? ""));
           continue;
         }
         if (typeof text !== "string" || !text.trim()) {
+          continue;
+        }
+        if (display_kind === "model_switch") {
+          out.push({ kind: "event", role: "system", text: "model changed" });
+          pending = [];
+          continue;
+        }
+        if (display_kind === "async_delegation_complete") {
+          const meta = row.display_metadata;
+          const count = meta && typeof meta.task_count === "number" ? meta.task_count : void 0;
+          const label = count === void 0 ? "background agent work finished" : `${count} background agent${count === 1 ? "" : "s"} finished`;
+          out.push({ kind: "event", role: "system", text: label });
+          pending = [];
           continue;
         }
         if (role === "assistant") {
@@ -80996,7 +81015,7 @@ function ConfirmScreen({
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: payLine }),
     s.card && !s.card.resolved_via && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "Your card saved on the portal will be charged." }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Hermes to charge your card." }),
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow the service provider to charge your card." }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 0, color: t.color.ok, label: `Pay $${amount} now`, t }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 1, label: "Cancel", t }),
@@ -81290,7 +81309,7 @@ function AutoReloadScreen({ ctx, onClose, onPatch, s, t }) {
     fieldBox("Reload balance to:", reloadTo, setReloadTo, row === 1, "reloadTo"),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(Text, { color: t.color.muted, children: [
-      "By confirming, you authorize Hermes to charge ",
+      "By confirming, you authorize the service provider to charge ",
       chargeCardName,
       " whenever your balance falls below the threshold. Turn off any time here or on the portal."
     ] }),
@@ -86951,6 +86970,16 @@ var init_messageLine = __esm({
         const safeAnsi = hasAnsi(msg.text) ? sanitizeAnsiForRender(msg.text) : msg.text;
         const preview = compactPreview(stripped, maxChars) || "(empty tool result)";
         return /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(Box_default, { alignSelf: "flex-start", borderColor: t.color.muted, borderStyle: "round", marginLeft: 3, paddingX: 1, children: hasAnsi(msg.text) ? /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(Text, { wrap: "truncate-end", children: /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(Ansi, { children: safeAnsi }) }) : /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: preview }) });
+      }
+      if (msg.kind === "event") {
+        const eventGutterWidth = transcriptGutterWidth("system", t.brand.prompt);
+        return /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)(Box_default, { marginBottom: 1, marginTop: leadGap ? 1 : 0, children: [
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(NoSelect, { flexShrink: 0, fromLeftEdge: true, width: eventGutterWidth, children: /* @__PURE__ */ (0, import_jsx_runtime53.jsx)(Text, { children: " " }) }),
+          /* @__PURE__ */ (0, import_jsx_runtime53.jsxs)(Text, { color: t.color.muted, dimColor: true, children: [
+            "\u25C8 ",
+            msg.text
+          ] })
+        ] });
       }
       const { body, glyph, prefix } = ROLE[msg.role](t);
       const gutterWidth = transcriptGutterWidth(msg.role, t.brand.prompt);

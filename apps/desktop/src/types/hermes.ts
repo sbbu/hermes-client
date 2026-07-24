@@ -358,10 +358,22 @@ export interface SessionInfo {
   is_default_profile?: boolean
 }
 
+export type TimelineDisplayMetadata =
+  | { model: string; provider?: string }
+  | {
+      delegation_id: string
+      task_count: number
+      completed_count?: number
+      failed_count?: number
+      duration_seconds?: number
+    }
+
 export interface SessionMessage {
   codex_reasoning_items?: unknown
   content: unknown
   context?: unknown
+  display_kind?: 'async_delegation_complete' | 'hidden' | 'model_switch' | string
+  display_metadata?: TimelineDisplayMetadata
   name?: string
   reasoning?: null | string
   reasoning_content?: null | string

@@ -156,6 +156,38 @@ describe('toChatMessages', () => {
 
     expect(chatMessageText(message)).toBe('@file:foo.ts\n\nlook')
   })
+
+  it('projects durable timeline kinds without inspecting their text', () => {
+    const messages = toChatMessages([
+      { role: 'user', content: 'real user turn', timestamp: 1 },
+      { role: 'assistant', content: 'real assistant reply', timestamp: 2 },
+      { role: 'user', content: 'opaque compaction payload', display_kind: 'hidden', timestamp: 3 },
+      {
+        role: 'assistant',
+        content: 'hidden assistant payload',
+        display_kind: 'hidden',
+        reasoning: 'hidden reasoning',
+        tool_calls: [{ id: 'hidden-tool', function: { name: 'terminal', arguments: '{}' } }],
+        timestamp: 3.5
+      },
+      { role: 'user', content: 'opaque model context payload', display_kind: 'model_switch', timestamp: 4 },
+      {
+        role: 'user',
+        content: 'opaque delegation context payload',
+        display_kind: 'async_delegation_complete',
+        display_metadata: { delegation_id: 'delegation-1', task_count: 3 },
+        timestamp: 5
+      }
+    ])
+
+    expect(messages.map(message => message.role)).toEqual(['user', 'assistant', 'system', 'system'])
+    expect(messages.map(chatMessageText)).toEqual([
+      'real user turn',
+      'real assistant reply',
+      'model changed',
+      '3 background agents finished'
+    ])
+  })
 })
 
 describe('renderMediaTags', () => {

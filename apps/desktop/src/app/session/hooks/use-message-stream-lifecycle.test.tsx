@@ -179,6 +179,31 @@ describe('useMessageStream lifecycle recovery', () => {
     expect(chatMessageText(messages[0])).toBe('Candidate plus tail')
   })
 
+  it('settles an identical non-previewed tool-turn interim instead of duplicating it', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.interim', { text: 'Same reply' })
+    emit('message.complete', { text: 'Same reply' })
+
+    const messages = sessionStates!.get(SID)?.messages ?? []
+    expect(messages).toHaveLength(1)
+    expect(chatMessageText(messages[0])).toBe('Same reply')
+  })
+
+  it('settles a prefix-extended non-previewed tool-turn interim', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.delta', { text: 'Partial' })
+    emit('message.interim', { text: 'Partial' })
+    emit('message.complete', { text: 'Partial answer continued' })
+
+    const messages = sessionStates!.get(SID)?.messages ?? []
+    expect(messages).toHaveLength(1)
+    expect(chatMessageText(messages[0])).toBe('Partial answer continued')
+  })
+
   it('routes session metadata through the cache without directly writing composer atoms', async () => {
     await mountStream()
     setCurrentModel('manual-model')
