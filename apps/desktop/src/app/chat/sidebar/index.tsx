@@ -35,7 +35,7 @@ import {
 } from '@/components/ui/sidebar'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tip } from '@/components/ui/tooltip'
-import { searchSessions, type SessionInfo, type SessionSearchResult } from '@/hermes'
+import { type SessionInfo, type SessionSearchResult } from '@/hermes'
 import { useWorktreeInfo } from '@/hooks/use-worktree-info'
 import { useI18n } from '@/i18n'
 import { comboTokens } from '@/lib/keybinds/combo'
@@ -74,6 +74,7 @@ import {
   unpinSession
 } from '@/store/layout'
 import {
+  $activeGatewayProfile,
   $newChatProfile,
   $profiles,
   $profileScope,
@@ -103,6 +104,7 @@ import { SidebarCronJobsSection } from './cron-jobs-section'
 import { SidebarLoadMoreRow } from './load-more-row'
 import { resolveManualSessionOrderIds } from './order'
 import { ProfileRail } from './profile-switcher'
+import { useServerSessionSearch } from './server-session-search'
 import { SidebarSessionRow } from './session-row'
 import { VirtualSessionList } from './virtual-session-list'
 import { type SidebarSessionGroup, type SidebarWorkspaceTree, workspaceTreeFor } from './workspace-groups'
@@ -276,6 +278,7 @@ function searchResultToSession(result: SessionSearchResult): SessionInfo {
     model: result.model ?? null,
     output_tokens: 0,
     preview: result.snippet?.trim() || null,
+    profile: result.profile,
     source: result.source ?? null,
     started_at: ts,
     title: null,
@@ -354,6 +357,7 @@ export function ChatSidebar({
   const workingSessionIds = useStore($workingSessionIds)
   const profiles = useStore($profiles)
   const profileScope = useStore($profileScope)
+  const activeGatewayProfile = useStore($activeGatewayProfile)
   // Only surface the profile switcher when more than one profile exists, so
   // single-profile users see the unchanged sidebar.
   const multiProfile = profiles.length > 1
@@ -366,7 +370,6 @@ export function ChatSidebar({
   const workspaceOrderIds = useStore($sidebarWorkspaceOrderIds)
   const workspaceParentOrderIds = useStore($sidebarWorkspaceParentOrderIds)
   const [searchQuery, setSearchQuery] = useState('')
-  const [serverMatches, setServerMatches] = useState<SessionSearchResult[]>([])
   const [newSessionKbdFlash, setNewSessionKbdFlash] = useState(false)
   const [profileLoadMorePending, setProfileLoadMorePending] = useState<Record<string, boolean>>({})
   const [messagingLoadMorePending, setMessagingLoadMorePending] = useState<Record<string, boolean>>({})
@@ -375,6 +378,8 @@ export function ChatSidebar({
   const [messagingVisible, setMessagingVisible] = useState<Record<string, number>>({})
   const searchInputRef = useRef<HTMLInputElement>(null)
   const trimmedQuery = searchQuery.trim()
+  const activeSearchProfile = normalizeProfileKey(activeGatewayProfile)
+  const serverMatches = useServerSessionSearch(trimmedQuery, activeSearchProfile)
 
   // Hotkey (session.focusSearch) → focus the field once it's mounted.
   useEffect(() => {
@@ -467,34 +472,6 @@ export function ChatSidebar({
 
   const pinnedRealIdSet = useMemo(() => new Set(pinnedSessions.map(s => s.id)), [pinnedSessions])
 
-  // Full-text search across *all* sessions (not just the loaded page) so 699
-  // sessions stay findable. Debounced; loaded sessions are matched instantly
-  // client-side and merged ahead of the server hits.
-  useEffect(() => {
-    if (!trimmedQuery) {
-      setServerMatches([])
-
-      return
-    }
-
-    let cancelled = false
-
-    const id = window.setTimeout(() => {
-      void searchSessions(trimmedQuery)
-        .then(res => {
-          if (!cancelled) {
-            setServerMatches(res.results)
-          }
-        })
-        .catch(() => undefined)
-    }, 200)
-
-    return () => {
-      cancelled = true
-      window.clearTimeout(id)
-    }
-  }, [trimmedQuery])
-
   const searchResults = useMemo(() => {
     if (!trimmedQuery) {
       return []
@@ -504,21 +481,29 @@ export function ChatSidebar({
 
     for (const s of sortedSessions) {
       if (sessionMatchesSearch(s, trimmedQuery)) {
-        out.set(s.id, s)
+        out.set(`${normalizeProfileKey(s.profile)}:${s.id}`, s)
       }
     }
 
     for (const match of serverMatches) {
-      if (out.has(match.session_id)) {
+      const matchProfile = normalizeProfileKey(match.profile)
+      const matchKey = `${matchProfile}:${match.session_id}`
+
+      if (out.has(matchKey)) {
         continue
       }
 
-      const loaded = sessionByAnyId.get(match.session_id)
-      out.set(match.session_id, loaded ?? searchResultToSession(match))
+      const loaded = sortedSessions.find(
+        session =>
+          normalizeProfileKey(session.profile) === matchProfile &&
+          (session.id === match.session_id || session._lineage_root_id === match.session_id)
+      )
+
+      out.set(matchKey, loaded ?? searchResultToSession(match))
     }
 
     return [...out.values()]
-  }, [trimmedQuery, sortedSessions, serverMatches, sessionByAnyId])
+  }, [trimmedQuery, sortedSessions, serverMatches])
 
   const unpinnedAgentSessions = useMemo(
     () => sortedSessions.filter(s => !pinnedRealIdSet.has(s.id)),

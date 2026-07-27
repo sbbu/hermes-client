@@ -5,6 +5,7 @@ import type { ChatMessage } from '@/lib/chat-messages'
 import { preserveLocalAssistantErrors } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { setMutableRef } from '@/lib/mutable-ref'
+import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $busy,
@@ -62,11 +63,13 @@ export function useSessionStateCache({
   setMessages
 }: SessionStateCacheOptions) {
   const busy = useStore($busy)
+  const activeGatewayProfile = useStore($activeGatewayProfile)
   const activeSessionIdRef = useRef<string | null>(null)
   const selectedStoredSessionIdRef = useRef<string | null>(null)
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
   const storedSessionIdRedirectsRef = useRef(new Map<string, string>())
+  const redirectsProfileRef = useRef(activeGatewayProfile)
   const pendingViewStateRef = useRef<{ sessionId: string; state: ClientSessionState } | null>(null)
   const viewSyncRafRef = useRef<number | null>(null)
   // Runtime id whose transcript currently occupies `$messages` — lets the
@@ -84,6 +87,13 @@ export function useSessionStateCache({
   useEffect(() => {
     selectedStoredSessionIdRef.current = selectedStoredSessionId
   }, [selectedStoredSessionId])
+
+  useEffect(() => {
+    if (redirectsProfileRef.current !== activeGatewayProfile) {
+      storedSessionIdRedirectsRef.current.clear()
+      redirectsProfileRef.current = activeGatewayProfile
+    }
+  }, [activeGatewayProfile])
 
   const resolveStoredSessionId = useCallback((storedSessionId: string): string => {
     const visited: string[] = []

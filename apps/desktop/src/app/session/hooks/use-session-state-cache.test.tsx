@@ -3,6 +3,7 @@ import type { MutableRefObject } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ChatMessage } from '@/lib/chat-messages'
+import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $activeSessionStoredIdRotation,
@@ -66,6 +67,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
       return null as unknown as number
     })
     setTurnStartedAt(null)
+    $activeGatewayProfile.set('default')
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
@@ -80,6 +82,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     cleanup()
     vi.restoreAllMocks()
     setTurnStartedAt(null)
+    $activeGatewayProfile.set('default')
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
     setCurrentModel('')
@@ -160,6 +163,37 @@ describe('useSessionStateCache — per-session turn timer', () => {
     expect(cache.runtimeIdByStoredSessionIdRef.current.has('stored-old')).toBe(false)
     expect(cache.runtimeIdByStoredSessionIdRef.current.get('stored-new')).toBe('fg-runtime')
     expect(cache.resolveStoredSessionId('stored-old')).toBe('stored-new')
+  })
+
+  it('resolves repeated stored-id rotations transitively to the live tip', () => {
+    let cache!: Cache
+    render(<Harness activeSessionId="runtime-A" onReady={c => (cache = c)} selectedStoredSessionId="stored-A" />)
+
+    act(() => {
+      cache.ensureSessionState('runtime-A', 'stored-A')
+      cache.ensureSessionState('runtime-A', 'stored-B')
+      cache.ensureSessionState('runtime-A', 'stored-C')
+    })
+
+    expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-C')
+    expect(cache.resolveStoredSessionId('stored-B')).toBe('stored-C')
+    expect(cache.resolveStoredSessionId('stored-C')).toBe('stored-C')
+  })
+
+  it('discards stored-id aliases when the active gateway profile changes', () => {
+    let cache!: Cache
+    $activeGatewayProfile.set('profile-a')
+    render(<Harness activeSessionId="runtime-A" onReady={c => (cache = c)} selectedStoredSessionId="stored-A" />)
+
+    act(() => {
+      cache.ensureSessionState('runtime-A', 'stored-A')
+      cache.ensureSessionState('runtime-A', 'stored-B')
+    })
+    expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-B')
+
+    act(() => $activeGatewayProfile.set('profile-b'))
+
+    expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-A')
   })
 
   it('mirrors the focused session model metadata when switching from a cached session', () => {

@@ -13,6 +13,7 @@ import {
   getSessionMessages,
   listAllProfileSessions,
   listSessions,
+  searchSessions,
   setApiRequestProfile,
   speakText,
   transcribeAudio,
@@ -115,6 +116,25 @@ describe('Hermes REST session helpers', () => {
     expect(api).toHaveBeenCalledWith({
       path: '/api/sessions/session-1/messages?profile=xiaoxuxu',
       profile: 'xiaoxuxu'
+    })
+  })
+
+  it('routes session search to the active or explicitly selected profile backend', async () => {
+    api.mockResolvedValue({ results: [] })
+    setApiRequestProfile('coder')
+
+    await searchSessions('first needle')
+
+    expect(api).toHaveBeenLastCalledWith({
+      path: '/api/sessions/search?q=first%20needle',
+      profile: 'coder'
+    })
+
+    await searchSessions('other', 'research')
+
+    expect(api).toHaveBeenLastCalledWith({
+      path: '/api/sessions/search?q=other',
+      profile: 'research'
     })
   })
 
