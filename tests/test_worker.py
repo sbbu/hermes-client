@@ -61,6 +61,9 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf /tmp/${X:-..}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-../*}")
     assert blocked_type_pattern("rm -rf /tmp/${X:-.}/..")
+    assert blocked_type_pattern("rm -rf /tmp/${X:-${Y:-..}}")
+    assert blocked_type_pattern("${COMMAND:-${FALLBACK:-rm}} -r /")
+    assert blocked_type_pattern("rm ${FLAGS:-${FALLBACK:--r}} /")
     assert blocked_type_pattern("rm -r $'/'")
     assert blocked_type_pattern(r"rm -r $'\x2f'")
     assert blocked_type_pattern(r"rm -r $'\057'")
@@ -119,9 +122,11 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf $'/tmp/cache'") is None
     assert blocked_type_pattern("rm -rf /tmp/{a,b}") is None
     assert blocked_type_pattern("rm -rf /tmp/${USER:-cache}") is None
+    assert blocked_type_pattern("rm -rf /tmp/${X:-${Y:-cache}}") is None
     assert blocked_type_pattern("rm ${FLAGS:--rf} /tmp") is None
     assert blocked_type_pattern("${COMMAND:-printf} -rf /") is None
     assert blocked_type_pattern("'${COMMAND:-rm}' -rf /") is None
+    assert blocked_type_pattern("'${COMMAND:-${FALLBACK:-rm}}' -r /") is None
     assert blocked_type_pattern("'${PAYLOAD:-rm -rf /}'") is None
     assert blocked_type_pattern("\\${COMMAND:-rm} -rf /") is None
     assert blocked_type_pattern("rm -rf '/tmp/${X:-..}'") is None

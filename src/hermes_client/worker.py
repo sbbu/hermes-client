@@ -89,8 +89,8 @@ RM_ROOT_GUARD_REASON = "recursive rm targeting filesystem root"
 RM_HOME_GUARD_REASON = "recursive rm targeting user home"
 SHELL_PARAMETER_GUARD_REASON = "complex shell parameter expansion"
 MAX_SHELL_PARAMETER_VARIANTS = 256
+MAX_SHELL_PARAMETER_DEPTH = 32
 SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
-SHELL_PARAM_WORD_RE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*(?::[-=+]|[-=+])(?P<word>[^}]*)\}")
 SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_HOME_SUFFIX_RE = re.compile(r"\$\{HOME(?P<op>%%|%)(?P<pattern>[^{}]*)\}")
@@ -239,28 +239,95 @@ def _shell_expanding_parameter_offsets(text: str) -> set[int]:
     return offsets
 
 
-def _shell_parameter_word_variants(text: str) -> list[str] | None:
+def _shell_parameter_word_spans(text: str) -> list[tuple[int, int, str]]:
+    """Find outermost supported ${name<op>word} expressions with balanced nesting."""
     expanding_offsets = _shell_expanding_parameter_offsets(text)
-    matches = [
-        match for match in SHELL_PARAM_WORD_RE.finditer(text) if match.start() in expanding_offsets
-    ]
+    spans: list[tuple[int, int, str]] = []
+    index = 0
+    while index < len(text):
+        if index not in expanding_offsets or not text.startswith("${", index):
+            index += 1
+            continue
+
+        name_start = index + 2
+        name_match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", text[name_start:])
+        if not name_match:
+            index += 2
+            continue
+        operator_start = name_start + name_match.end()
+        if text.startswith((":-", ":=", ":+"), operator_start):
+            word_start = operator_start + 2
+        elif operator_start < len(text) and text[operator_start] in "-=+":
+            word_start = operator_start + 1
+        else:
+            index += 2
+            continue
+
+        depth = 1
+        cursor = word_start
+        quote: str | None = None
+        escaped = False
+        while cursor < len(text):
+            char = text[cursor]
+            if escaped:
+                escaped = False
+                cursor += 1
+                continue
+            if char == "\\" and quote != "'":
+                escaped = True
+                cursor += 1
+                continue
+            if char == "'" and quote in {None, "'"}:
+                quote = None if quote == "'" else "'"
+                cursor += 1
+                continue
+            if char == '"' and quote in {None, '"'}:
+                quote = None if quote == '"' else '"'
+                cursor += 1
+                continue
+            if quote != "'" and cursor in expanding_offsets and text.startswith("${", cursor):
+                depth += 1
+                cursor += 2
+                continue
+            if char == "}" and quote is None:
+                depth -= 1
+                if depth == 0:
+                    spans.append((index, cursor + 1, text[word_start:cursor]))
+                    index = cursor + 1
+                    break
+            cursor += 1
+        else:
+            index += 2
+    return spans
+
+
+def _shell_parameter_word_variants(text: str, *, _depth: int = 0) -> list[str] | None:
+    if _depth > MAX_SHELL_PARAMETER_DEPTH:
+        return None
+    spans = _shell_parameter_word_spans(text)
     variants = [""]
     cursor = 0
-    for match in matches:
-        prefix = text[cursor : match.start()]
-        word = match.group("word")
+    for start, end, word in spans:
+        prefix = text[cursor:start]
+        nested_variants = _shell_parameter_word_variants(word, _depth=_depth + 1)
+        if nested_variants is None:
+            return None
+        word_branches = nested_variants or [word]
         # Each parameter may select its explicit word or another value. Empty is
         # the conservative branch needed to reveal dangerous adjacent words.
+        replacements = list(dict.fromkeys(("", *word_branches)))
+        if len(variants) * len(replacements) > MAX_SHELL_PARAMETER_VARIANTS:
+            return None
         variants = [
             f"{variant}{prefix}{replacement}"
             for variant in variants
-            for replacement in ("", word)
+            for replacement in replacements
         ]
         # The caller blocks over-complex payloads instead of leaving a bypass or
         # allowing exponential work in the computer-use worker.
         if len(variants) > MAX_SHELL_PARAMETER_VARIANTS:
             return None
-        cursor = match.end()
+        cursor = end
 
     suffix = text[cursor:]
     expanded = (f"{variant}{suffix}" for variant in variants)
