@@ -1634,7 +1634,12 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
     }
 
     setSubmitting(true)
-    aui.composer().send()
+
+    try {
+      aui.composer().send()
+    } catch {
+      setSubmitting(false)
+    }
   }
 
   const handleEditBlur = useCallback(
@@ -1654,7 +1659,12 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
         }
 
         closeTrigger()
-        aui.composer().cancel()
+
+        try {
+          aui.composer().cancel()
+        } catch {
+          // The composer core was already torn down by a raced send/cancel.
+        }
       }, 80)
     },
     [aui, closeTrigger, submitting]
@@ -1824,6 +1834,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
                   submitEdit(editor)
                 }
               }}
+              onPointerDown={event => event.preventDefault()}
               title={copy.sendEdited}
               type="button"
             >

@@ -1,9 +1,14 @@
 import type * as React from 'react'
 import { useEffect, useRef, useState } from 'react'
 
+import {
+  type ActionItemSpec,
+  ActionsContextMenu,
+  ActionsMenu,
+  type MenuKit,
+  renderActionItem
+} from '@/components/ui/actions-menu'
 import { Button } from '@/components/ui/button'
-import { Codicon } from '@/components/ui/codicon'
-import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from '@/components/ui/context-menu'
 import { CopyButton } from '@/components/ui/copy-button'
 import {
   Dialog,
@@ -13,7 +18,6 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { renameSession } from '@/hermes'
 import { useI18n } from '@/i18n'
@@ -81,23 +85,12 @@ interface SessionActions {
   onDelete?: () => void
 }
 
-type MenuItem = typeof DropdownMenuItem | typeof ContextMenuItem
-
-interface ItemSpec {
-  className?: string
-  disabled: boolean
-  icon: string
-  label: string
-  onSelect: (event: Event) => void
-  variant?: 'destructive'
-}
-
 function useSessionActions({ sessionId, title, pinned = false, profile, onPin, onArchive, onDelete }: SessionActions) {
   const { t } = useI18n()
   const r = t.sidebar.row
   const [renameOpen, setRenameOpen] = useState(false)
 
-  const pinItem: ItemSpec = {
+  const pinItem: ActionItemSpec = {
     disabled: !onPin,
     icon: 'pin',
     label: pinned ? r.unpin : r.pin,
@@ -107,7 +100,7 @@ function useSessionActions({ sessionId, title, pinned = false, profile, onPin, o
     }
   }
 
-  const items: ItemSpec[] = [
+  const items: ActionItemSpec[] = [
     ...(canOpenSessionWindow()
       ? [
           {
@@ -161,18 +154,11 @@ function useSessionActions({ sessionId, title, pinned = false, profile, onPin, o
     }
   ]
 
-  const renderMenuItem = (Item: MenuItem, { className, disabled, icon, label, onSelect, variant }: ItemSpec) => (
-    <Item className={className} disabled={disabled} key={label} onSelect={onSelect} variant={variant}>
-      <Codicon name={icon} size="0.875rem" />
-      <span>{label}</span>
-    </Item>
-  )
-
-  const renderItems = (Item: MenuItem) => (
+  const renderItems = (kit: MenuKit) => (
     <>
-      {renderMenuItem(Item, pinItem)}
+      {renderActionItem(kit, pinItem)}
       <CopyButton
-        appearance={Item === DropdownMenuItem ? 'menu-item' : 'context-menu-item'}
+        appearance={kit.copyAppearance}
         disabled={!sessionId}
         errorMessage={r.copyIdFailed}
         key={r.copyId}
@@ -180,7 +166,7 @@ function useSessionActions({ sessionId, title, pinned = false, profile, onPin, o
         onCopyError={err => notifyError(err, r.copyIdFailed)}
         text={sessionId}
       />
-      {items.map(spec => renderMenuItem(Item, spec))}
+      {items.map(spec => renderActionItem(kit, spec))}
     </>
   )
 
@@ -198,7 +184,7 @@ function useSessionActions({ sessionId, title, pinned = false, profile, onPin, o
 }
 
 interface SessionActionsMenuProps
-  extends SessionActions, Pick<React.ComponentProps<typeof DropdownMenuContent>, 'align' | 'sideOffset'> {
+  extends SessionActions, Pick<React.ComponentProps<typeof ActionsMenu>, 'align' | 'sideOffset'> {
   children: React.ReactNode
 }
 
@@ -208,17 +194,15 @@ export function SessionActionsMenu({ children, align = 'end', sideOffset = 6, ..
 
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
-        <DropdownMenuContent
-          align={align}
-          aria-label={t.sidebar.row.actionsFor(actions.title)}
-          className="w-40"
-          sideOffset={sideOffset}
-        >
-          {renderItems(DropdownMenuItem)}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <ActionsMenu
+        align={align}
+        ariaLabel={t.sidebar.row.actionsFor(actions.title)}
+        contentClassName="w-40"
+        items={renderItems}
+        sideOffset={sideOffset}
+      >
+        {children}
+      </ActionsMenu>
       {renameDialog}
     </>
   )
@@ -234,12 +218,13 @@ export function SessionContextMenu({ children, ...actions }: SessionContextMenuP
 
   return (
     <>
-      <ContextMenu>
-        <ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
-        <ContextMenuContent aria-label={t.sidebar.row.actionsFor(actions.title)} className="w-40">
-          {renderItems(ContextMenuItem)}
-        </ContextMenuContent>
-      </ContextMenu>
+      <ActionsContextMenu
+        ariaLabel={t.sidebar.row.actionsFor(actions.title)}
+        contentClassName="w-40"
+        items={renderItems}
+      >
+        {children}
+      </ActionsContextMenu>
       {renameDialog}
     </>
   )

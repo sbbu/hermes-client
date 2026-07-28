@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react'
+import { type MouseEvent, type ReactNode, type Ref } from 'react'
 
 import { cn } from '@/lib/utils'
 
@@ -10,6 +10,9 @@ interface StatusRowProps {
   /** Makes the whole row activatable (adds `cursor-pointer` + keyboard a11y).
    *  Trailing-slot buttons should `stopPropagation` so they don't also fire it. */
   onActivate?: () => void
+  /** Forwarded to the row root for context-menu wrappers using `asChild`. */
+  onContextMenu?: (event: MouseEvent) => void
+  ref?: Ref<HTMLDivElement>
   /** Right-aligned actions. Revealed on row hover/focus unless `trailingVisible`. */
   trailing?: ReactNode
   trailingVisible?: boolean
@@ -27,6 +30,8 @@ export function StatusRow({
   className,
   leading,
   onActivate,
+  onContextMenu,
+  ref,
   trailing,
   trailingVisible = false
 }: StatusRowProps) {
@@ -38,6 +43,7 @@ export function StatusRow({
         className
       )}
       onClick={onActivate}
+      onContextMenu={onContextMenu}
       onKeyDown={
         onActivate
           ? event => {
@@ -48,12 +54,11 @@ export function StatusRow({
             }
           : undefined
       }
+      ref={ref}
       role={onActivate ? 'button' : undefined}
       tabIndex={onActivate ? 0 : undefined}
     >
-      {leading !== undefined && (
-        <span className="flex size-3.5 shrink-0 items-center justify-center">{leading}</span>
-      )}
+      {leading !== undefined && <span className="flex size-3.5 shrink-0 items-center justify-center">{leading}</span>}
       <div className="flex min-w-0 flex-1 items-center gap-2">{children}</div>
       {trailing && (
         <div
