@@ -186,7 +186,7 @@ async function readImageForRemoteAttach(filePath: string): Promise<{ contentBase
 // Read a non-image file as a data URL for upload via file.attach. Returns null
 // when the desktop bridge can't read the file (e.g. it was moved/deleted).
 async function readFileDataUrlForAttach(filePath: string): Promise<string | null> {
-  const reader = window.hermesDesktop?.readFileDataUrl
+  const reader = window.hermesDesktop?.readFileDataUrlForAttach ?? window.hermesDesktop?.readFileDataUrl
 
   if (!reader) {
     return null
@@ -197,8 +197,8 @@ async function readFileDataUrlForAttach(filePath: string): Promise<string | null
   return dataUrl || null
 }
 
-// The readFileDataUrl IPC base64-loads the whole file into memory and is
-// hard-capped (DATA_URL_READ_MAX_BYTES, 16 MB) in electron/hardening.cjs, which
+// The attachment/preview IPC base64-loads the whole file into memory and is
+// hard-capped in electron/hardening.cjs, which
 // rejects with a raw "file is too large (N bytes; limit M bytes)" string. In
 // remote mode every attachment's bytes go through that read, so a big file
 // surfaces that internal message verbatim in the failure toast. Translate it
@@ -218,7 +218,18 @@ function friendlyRemoteAttachError(err: unknown, label: string): Error {
   return new Error(`${label} is too large to upload to the remote gateway${cap}.`)
 }
 
-type GatewayRequest = <T>(method: string, params?: Record<string, unknown>) => Promise<T>
+type GatewayRequest = <T>(method: string, params?: Record<string, unknown>, timeoutMs?: number) => Promise<T>
+
+const FILE_ATTACH_MIN_TIMEOUT_MS = 180_000
+const FILE_ATTACH_MAX_TIMEOUT_MS = 900_000
+
+function fileAttachTimeoutMs(dataUrl: string | null): number {
+  if (!dataUrl) {
+    return FILE_ATTACH_MIN_TIMEOUT_MS
+  }
+
+  return Math.min(FILE_ATTACH_MAX_TIMEOUT_MS, Math.max(FILE_ATTACH_MIN_TIMEOUT_MS, Math.ceil(dataUrl.length / 512)))
+}
 
 /**
  * Stage one file/image attachment into the session workspace and return the
@@ -294,12 +305,16 @@ export async function uploadComposerAttachment(
     }
   }
 
-  const result = await requestGateway<FileAttachResponse>('file.attach', {
-    name: label,
-    path,
-    session_id: sessionId,
-    ...(dataUrl ? { data_url: dataUrl } : {})
-  })
+  const result = await requestGateway<FileAttachResponse>(
+    'file.attach',
+    {
+      name: label,
+      path,
+      session_id: sessionId,
+      ...(dataUrl ? { data_url: dataUrl } : {})
+    },
+    fileAttachTimeoutMs(dataUrl)
+  )
 
   if (!result.attached || !result.ref_text) {
     throw new Error(result.message || `Could not attach ${label}`)

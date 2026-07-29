@@ -1493,8 +1493,8 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
 
       const remote = $connection.get()?.mode === 'remote'
 
-      const requestGateway = <T,>(method: string, params?: Record<string, unknown>) =>
-        gateway.request<T>(method, params)
+      const requestGateway = <T,>(method: string, params?: Record<string, unknown>, timeoutMs?: number) =>
+        gateway.request<T>(method, params, timeoutMs)
 
       const refs: InlineRefInput[] = []
 

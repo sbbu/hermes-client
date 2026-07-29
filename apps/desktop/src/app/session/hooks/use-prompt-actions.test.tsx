@@ -1372,6 +1372,25 @@ describe('uploadComposerAttachment remote read failures', () => {
     expect(requestGateway).not.toHaveBeenCalled()
   })
 
+  it('uses the dedicated attachment reader when the shell provides it', async () => {
+    const previewReader = vi.fn(async () => 'preview')
+    const attachmentReader = vi.fn(async () => 'data:application/pdf;base64,JVBERi0=')
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { readFileDataUrl: previewReader, readFileDataUrlForAttach: attachmentReader }
+    })
+    const requestGateway = vi.fn(async () => ({ attached: true, ref_text: '@file:data/doc.pdf' }) as never)
+
+    await uploadComposerAttachment(
+      { id: 'file:doc', kind: 'file', label: 'doc.pdf', path: '/abs/doc.pdf' },
+      { remote: true, requestGateway, sessionId: RUNTIME_SESSION_ID }
+    )
+
+    expect(attachmentReader).toHaveBeenCalledWith('/abs/doc.pdf')
+    expect(previewReader).not.toHaveBeenCalled()
+    expect(requestGateway).toHaveBeenCalledWith('file.attach', expect.anything(), 180_000)
+  })
+
   it('passes non-cap read errors through unchanged', async () => {
     Object.defineProperty(window, 'hermesDesktop', {
       configurable: true,

@@ -5,6 +5,9 @@ const { fileURLToPath } = require('node:url')
 
 const DEFAULT_FETCH_TIMEOUT_MS = 15_000
 const DATA_URL_READ_MAX_BYTES = 16 * 1024 * 1024
+// Remote file.attach sends one base64 JSON-RPC frame. Keep this under the
+// gateway's 384 MiB WebSocket cap after base64 expansion and framing.
+const ATTACHMENT_UPLOAD_MAX_BYTES = 256 * 1024 * 1024
 const TEXT_PREVIEW_SOURCE_MAX_BYTES = 64 * 1024 * 1024
 
 const SAFE_ENV_SUFFIXES = new Set(['dist', 'example', 'sample', 'template'])
@@ -186,7 +189,10 @@ async function statForIpc(fsImpl, resolvedPath, purpose, typeLabel) {
     if (code === 'ENOENT' || code === 'ENOTDIR') {
       throw ipcPathError(code || 'ENOENT', `${purpose} failed: ${typeLabel} does not exist.`)
     }
-    throw ipcPathError(code || 'read-error', `${purpose} failed: ${error instanceof Error ? error.message : String(error)}`)
+    throw ipcPathError(
+      code || 'read-error',
+      `${purpose} failed: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -201,7 +207,10 @@ async function realpathForIpc(fsImpl, resolvedPath, purpose) {
     return realPath
   } catch (error) {
     const code = error && typeof error === 'object' ? error.code : ''
-    throw ipcPathError(code || 'read-error', `${purpose} failed: ${error instanceof Error ? error.message : String(error)}`)
+    throw ipcPathError(
+      code || 'read-error',
+      `${purpose} failed: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 }
 
@@ -265,11 +274,58 @@ async function resolveReadableFileForIpc(filePath, options = {}) {
   return { realPath, resolvedPath, stat }
 }
 
+async function readFileDataUrlForIpc(filePath, options = {}) {
+  const fsImpl = options.fs || fs
+  const { resolvedPath } = await resolveReadableFileForIpc(filePath, options)
+  const maxBytes = Number.isFinite(options.maxBytes) && Number(options.maxBytes) > 0 ? Number(options.maxBytes) : null
+  const handle = await fsImpl.promises.open(resolvedPath, 'r')
+  const chunks = []
+  let total = 0
+
+  try {
+    const openedStat = await handle.stat()
+    if (!openedStat.isFile()) {
+      throw ipcPathError('EINVAL', `${options.purpose || 'File read'} failed: only regular files can be read.`)
+    }
+    if (maxBytes && openedStat.size > maxBytes) {
+      throw ipcPathError(
+        'EFBIG',
+        `${options.purpose || 'File read'} failed: file is too large (${openedStat.size} bytes; limit ${maxBytes} bytes).`
+      )
+    }
+
+    for (;;) {
+      const remaining = maxBytes ? maxBytes + 1 - total : 1024 * 1024
+      if (remaining <= 0) break
+      const buffer = Buffer.allocUnsafe(Math.min(1024 * 1024, remaining))
+      const { bytesRead } = await handle.read(buffer, 0, buffer.length, null)
+      if (!bytesRead) break
+      chunks.push(buffer.subarray(0, bytesRead))
+      total += bytesRead
+    }
+  } finally {
+    await handle.close()
+  }
+
+  if (maxBytes && total > maxBytes) {
+    throw ipcPathError(
+      'EFBIG',
+      `${options.purpose || 'File read'} failed: file grew beyond the ${maxBytes} byte limit while being read.`
+    )
+  }
+
+  const data = Buffer.concat(chunks, total)
+
+  return `data:${options.mimeType};base64,${data.toString('base64')}`
+}
+
 module.exports = {
+  ATTACHMENT_UPLOAD_MAX_BYTES,
   DATA_URL_READ_MAX_BYTES,
   DEFAULT_FETCH_TIMEOUT_MS,
   TEXT_PREVIEW_SOURCE_MAX_BYTES,
   encryptDesktopSecret,
+  readFileDataUrlForIpc,
   rejectUnsafePathSyntax,
   resolveDirectoryForIpc,
   resolveReadableFileForIpc,

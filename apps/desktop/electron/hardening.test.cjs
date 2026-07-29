@@ -6,8 +6,10 @@ const test = require('node:test')
 const { pathToFileURL } = require('node:url')
 
 const {
+  ATTACHMENT_UPLOAD_MAX_BYTES,
   DEFAULT_FETCH_TIMEOUT_MS,
   encryptDesktopSecret,
+  readFileDataUrlForIpc,
   resolveDirectoryForIpc,
   resolveReadableFileForIpc,
   resolveRequestedPathForIpc,
@@ -27,6 +29,56 @@ test('resolveTimeoutMs falls back to defaults and accepts overrides', () => {
   assert.equal(resolveTimeoutMs(0), DEFAULT_FETCH_TIMEOUT_MS)
   assert.equal(resolveTimeoutMs(-25), DEFAULT_FETCH_TIMEOUT_MS)
   assert.equal(resolveTimeoutMs('2750'), 2750)
+})
+
+test('attachment reader has a bounded large-file cap and preserves preview limits', async t => {
+  assert.equal(ATTACHMENT_UPLOAD_MAX_BYTES, 256 * 1024 * 1024)
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-client-attachment-'))
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }))
+  const source = path.join(dir, 'archive.bin')
+  fs.writeFileSync(source, Buffer.from('archive'))
+
+  await assert.rejects(resolveReadableFileForIpc(source, { maxBytes: 3, purpose: 'File preview' }), /file is too large/)
+  assert.equal(
+    await readFileDataUrlForIpc(source, {
+      maxBytes: ATTACHMENT_UPLOAD_MAX_BYTES,
+      mimeType: 'application/octet-stream',
+      purpose: 'Attachment upload'
+    }),
+    `data:application/octet-stream;base64,${Buffer.from('archive').toString('base64')}`
+  )
+})
+
+test('attachment reader stops a file that grows past its validated cap', async () => {
+  let read = false
+  const fakeFs = {
+    constants: fs.constants,
+    promises: {
+      access: async () => undefined,
+      open: async () => ({
+        close: async () => undefined,
+        read: async buffer => {
+          if (read) return { bytesRead: 0 }
+          read = true
+          buffer.write('four')
+          return { bytesRead: 4 }
+        },
+        stat: async () => ({ isFile: () => true, size: 3 })
+      }),
+      realpath: async value => value,
+      stat: async () => ({ isDirectory: () => false, isFile: () => true, size: 3 })
+    }
+  }
+
+  await assert.rejects(
+    readFileDataUrlForIpc('/tmp/growing.bin', {
+      fs: fakeFs,
+      maxBytes: 3,
+      mimeType: 'application/octet-stream',
+      purpose: 'Attachment upload'
+    }),
+    /grew beyond the 3 byte limit/
+  )
 })
 
 test('encryptDesktopSecret requires available secure storage', () => {

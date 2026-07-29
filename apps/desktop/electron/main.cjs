@@ -93,10 +93,12 @@ const {
   tokenPreview
 } = require('./connection-config.cjs')
 const {
+  ATTACHMENT_UPLOAD_MAX_BYTES,
   DATA_URL_READ_MAX_BYTES,
   DEFAULT_FETCH_TIMEOUT_MS,
   TEXT_PREVIEW_SOURCE_MAX_BYTES,
   encryptDesktopSecret: encryptDesktopSecretStrict,
+  readFileDataUrlForIpc,
   resolveReadableFileForIpc,
   resolveRequestedPathForIpc,
   resolveTimeoutMs
@@ -6246,12 +6248,21 @@ ipcMain.handle('hermes:notify', (_event, payload) => {
 })
 
 ipcMain.handle('hermes:readFileDataUrl', async (_event, filePath) => {
-  const { resolvedPath } = await resolveReadableFileForIpc(filePath, {
+  const resolvedPath = resolveRequestedPathForIpc(filePath, { purpose: 'File preview' })
+  return readFileDataUrlForIpc(filePath, {
     maxBytes: DATA_URL_READ_MAX_BYTES,
+    mimeType: mimeTypeForPath(resolvedPath),
     purpose: 'File preview'
   })
-  const data = await fs.promises.readFile(resolvedPath)
-  return `data:${mimeTypeForPath(resolvedPath)};base64,${data.toString('base64')}`
+})
+
+ipcMain.handle('hermes:readFileDataUrlForAttach', async (_event, filePath) => {
+  const resolvedPath = resolveRequestedPathForIpc(filePath, { purpose: 'Attachment upload' })
+  return readFileDataUrlForIpc(filePath, {
+    maxBytes: ATTACHMENT_UPLOAD_MAX_BYTES,
+    mimeType: mimeTypeForPath(resolvedPath),
+    purpose: 'Attachment upload'
+  })
 })
 
 ipcMain.handle('hermes:readFileText', async (_event, filePath) => {
