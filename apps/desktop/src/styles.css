@@ -411,6 +411,16 @@
     --ui-selection-background: color-mix(in srgb, #ffd24a 38%, transparent);
   }
 
+  /* Resolve derived measurements against each surface's own published inputs;
+     inheriting the :root calculations would freeze their root substitutions. */
+  [data-chat-surface] {
+    --thread-last-message-clearance: calc(var(--composer-measured-height) + var(--status-stack-measured-height) + 2rem);
+    --thread-viewport-height: max(
+      0rem,
+      calc(100% - var(--composer-measured-height) + var(--composer-surface-measured-height))
+    );
+  }
+
   * {
     box-sizing: border-box;
     border-color: var(--dt-border);

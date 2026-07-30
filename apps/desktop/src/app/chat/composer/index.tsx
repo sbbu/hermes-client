@@ -69,6 +69,13 @@ import { isSecondaryWindow } from '@/store/windows'
 import { useTheme } from '@/themes'
 
 import { extractDroppedFiles, HERMES_PATHS_MIME, partitionDroppedFiles } from '../hooks/use-composer-actions'
+import {
+  chatSurfaceRoot,
+  clearSurfaceVar,
+  COMPOSER_HEIGHT_VAR,
+  COMPOSER_SURFACE_HEIGHT_VAR,
+  setSurfaceVar
+} from '../surface-vars'
 
 import { AttachmentList } from './attachments'
 import { ContextMenu } from './context-menu'
@@ -506,7 +513,7 @@ export function ChatBar({
     }
   }, [draft, expanded])
 
-  // Bucket measured heights so we only invalidate the global CSS var when
+  // Bucket measured heights so we only invalidate this surface's CSS vars when
   // the size crosses a meaningful threshold. Without bucketing, the editor
   // grows ~1px per character → setProperty fires every keystroke → entire
   // tree's computed style is invalidated → next paint forces a full
@@ -529,18 +536,16 @@ export function ChatBar({
     // (Read globals here so the callback stays stable; mirror the popoutAllowed
     // gate since secondary windows are forced docked.)
     if ($composerPoppedOut.get() && !isSecondaryWindow()) {
-      const root = document.documentElement
       lastBucketedHeightRef.current = 0
       lastBucketedSurfaceHeightRef.current = 0
-      root.style.setProperty('--composer-measured-height', '0px')
-      root.style.setProperty('--composer-surface-measured-height', '0px')
+      setSurfaceVar(composer, COMPOSER_HEIGHT_VAR, '0px')
+      setSurfaceVar(composer, COMPOSER_SURFACE_HEIGHT_VAR, '0px')
 
       return
     }
 
     const { height, width } = composer.getBoundingClientRect()
     const surfaceHeight = composerSurfaceRef.current?.getBoundingClientRect().height
-    const root = document.documentElement
 
     if (width > 0) {
       const nextTight = width < COMPOSER_STACK_BREAKPOINT_PX
@@ -568,7 +573,7 @@ export function ChatBar({
 
       if (bucket !== lastBucketedHeightRef.current) {
         lastBucketedHeightRef.current = bucket
-        root.style.setProperty('--composer-measured-height', `${bucket}px`)
+        setSurfaceVar(composer, COMPOSER_HEIGHT_VAR, `${bucket}px`)
       }
     }
 
@@ -577,7 +582,7 @@ export function ChatBar({
 
       if (bucket !== lastBucketedSurfaceHeightRef.current) {
         lastBucketedSurfaceHeightRef.current = bucket
-        root.style.setProperty('--composer-surface-measured-height', `${bucket}px`)
+        setSurfaceVar(composer, COMPOSER_SURFACE_HEIGHT_VAR, `${bucket}px`)
       }
     }
   }, [])
@@ -621,10 +626,11 @@ export function ChatBar({
   }, [poppedOut])
 
   useEffect(() => {
+    const root = chatSurfaceRoot(composerRef.current)
+
     return () => {
-      const root = document.documentElement
-      root.style.removeProperty('--composer-measured-height')
-      root.style.removeProperty('--composer-surface-measured-height')
+      clearSurfaceVar(root, COMPOSER_HEIGHT_VAR)
+      clearSurfaceVar(root, COMPOSER_SURFACE_HEIGHT_VAR)
     }
   }, [])
 

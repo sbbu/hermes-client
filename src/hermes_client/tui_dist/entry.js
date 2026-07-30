@@ -69139,6 +69139,19 @@ ${body}` : header;
   }
 });
 
+// src/app/wakeState.ts
+var wakeUserDisabled, isWakeUserDisabled, setWakeUserDisabled;
+var init_wakeState = __esm({
+  "src/app/wakeState.ts"() {
+    "use strict";
+    wakeUserDisabled = false;
+    isWakeUserDisabled = () => wakeUserDisabled;
+    setWakeUserDisabled = (disabled) => {
+      wakeUserDisabled = disabled;
+    };
+  }
+});
+
 // src/app/createGatewayEventHandler.ts
 import { execFile as execFile2 } from "child_process";
 function reapplyTheme() {
@@ -69369,6 +69382,9 @@ function createGatewayEventHandler(ctx) {
       applySkin(skin);
     }
     ensureAgentsNudgeConfig();
+    if (!isWakeUserDisabled()) {
+      void rpc("wake.start", { surface: "tui" }).catch(() => void 0);
+    }
     rpc("commands.catalog", {}).then((r) => {
       if (!r?.pairs) {
         return;
@@ -69554,6 +69570,13 @@ function createGatewayEventHandler(ctx) {
         return;
       }
       case "voice.transcript": {
+        if (ev.payload?.stop_phrase) {
+          setVoiceEnabled(false);
+          setVoiceRecording(false);
+          setVoiceProcessing(false);
+          sys("voice: stop phrase \u2014 voice chat ended");
+          return;
+        }
         if (ev.payload?.no_speech_limit) {
           setVoiceEnabled(false);
           setVoiceRecording(false);
@@ -69567,6 +69590,32 @@ function createGatewayEventHandler(ctx) {
         }
         setInput("");
         setTimeout(() => submitRef.current(text), 0);
+        return;
+      }
+      case "wake.detected": {
+        void (async () => {
+          const wakeProfile = ev.payload?.profile?.trim();
+          const ownProfile = getUiState().info?.profile_name || "default";
+          if (wakeProfile && wakeProfile !== ownProfile) {
+            sys(`wake phrase for profile '${wakeProfile}' \u2014 run: hermes -p ${wakeProfile} --tui`);
+            await rpc("wake.resume", {}).catch(() => void 0);
+            return;
+          }
+          if (ev.payload?.start_new_session !== false) {
+            await newSession();
+          }
+          const sid2 = getUiState().sid;
+          if (!sid2) {
+            await rpc("wake.resume", {}).catch(() => void 0);
+            return;
+          }
+          setVoiceEnabled(true);
+          await rpc("voice.toggle", { action: "on" });
+          await rpc("voice.record", { action: "start", session_id: sid2 });
+        })().catch((e) => {
+          sys(`wake: ${rpcErrorMessage(e)}`);
+          void rpc("wake.resume", {}).catch(() => void 0);
+        });
         return;
       }
       case "gateway.start_timeout": {
@@ -69877,6 +69926,7 @@ var init_createGatewayEventHandler = __esm({
     init_turnController();
     init_turnStore();
     init_uiStore();
+    init_wakeState();
     NO_PROVIDER_RE = /\bNo (?:LLM|inference) provider configured\b/i;
     statusFromBusy = () => getUiState().busy ? "running\u2026" : "ready";
     lastSkin = null;
@@ -70195,7 +70245,10 @@ var init_osc52 = __esm({
     BEL4 = "\x07";
     ST2 = `${ESC3}\\`;
     OSC52_CLIPBOARD_QUERY = `${ESC3}]52;c;?${BEL4}`;
-    writeOsc52Clipboard = (s) => process.stdout.write(`\x1B]52;c;${Buffer.from(s, "utf8").toString("base64")}\x07`);
+    writeOsc52Clipboard = (s) => {
+      const sequence = `${ESC3}]52;c;${Buffer.from(s, "utf8").toString("base64")}${BEL4}`;
+      return process.stdout.write(wrapForMultiplexer2(sequence));
+    };
   }
 });
 
@@ -70492,6 +70545,11 @@ var init_core = __esm({
           const target = all[arg ? Math.min(parseInt(arg, 10), all.length) - 1 : all.length - 1];
           if (!target) {
             return sys("nothing to copy \u2014 start a conversation first");
+          }
+          const shouldUseTerminalClipboard = isRemoteShellSession(process.env);
+          if (shouldUseTerminalClipboard) {
+            writeOsc52Clipboard(target.text);
+            return sys("sent OSC52 copy sequence (terminal support required)");
           }
           void writeClipboardText(target.text).then((nativeOk) => {
             if (ctx.stale()) {
@@ -73767,6 +73825,9 @@ var init_session = __esm({
                 const tts = r.tts ? " (TTS enabled)" : "";
                 ctx.transcript.sys(`Voice mode enabled${tts}`);
                 ctx.transcript.sys(`  ${recordKeyLabel} to start/stop recording`);
+                if (r.stop_hint) {
+                  ctx.transcript.sys(`  ${r.stop_hint}`);
+                }
                 ctx.transcript.sys("  /voice tts  to toggle speech output");
                 ctx.transcript.sys("  /voice off  to disable voice mode");
               } else {
@@ -74565,6 +74626,99 @@ var init_topup = __esm({
   }
 });
 
+// src/app/slash/commands/wake.ts
+var WAKE_SUBCOMMANDS, isWakeSub, START_REASON_TEXT, startFailureLine, statusLine, runOn, runOff, runStatus, WAKE_RUNNERS, wakeCommands;
+var init_wake = __esm({
+  "src/app/slash/commands/wake.ts"() {
+    "use strict";
+    init_wakeState();
+    WAKE_SUBCOMMANDS = ["on", "off", "status"];
+    isWakeSub = (value) => WAKE_SUBCOMMANDS.includes(value);
+    START_REASON_TEXT = {
+      disabled: "disabled (config wake_word.enabled)",
+      disabled_for_surface: "scoped to another surface (config wake_word.surface)",
+      not_owner: "another surface owns the listener",
+      owned: "another surface owns the listener",
+      unavailable: "unavailable"
+    };
+    startFailureLine = (r) => {
+      const reason = r.reason ?? "unknown";
+      const base = START_REASON_TEXT[reason] ?? reason;
+      const owner = r.owner_surface ? ` (owned by ${r.owner_surface})` : "";
+      const hint = r.hint?.trim() ? ` \u2014 ${r.hint.trim()}` : "";
+      return `wake: not started \u2014 ${base}${owner}${hint}`;
+    };
+    statusLine = (r) => {
+      const phrase = r.phrase ? ` for \u201C${r.phrase}\u201D` : "";
+      const provider = r.provider ? ` \xB7 ${r.provider}` : "";
+      if (r.listening) {
+        if (r.audio_silent) {
+          const hint = r.hint?.trim() ? ` \u2014 ${r.hint.trim()}` : "";
+          return `wake: listening${phrase}${provider} \xB7 \u26A0 mic delivers only silence${hint}`;
+        }
+        return `wake: listening${phrase}${provider}`;
+      }
+      if (r.owner_surface && !r.owned_by_caller) {
+        return `wake: off here \xB7 listener owned by ${r.owner_surface}${phrase}${provider}`;
+      }
+      if (r.available === false) {
+        const hint = r.hint?.trim() ? ` \u2014 ${r.hint.trim()}` : "";
+        return `wake: unavailable${hint}`;
+      }
+      return `wake: off${phrase}${provider} \xB7 /wake on to arm`;
+    };
+    runOn = (ctx) => {
+      setWakeUserDisabled(false);
+      ctx.gateway.rpc("wake.start", { persist: true, surface: "tui" }).then(
+        ctx.guarded((r) => {
+          if (!r.started) {
+            return ctx.transcript.sys(startFailureLine(r));
+          }
+          const phrase = r.phrase ? ` for \u201C${r.phrase}\u201D` : "";
+          const provider = r.provider ? ` \xB7 ${r.provider}` : "";
+          const saved = r.enabled_persisted ? " \xB7 enabled in config" : "";
+          ctx.transcript.sys(`wake: listening${phrase}${provider}${saved}`);
+        })
+      ).catch(ctx.guardedErr);
+    };
+    runOff = (ctx) => {
+      setWakeUserDisabled(true);
+      ctx.gateway.rpc("wake.stop", { persist: true }).then(
+        ctx.guarded((r) => {
+          const saved = r.disabled_persisted ? " \xB7 disabled in config" : "";
+          if (r.stopped) {
+            return ctx.transcript.sys(`wake: listener off${saved}`);
+          }
+          const reason = r.reason === "not_owner" ? "this surface doesn\u2019t own the listener" : r.reason ?? "not running";
+          ctx.transcript.sys(`wake: nothing to stop \u2014 ${reason}${saved}`);
+        })
+      ).catch(ctx.guardedErr);
+    };
+    runStatus = (ctx) => {
+      ctx.gateway.rpc("wake.status", {}).then(ctx.guarded((r) => ctx.transcript.sys(statusLine(r)))).catch(ctx.guardedErr);
+    };
+    WAKE_RUNNERS = {
+      off: runOff,
+      on: runOn,
+      status: runStatus
+    };
+    wakeCommands = [
+      {
+        help: "toggle the 'Hey Hermes' wake word listener [on|off|status]",
+        name: "wake",
+        usage: "/wake [on|off|status]",
+        run: (arg, ctx) => {
+          const sub = arg.trim().toLowerCase();
+          if (sub && !isWakeSub(sub)) {
+            return ctx.transcript.sys("usage: /wake [on|off|status]");
+          }
+          WAKE_RUNNERS[sub && isWakeSub(sub) ? sub : "status"](ctx);
+        }
+      }
+    ];
+  }
+});
+
 // src/app/slash/registry.ts
 var SLASH_COMMANDS, byName, findSlashCommand;
 var init_registry2 = __esm({
@@ -74577,12 +74731,14 @@ var init_registry2 = __esm({
     init_setup2();
     init_subscription();
     init_topup();
+    init_wake();
     SLASH_COMMANDS = [
       ...coreCommands,
       ...topupCommands,
       ...sessionCommands,
       ...subscriptionCommands,
       ...opsCommands,
+      ...wakeCommands,
       ...setupCommands,
       ...debugCommands
     ];
@@ -76637,7 +76793,11 @@ function submitPrompt(text, deps, showUserMessage = true, displayOverride) {
     patchUiState({ busy: true, status: "running\u2026" });
     turnController.bufRef = "";
     turnController.interrupted = false;
-    deps.gw.request("prompt.submit", { session_id: liveSid, text: submitText }).catch((e) => {
+    deps.gw.request("prompt.submit", { session_id: liveSid, text: submitText }).then((r) => {
+      if (r?.voice_stopped) {
+        patchUiState({ busy: false, status: "ready" });
+      }
+    }).catch((e) => {
       if (isSessionBusyError(e)) {
         deps.enqueue(submitText);
         patchUiState({ busy: true, status: "queued for next turn" });
@@ -82541,7 +82701,7 @@ function pendingTransition(c) {
   }
   return null;
 }
-function statusLine(s) {
+function statusLine2(s) {
   const u = s.usage;
   const c = s.current;
   const plan = c?.tier_name ?? u?.plan_name ?? null;
@@ -82641,7 +82801,7 @@ function OverviewScreen2({ onClose, onPatch, overlay, t }) {
         " (and its credits) until then."
       ] })
     ] }),
-    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(Text, { bold: true, color: t.color.accent, children: statusLine(s) }),
+    /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(Text, { bold: true, color: t.color.accent, children: statusLine2(s) }),
     /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(UsageBars, { model: s.usage, t }),
     freeNudge && /* @__PURE__ */ (0, import_jsx_runtime43.jsx)(Box_default, { marginTop: 1, children: /* @__PURE__ */ (0, import_jsx_runtime43.jsxs)(Text, { color: t.color.warn, children: [
       "> ",
@@ -83517,7 +83677,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, children: [
       info.model.split("/").pop(),
-      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
     sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { children: [
@@ -83536,7 +83696,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
         /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
           info.model.split("/").pop(),
-          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
         sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { wrap: "truncate-end", children: [
