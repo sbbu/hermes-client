@@ -14,6 +14,12 @@ def test_packaged_tui_entry_exists():
     assert entry.is_file()
 
 
+def test_packaged_tui_double_escape_preserves_complete_expanded_draft():
+    bundle = packaged_tui_entry().read_text()
+    assert 'expandSnips(cState.pasteSnips)([...cState.inputBuf, cState.input].join("\\n"))' in bundle
+    assert "cActions.pushHistory(draft)" in bundle
+
+
 def test_run_tui_overrides_inherited_local_agent_env(tmp_path, monkeypatch):
     app_dir = tmp_path / "client-config"
     monkeypatch.chdir(tmp_path)

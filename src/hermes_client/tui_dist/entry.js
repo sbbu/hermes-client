@@ -55170,11 +55170,23 @@ function useTerminalTitle(title) {
     if (title === null || !writeRaw) {
       return;
     }
-    const clean2 = stripAnsi(title);
     if (process.platform === "win32") {
+      const clean2 = stripAnsi(typeof title === "string" ? title : title.window ?? title.tab ?? "");
       process.title = clean2;
-    } else {
-      writeRaw(osc(OSC.SET_TITLE_AND_ICON, clean2));
+      return;
+    }
+    if (typeof title === "string") {
+      writeRaw(osc(OSC.SET_TITLE_AND_ICON, stripAnsi(title)));
+      return;
+    }
+    const tab = stripAnsi(title.tab ?? "");
+    const window2 = stripAnsi(title.window ?? "");
+    if (tab && window2) {
+      writeRaw(osc(OSC.SET_ICON, tab) + osc(OSC.SET_TITLE, window2));
+    } else if (window2) {
+      writeRaw(osc(OSC.SET_TITLE_AND_ICON, window2));
+    } else if (tab) {
+      writeRaw(osc(OSC.SET_TITLE_AND_ICON, tab));
     }
   }, [title, writeRaw]);
 }
@@ -65078,7 +65090,7 @@ var init_limits = __esm({
 });
 
 // src/config/timing.ts
-var STREAM_BATCH_MS, STREAM_IDLE_BATCH_MS, STREAM_SCROLL_BATCH_MS, STREAM_TYPING_BATCH_MS, TYPING_IDLE_MS, REASONING_PULSE_MS, RESIZE_COALESCE_MS;
+var STREAM_BATCH_MS, STREAM_IDLE_BATCH_MS, STREAM_SCROLL_BATCH_MS, STREAM_TYPING_BATCH_MS, TYPING_IDLE_MS, REASONING_PULSE_MS, RESIZE_COALESCE_MS, DOUBLE_ESC_MS;
 var init_timing = __esm({
   "src/config/timing.ts"() {
     "use strict";
@@ -65089,6 +65101,7 @@ var init_timing = __esm({
     TYPING_IDLE_MS = 250;
     REASONING_PULSE_MS = 700;
     RESIZE_COALESCE_MS = 32;
+    DOUBLE_ESC_MS = 500;
   }
 });
 
@@ -70060,13 +70073,15 @@ var init_hotkeys = __esm({
       [action + "+G / Alt+G", "open $EDITOR (Alt+G fallback for VSCode/Cursor)"],
       [action + "+L", "redraw / repaint"],
       [paste + "+V / /paste", "paste text; /paste attaches clipboard image"],
+      ["Esc Esc", "discard draft (recall with \u2191)"],
       ["Tab", "apply completion"],
       ["\u2191/\u2193", "completions / queue edit / history"],
       ["Ctrl+X", "open live session switcher (deletes queued message while editing)"],
+      ["Ctrl+O", "open model picker (keeps your draft; applies to next turn mid-stream)"],
       [action + "+A/E", "home / end of line"],
       [action + "+Z / " + action + "+Y", "undo / redo input edits"],
       [action + "+W", "delete word"],
-      [action + "+U/K", "delete to start / end"],
+      [action + "+U/K", "kill to line start / end (repeat across lines)"],
       [action + "+\u2190/\u2192", "jump word"],
       ["Home/End", "start / end of line"],
       ["Shift+Enter / Alt+Enter", "insert newline"],
@@ -73632,9 +73647,6 @@ var init_session = __esm({
         help: "change or show model",
         name: "model",
         run: (arg, ctx) => {
-          if (ctx.session.guardBusySessionSwitch("change models")) {
-            return;
-          }
           if (!arg.trim()) {
             return patchOverlayState({ modelPicker: true });
           }
@@ -73664,7 +73676,7 @@ var init_session = __esm({
               if (!r.value) {
                 return ctx.transcript.sys("error: invalid response: model switch");
               }
-              ctx.transcript.sys(`model \u2192 ${r.value}`);
+              ctx.transcript.sys(r.deferred ? `model \u2192 ${r.value} (applies next turn)` : `model \u2192 ${r.value}`);
               ctx.local.maybeWarn(r);
               patchUiState((state) => ({
                 ...state,
@@ -74266,7 +74278,7 @@ var init_subscription = __esm({
   }
 });
 
-// ../apps/shared/src/billing-policy.ts
+// node_modules/@hermes/shared/src/billing-policy.ts
 function refusalPolicy(code) {
   if (Object.hasOwn(BILLING_REFUSAL_POLICY, code)) {
     return BILLING_REFUSAL_POLICY[code];
@@ -74275,8 +74287,7 @@ function refusalPolicy(code) {
 }
 var BILLING_REFUSAL_POLICY;
 var init_billing_policy = __esm({
-  "../apps/shared/src/billing-policy.ts"() {
-    "use strict";
+  "node_modules/@hermes/shared/src/billing-policy.ts"() {
     BILLING_REFUSAL_POLICY = {
       auto_top_up_disabled_failures: { recovery: "portal" },
       cli_billing_disabled: { recovery: "portal" },
@@ -74307,7 +74318,7 @@ var init_billing_policy = __esm({
   }
 });
 
-// ../apps/shared/src/charge-settlement.ts
+// node_modules/@hermes/shared/src/charge-settlement.ts
 async function driveChargeSettlement(deps) {
   const start = deps.now();
   const timedOut = () => deps.now() - start >= SETTLEMENT_POLL_CAP_MS;
@@ -74358,8 +74369,7 @@ async function driveChargeSettlement(deps) {
 }
 var SETTLEMENT_POLL_INTERVAL_MS, SETTLEMENT_POLL_CAP_MS, SETTLEMENT_MAX_RETRY_AFTER_MS;
 var init_charge_settlement = __esm({
-  "../apps/shared/src/charge-settlement.ts"() {
-    "use strict";
+  "node_modules/@hermes/shared/src/charge-settlement.ts"() {
     init_billing_policy();
     SETTLEMENT_POLL_INTERVAL_MS = 2e3;
     SETTLEMENT_POLL_CAP_MS = 5 * 60 * 1e3;
@@ -76126,8 +76136,22 @@ function useInputHandlers(ctx) {
       actions.sys(`voice error: ${e.message}`);
     });
   };
+  const lastEscRef = (0, import_react53.useRef)(0);
   use_input_default((ch, key) => {
     const live = getUiState();
+    if (key.escape) {
+      const now2 = Date.now();
+      const isDouble = now2 - lastEscRef.current <= DOUBLE_ESC_MS;
+      lastEscRef.current = isDouble ? 0 : now2;
+      if (isDouble && (cState.input || cState.inputBuf.length)) {
+        const draft = expandSnips(cState.pasteSnips)([...cState.inputBuf, cState.input].join("\n"));
+        if (draft.trim()) {
+          cActions.pushHistory(draft);
+        }
+        cActions.clearIn();
+        return;
+      }
+    }
     if (isBlocked) {
       const promptOverlay = overlay.approval || overlay.billing || overlay.clarify || overlay.confirm || overlay.subscription;
       const fallThroughForScroll = promptOverlay && shouldFallThroughForScroll(key);
@@ -76266,6 +76290,9 @@ function useInputHandlers(ctx) {
     }
     if (isCtrl2(key, ch, "x")) {
       return patchOverlayState({ sessions: true });
+    }
+    if (isCtrl2(key, ch, "o")) {
+      return patchOverlayState({ modelPicker: true });
     }
     if (key.ctrl && ch.toLowerCase() === "c") {
       if (live.busy && live.sid) {
@@ -77460,7 +77487,10 @@ function useMainApp(gw2) {
   const marker = overlay.approval || overlay.sudo || overlay.secret || overlay.clarify ? "\u26A0" : ui.busy ? "\u23F3" : "\u2713";
   const tabCwd = ui.info?.cwd;
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : "") : "Hermes"
+    model ? {
+      tab: composeTabTitle(marker, ui.sessionTitle, "", ""),
+      window: composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : "")
+    } : "Hermes"
   );
   (0, import_react58.useEffect)(() => {
     if (!ui.sid || !stdout) {
@@ -79739,6 +79769,19 @@ function resolveCursorLayout(display, cur, curRefCurrent, columns) {
   void cur;
   return cursorLayout(display, curRefCurrent, columns);
 }
+function killToLineStart(value, cursor) {
+  const start = value.lastIndexOf("\n", Math.max(0, cursor - 1)) + 1;
+  const from = start === cursor && cursor > 0 ? start - 1 : start;
+  return { value: value.slice(0, from) + value.slice(cursor), cursor: from };
+}
+function killToLineEnd(value, cursor) {
+  const nl = value.indexOf("\n", cursor);
+  const to = nl < 0 ? value.length : nl === cursor ? nl + 1 : nl;
+  return { value: value.slice(0, cursor) + value.slice(to), cursor };
+}
+function isLineKillModifier(key) {
+  return key.super === true;
+}
 function fastBackspaceEffect(current, cursor) {
   const t = prevPos(current, cursor);
   const removed = current.slice(t, cursor);
@@ -80299,7 +80342,10 @@ function TextInput({
         v = v.slice(0, range.start) + v.slice(range.end);
         c = range.start;
       } else if (k.backspace && c > 0) {
-        if (wordMod) {
+        if (isLineKillModifier(k)) {
+          ;
+          ({ cursor: c, value: v } = killToLineStart(v, c));
+        } else if (wordMod) {
           const t = wordLeft(v, c);
           v = v.slice(0, t) + v.slice(c);
           c = t;
@@ -80317,7 +80363,10 @@ function TextInput({
           c = t;
         }
       } else if (delFwd && c < v.length) {
-        if (wordMod) {
+        if (isLineKillModifier(k)) {
+          ;
+          ({ cursor: c, value: v } = killToLineEnd(v, c));
+        } else if (wordMod) {
           const t = wordRight(v, c);
           v = v.slice(0, c) + v.slice(t);
         } else {
@@ -80340,15 +80389,16 @@ function TextInput({
           v = v.slice(0, range.start) + v.slice(range.end);
           c = range.start;
         } else {
-          v = v.slice(c);
-          c = 0;
+          ;
+          ({ cursor: c, value: v } = killToLineStart(v, c));
         }
       } else if (actionKillToEnd) {
         if (range) {
           v = v.slice(0, range.start) + v.slice(range.end);
           c = range.start;
         } else {
-          v = v.slice(0, c);
+          ;
+          ({ cursor: c, value: v } = killToLineEnd(v, c));
         }
       } else if (event.keypress.isPasted || inp.length > 0) {
         const bracketed = event.keypress.isPasted || inp.includes("[200~");
@@ -80519,7 +80569,7 @@ var init_textInput = __esm({
     shouldRouteMultiCharInputAsPaste = (text) => text.includes("\n");
     ASCII_PRINTABLE_RE = /^[\x20-\x7e]+$/;
     isPasteResultPromise = (value) => !!value && typeof value.then === "function";
-    shouldPassThroughToGlobalHandler = (input, key, voiceRecordKey = DEFAULT_VOICE_RECORD_KEY) => key.ctrl && input === "c" || key.ctrl && input === "x" || key.tab || key.shift && key.tab || key.pageUp || key.pageDown || key.escape || isVoiceToggleKey(key, input, voiceRecordKey);
+    shouldPassThroughToGlobalHandler = (input, key, voiceRecordKey = DEFAULT_VOICE_RECORD_KEY) => key.ctrl && input === "c" || key.ctrl && input === "x" || key.ctrl && input === "o" || key.tab || key.shift && key.tab || key.pageUp || key.pageDown || key.escape || isVoiceToggleKey(key, input, voiceRecordKey);
   }
 });
 

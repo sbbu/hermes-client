@@ -276,6 +276,11 @@ export function composerPlainText(node: Node): string {
     return el.dataset.refText
   }
 
+  // The editor's lone break is layout scaffolding, not a typed newline.
+  if (el.dataset.slot === RICH_INPUT_SLOT && el.childNodes.length === 1 && el.firstChild?.nodeName === 'BR') {
+    return ''
+  }
+
   if (el.tagName === 'BR') {
     return '\n'
   }

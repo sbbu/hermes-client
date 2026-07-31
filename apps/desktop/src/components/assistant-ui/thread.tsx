@@ -47,6 +47,7 @@ import {
 } from '@/app/chat/composer/inline-refs'
 import {
   composerPlainText,
+  normalizeComposerEditorDom,
   placeCaretEnd,
   refChipElement,
   renderComposerContents,
@@ -1324,6 +1325,7 @@ const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }
 
   const syncDraftFromEditor = useCallback(
     (editor: HTMLDivElement) => {
+      normalizeComposerEditorDom(editor)
       const nextDraft = sanitizeComposerInput(composerPlainText(editor))
 
       if (nextDraft !== draftRef.current) {

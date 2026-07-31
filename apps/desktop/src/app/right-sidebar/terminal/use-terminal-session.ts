@@ -1,6 +1,5 @@
 import { FitAddon } from '@xterm/addon-fit'
 import { Unicode11Addon } from '@xterm/addon-unicode11'
-import { WebLinksAddon } from '@xterm/addon-web-links'
 import { WebglAddon } from '@xterm/addon-webgl'
 import { Terminal } from '@xterm/xterm'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -13,6 +12,7 @@ import { useTheme } from '@/themes/context'
 import { $terminalInjection } from '../store'
 
 import { makeTerminalReader, setActiveTerminalReader } from './buffer'
+import { terminalLinkHandler, terminalWebLinksAddon } from './links'
 import {
   isAddSelectionShortcut,
   resolveSurfaceColor,
@@ -330,6 +330,9 @@ export function useTerminalSession({ cwd, onAddSelectionToChat }: UseTerminalSes
 
     const term = new Terminal({
       allowProposedApi: true,
+      // Option-drag is the force-selection gesture below; prevent xterm from
+      // also emitting cursor movement for the same click.
+      altClickMovesCursor: false,
       // Opaque canvas = WebGL's crisp fast-path. allowTransparency instead bakes
       // glyphs as grayscale-alpha for compositing over a see-through canvas, which
       // reads soft on every platform; VS Code keeps it off and our surface
@@ -345,6 +348,8 @@ export function useTerminalSession({ cwd, onAddSelectionToChat }: UseTerminalSes
       fontWeightBold: 'bold',
       letterSpacing: 0,
       lineHeight: 1.12,
+      // Route OSC 8 hyperlinks through Electron's typed external-link bridge.
+      linkHandler: terminalLinkHandler,
       // Full-screen TUIs (hermes --tui, vim) grab the mouse, so a plain drag
       // can't select — ⌥-drag (macOS) / Shift-drag (else) forces a native
       // selection over mouse-mode apps, which ⌘/Ctrl+L then sends to chat.
@@ -365,7 +370,7 @@ export function useTerminalSession({ cwd, onAddSelectionToChat }: UseTerminalSes
     termRef.current = term
     term.loadAddon(fit)
     term.loadAddon(new Unicode11Addon())
-    term.loadAddon(new WebLinksAddon())
+    term.loadAddon(terminalWebLinksAddon())
     term.unicode.activeVersion = '11'
 
     // Let the GUI chat agent read this pane via the `read_terminal` tool: the
