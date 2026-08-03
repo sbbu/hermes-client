@@ -16,8 +16,17 @@ def test_packaged_tui_entry_exists():
 
 def test_packaged_tui_double_escape_preserves_complete_expanded_draft():
     bundle = packaged_tui_entry().read_text()
-    assert 'expandSnips(cState.pasteSnips)([...cState.inputBuf, cState.input].join("\\n"))' in bundle
+    assert 'expandTokens(cState.tokens)([...cState.inputBuf, cState.input].join("\\n"))' in bundle
     assert "cActions.pushHistory(draft)" in bundle
+
+
+def test_packaged_tui_has_client_branding_and_updater():
+    bundle = packaged_tui_entry().read_text()
+    assert 'name: "Hermes Client"' in bundle
+    assert 'TAG_FULL = "Hermes Client"' in bundle
+    assert 'info.update_command || "hermes-client update"' in bundle
+    stock_tagline = "Messenger of the " + "Digital Gods"
+    assert stock_tagline not in bundle
 
 
 def test_run_tui_overrides_inherited_local_agent_env(tmp_path, monkeypatch):

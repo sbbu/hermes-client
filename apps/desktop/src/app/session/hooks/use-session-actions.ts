@@ -782,7 +782,7 @@ export function useSessionActions({
           session_id: storedSessionId,
           cols: 96,
           source: 'desktop',
-          ...(watchWindow ? { lazy: true } : {}),
+          ...(watchWindow ? { lazy: true } : { omit_messages: true }),
           ...(sessionProfile ? { profile: sessionProfile } : {})
         })
 

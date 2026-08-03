@@ -38,10 +38,14 @@ const AT_COOKIE_VARIANTS = ['__Host-hermes_session_at', '__Secure-hermes_session
 const RT_COOKIE_VARIANTS = ['__Host-hermes_session_rt', '__Secure-hermes_session_rt', 'hermes_session_rt']
 
 function normalizeRemoteBaseUrl(rawUrl) {
-  const value = String(rawUrl || '').trim()
+  let value = String(rawUrl || '').trim()
 
   if (!value) {
     throw new Error('Remote gateway URL is required.')
+  }
+
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    value = `http://${value}`
   }
 
   let parsed
@@ -261,12 +265,7 @@ function cookiesHaveSession(cookies) {
  */
 function cookiesHaveLiveSession(cookies) {
   if (!Array.isArray(cookies)) return false
-  return cookies.some(
-    c =>
-      c &&
-      c.value &&
-      (AT_COOKIE_VARIANTS.includes(c.name) || RT_COOKIE_VARIANTS.includes(c.name))
-  )
+  return cookies.some(c => c && c.value && (AT_COOKIE_VARIANTS.includes(c.name) || RT_COOKIE_VARIANTS.includes(c.name)))
 }
 
 module.exports = {

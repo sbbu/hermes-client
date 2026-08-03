@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import type { DesktopAuthProvider, DesktopConnectionProbeResult } from '@/global'
 import { useI18n } from '@/i18n'
 import { AlertCircle, Check, FileText, Globe, Loader2, LogIn, Monitor } from '@/lib/icons'
+import { coerceRemoteUrlScheme } from '@/lib/remote-url'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $profiles, refreshActiveProfile } from '@/store/profile'
@@ -161,7 +162,7 @@ export function GatewaySettings() {
   // syntactically plausible URL. The probe result drives whether we render the
   // OAuth login button or the session-token entry box. The effective auth mode
   // prefers a fresh probe result over the saved value.
-  const trimmedUrl = state.remoteUrl.trim()
+  const trimmedUrl = coerceRemoteUrlScheme(state.remoteUrl)
   useEffect(() => {
     if (state.mode !== 'remote' || !trimmedUrl || !/^https?:\/\//i.test(trimmedUrl)) {
       setProbeStatus('idle')
@@ -292,10 +293,7 @@ export function GatewaySettings() {
       notify({
         kind: 'warning',
         title: g.incompleteTitle,
-        message:
-          authMode === 'oauth'
-            ? g.incompleteSignIn
-            : g.incompleteToken
+        message: authMode === 'oauth' ? g.incompleteSignIn : g.incompleteToken
       })
 
       return
@@ -386,10 +384,7 @@ export function GatewaySettings() {
       notify({
         kind: 'warning',
         title: g.incompleteTitle,
-        message:
-          authMode === 'oauth'
-            ? g.incompleteSignInTest
-            : g.incompleteTokenTest
+        message: authMode === 'oauth' ? g.incompleteSignInTest : g.incompleteTokenTest
       })
 
       return
@@ -422,12 +417,7 @@ export function GatewaySettings() {
   }
 
   if (!window.hermesDesktop?.getConnectionConfig) {
-    return (
-      <EmptyState
-        description={g.unavailableDesc}
-        title={g.unavailableTitle}
-      />
-    )
+    return <EmptyState description={g.unavailableDesc} title={g.unavailableTitle} />
   }
 
   return (
@@ -470,9 +460,7 @@ export function GatewaySettings() {
           <AlertCircle className="mt-0.5 size-4 shrink-0" />
           <div>
             <div className="font-medium">{g.envOverrideTitle}</div>
-            <div className="mt-1 leading-5">
-              {g.envOverrideDesc}
-            </div>
+            <div className="mt-1 leading-5">{g.envOverrideDesc}</div>
           </div>
         </div>
       ) : null}

@@ -713,7 +713,8 @@ export function usePromptActions({
         try {
           const resumed = await requestGateway<{ session_id: string }>('session.resume', {
             session_id: startingStoredSessionId,
-            source: 'desktop'
+            source: 'desktop',
+            omit_messages: true
           })
 
           if (sessionContextDrifted()) {
@@ -791,7 +792,8 @@ export function usePromptActions({
             // Re-register the session in the gateway and get a fresh live ID.
             const resumed = await requestGateway<{ session_id: string }>('session.resume', {
               session_id: startingStoredSessionId,
-              source: 'desktop'
+              source: 'desktop',
+              omit_messages: true
             })
 
             if (sessionContextDrifted()) {
@@ -1567,7 +1569,8 @@ export function usePromptActions({
         try {
           const resumed = await requestGateway<{ session_id: string }>('session.resume', {
             session_id: selectedStoredSessionIdRef.current,
-            source: 'desktop'
+            source: 'desktop',
+            omit_messages: true
           })
 
           const recoveredId = resumed?.session_id

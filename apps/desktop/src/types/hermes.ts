@@ -395,6 +395,7 @@ export interface SessionResumeResponse {
   info?: SessionRuntimeInfo
   message_count: number
   messages: SessionMessage[]
+  messages_omitted?: boolean
   resumed: string
   session_id: string
 }

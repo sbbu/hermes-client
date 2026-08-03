@@ -1767,11 +1767,7 @@ var require_request = __commonJS({
           } else if (typeof val[i] === "object") {
             throw new InvalidArgumentError(`invalid ${key} header`);
           } else {
-            const str = `${val[i]}`;
-            if (!isValidHeaderValue(str)) {
-              throw new InvalidArgumentError(`invalid ${key} header`);
-            }
-            arr.push(str);
+            arr.push(`${val[i]}`);
           }
         }
         val = arr;
@@ -1783,9 +1779,6 @@ var require_request = __commonJS({
         val = "";
       } else {
         val = `${val}`;
-        if (!isValidHeaderValue(val)) {
-          throw new InvalidArgumentError(`invalid ${key} header`);
-        }
       }
       if (headerName === "host") {
         if (request.host !== null) {
@@ -5516,7 +5509,6 @@ var require_client_h1 = __commonJS({
       RequestContentLengthMismatchError,
       ResponseContentLengthMismatchError,
       RequestAbortedError,
-      InvalidArgumentError,
       HeadersTimeoutError,
       HeadersOverflowError,
       SocketError,
@@ -6243,16 +6235,8 @@ var require_client_h1 = __commonJS({
         }
         body = bodyStream.stream;
         contentLength = bodyStream.length;
-      } else if (util.isBlobLike(body) && request.contentType == null) {
-        const contentType = body.type;
-        if (contentType) {
-          const contentTypeValue = `${contentType}`;
-          if (!util.isValidHeaderValue(contentTypeValue)) {
-            util.errorRequest(client, request, new InvalidArgumentError("invalid content-type header"));
-            return false;
-          }
-          headers.push("content-type", contentTypeValue);
-        }
+      } else if (util.isBlobLike(body) && request.contentType == null && body.type) {
+        headers.push("content-type", body.type);
       }
       if (body && typeof body.read === "function") {
         body.read(0);
@@ -8804,24 +8788,6 @@ var require_retry_handler = __commonJS({
       const current = Date.now();
       return new Date(retryAfter).getTime() - current;
     }
-    function validatePartialResponseContentLength(headers, range, statusCode, retryCount) {
-      const contentLength = headers["content-length"];
-      if (contentLength == null) {
-        return null;
-      }
-      if (!Number.isFinite(range.start) || !Number.isFinite(range.end)) {
-        return null;
-      }
-      const length = Number(contentLength);
-      const expectedLength = range.end - range.start + 1;
-      if (!Number.isFinite(length) || length !== expectedLength) {
-        return new RequestRetryError("Content-Length mismatch", statusCode, {
-          headers,
-          data: { count: retryCount }
-        });
-      }
-      return null;
-    }
     var RetryHandler = class _RetryHandler {
       constructor(opts, handlers) {
         const { retryOptions, ...dispatchOpts } = opts;
@@ -8994,11 +8960,6 @@ var require_retry_handler = __commonJS({
             );
             return false;
           }
-          const contentLengthError = validatePartialResponseContentLength(headers, contentRange, statusCode, this.retryCount);
-          if (contentLengthError != null) {
-            this.abort(contentLengthError);
-            return false;
-          }
           const { start, size, end = size - 1 } = contentRange;
           assert(this.start === start, "content-range mismatch");
           assert(this.end == null || this.end === end, "content-range mismatch");
@@ -9015,11 +8976,6 @@ var require_retry_handler = __commonJS({
                 resume,
                 statusMessage
               );
-            }
-            const contentLengthError = validatePartialResponseContentLength(headers, range, statusCode, this.retryCount);
-            if (contentLengthError != null) {
-              this.abort(contentLengthError);
-              return false;
             }
             const { start, size, end = size - 1 } = range;
             assert(
@@ -15866,48 +15822,14 @@ var require_util6 = __commonJS({
       for (let i = 0; i < path.length; ++i) {
         const code = path.charCodeAt(i);
         if (code < 32 || // exclude CTLs (0-31)
-        code > 126 || // exclude DEL and non-ascii
+        code === 127 || // DEL
         code === 59) {
           throw new Error("Invalid cookie path");
         }
       }
     }
-    function isLetterOrDigit(code) {
-      return code >= 48 && code <= 57 || // 0-9
-      code >= 65 && code <= 90 || // A-Z
-      code >= 97 && code <= 122;
-    }
     function validateCookieDomain(domain) {
-      if (domain === " ") {
-        return;
-      }
-      if (domain.length > 255) {
-        throw new Error("Invalid cookie domain");
-      }
-      let labelLength = 0;
-      for (let i = 0; i < domain.length; ++i) {
-        const code = domain.charCodeAt(i);
-        if (code === 46) {
-          if (labelLength === 0) {
-            throw new Error("Invalid cookie domain");
-          }
-          if (domain.charCodeAt(i - 1) === 45) {
-            throw new Error("Invalid cookie domain");
-          }
-          labelLength = 0;
-          continue;
-        }
-        if (labelLength === 0 && !isLetterOrDigit(code)) {
-          throw new Error("Invalid cookie domain");
-        }
-        if (!isLetterOrDigit(code) && code !== 45) {
-          throw new Error("Invalid cookie domain");
-        }
-        if (++labelLength > 63) {
-          throw new Error("Invalid cookie domain");
-        }
-      }
-      if (labelLength === 0 || domain.charCodeAt(domain.length - 1) === 45) {
+      if (domain.startsWith("-") || domain.endsWith(".") || domain.endsWith("-")) {
         throw new Error("Invalid cookie domain");
       }
     }
@@ -15990,11 +15912,7 @@ var require_util6 = __commonJS({
           throw new Error("Invalid unparsed");
         }
         const [key, ...value] = part.split("=");
-        const trimmedKey = key.trim();
-        const joinedValue = value.join("=");
-        validateCookieName(trimmedKey);
-        validateCookieValue(joinedValue);
-        out.push(`${trimmedKey}=${joinedValue}`);
+        out.push(`${key.trim()}=${value.join("=")}`);
       }
       return out.join("; ");
     }
@@ -18848,9 +18766,9 @@ var init_memory = __esm({
   }
 });
 
-// node_modules/react/cjs/react.production.js
+// ../node_modules/react/cjs/react.production.js
 var require_react_production = __commonJS({
-  "node_modules/react/cjs/react.production.js"(exports) {
+  "../node_modules/react/cjs/react.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_PORTAL_TYPE = /* @__PURE__ */ Symbol.for("react.portal");
@@ -19285,13 +19203,13 @@ var require_react_production = __commonJS({
     exports.useTransition = function() {
       return ReactSharedInternals.H.useTransition();
     };
-    exports.version = "19.2.8";
+    exports.version = "19.2.7";
   }
 });
 
-// node_modules/react/cjs/react.development.js
+// ../node_modules/react/cjs/react.development.js
 var require_react_development = __commonJS({
-  "node_modules/react/cjs/react.development.js"(exports, module) {
+  "../node_modules/react/cjs/react.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function defineDeprecationWarning(methodName, info) {
@@ -20255,15 +20173,15 @@ var require_react_development = __commonJS({
       exports.useTransition = function() {
         return resolveDispatcher().useTransition();
       };
-      exports.version = "19.2.8";
+      exports.version = "19.2.7";
       "undefined" !== typeof __REACT_DEVTOOLS_GLOBAL_HOOK__ && "function" === typeof __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop && __REACT_DEVTOOLS_GLOBAL_HOOK__.registerInternalModuleStop(Error());
     })();
   }
 });
 
-// node_modules/react/index.js
+// ../node_modules/react/index.js
 var require_react = __commonJS({
-  "node_modules/react/index.js"(exports, module) {
+  "../node_modules/react/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_production();
@@ -20309,9 +20227,9 @@ var init_use_stdout = __esm({
   }
 });
 
-// node_modules/react/cjs/react-compiler-runtime.production.js
+// ../node_modules/react/cjs/react-compiler-runtime.production.js
 var require_react_compiler_runtime_production = __commonJS({
-  "node_modules/react/cjs/react-compiler-runtime.production.js"(exports) {
+  "../node_modules/react/cjs/react-compiler-runtime.production.js"(exports) {
     "use strict";
     var ReactSharedInternals = require_react().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
     exports.c = function(size) {
@@ -20320,9 +20238,9 @@ var require_react_compiler_runtime_production = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-compiler-runtime.development.js
+// ../node_modules/react/cjs/react-compiler-runtime.development.js
 var require_react_compiler_runtime_development = __commonJS({
-  "node_modules/react/cjs/react-compiler-runtime.development.js"(exports) {
+  "../node_modules/react/cjs/react-compiler-runtime.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       var ReactSharedInternals = require_react().__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
@@ -20337,9 +20255,9 @@ var require_react_compiler_runtime_development = __commonJS({
   }
 });
 
-// node_modules/react/compiler-runtime.js
+// ../node_modules/react/compiler-runtime.js
 var require_compiler_runtime = __commonJS({
-  "node_modules/react/compiler-runtime.js"(exports, module) {
+  "../node_modules/react/compiler-runtime.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_compiler_runtime_production();
@@ -20349,9 +20267,9 @@ var require_compiler_runtime = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-jsx-runtime.production.js
+// ../node_modules/react/cjs/react-jsx-runtime.production.js
 var require_react_jsx_runtime_production = __commonJS({
-  "node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
+  "../node_modules/react/cjs/react-jsx-runtime.production.js"(exports) {
     "use strict";
     var REACT_ELEMENT_TYPE = /* @__PURE__ */ Symbol.for("react.transitional.element");
     var REACT_FRAGMENT_TYPE = /* @__PURE__ */ Symbol.for("react.fragment");
@@ -20379,9 +20297,9 @@ var require_react_jsx_runtime_production = __commonJS({
   }
 });
 
-// node_modules/react/cjs/react-jsx-runtime.development.js
+// ../node_modules/react/cjs/react-jsx-runtime.development.js
 var require_react_jsx_runtime_development = __commonJS({
-  "node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
+  "../node_modules/react/cjs/react-jsx-runtime.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function getComponentNameFromType(type) {
@@ -20636,9 +20554,9 @@ var require_react_jsx_runtime_development = __commonJS({
   }
 });
 
-// node_modules/react/jsx-runtime.js
+// ../node_modules/react/jsx-runtime.js
 var require_jsx_runtime = __commonJS({
-  "node_modules/react/jsx-runtime.js"(exports, module) {
+  "../node_modules/react/jsx-runtime.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_jsx_runtime_production();
@@ -22786,7 +22704,7 @@ var init_Ansi = __esm({
   }
 });
 
-// node_modules/ansi-styles/index.js
+// ../node_modules/ansi-styles/index.js
 function assembleStyles() {
   const codes = /* @__PURE__ */ new Map();
   for (const [groupName, group] of Object.entries(styles)) {
@@ -22903,7 +22821,7 @@ function assembleStyles() {
 }
 var ANSI_BACKGROUND_OFFSET, wrapAnsi16, wrapAnsi256, wrapAnsi16m, styles, modifierNames, foregroundColorNames, backgroundColorNames, colorNames, ansiStyles, ansi_styles_default;
 var init_ansi_styles = __esm({
-  "node_modules/ansi-styles/index.js"() {
+  "../node_modules/ansi-styles/index.js"() {
     ANSI_BACKGROUND_OFFSET = 10;
     wrapAnsi16 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
     wrapAnsi256 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
@@ -22977,7 +22895,7 @@ var init_ansi_styles = __esm({
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js
 function getEndCode(code) {
   if (endCodesSet.has(code))
     return code;
@@ -23001,7 +22919,7 @@ function ansiCodesToString(codes) {
 }
 var ESCAPES, endCodesSet, endCodesMap, linkStartCodePrefix, linkStartCodePrefixCharCodes, linkCodeSuffix, linkCodeSuffixCharCode, linkEndCode;
 var init_ansiCodes = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/ansiCodes.js"() {
     init_ansi_styles();
     ESCAPES = /* @__PURE__ */ new Set([27, 155]);
     endCodesSet = /* @__PURE__ */ new Set();
@@ -23018,7 +22936,7 @@ var init_ansiCodes = __esm({
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/reduce.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/reduce.js
 function reduceAnsiCodes(codes) {
   return reduceAnsiCodesIncremental([], codes);
 }
@@ -23037,13 +22955,13 @@ function reduceAnsiCodesIncremental(codes, newCodes) {
   return ret;
 }
 var init_reduce = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/reduce.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/reduce.js"() {
     init_ansi_styles();
     init_ansiCodes();
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/undo.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/undo.js
 function undoAnsiCodes(codes) {
   return reduceAnsiCodes(codes).reverse().map((code) => ({
     ...code,
@@ -23051,12 +22969,12 @@ function undoAnsiCodes(codes) {
   }));
 }
 var init_undo = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/undo.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/undo.js"() {
     init_reduce();
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/diff.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/diff.js
 function diffAnsiCodes(from, to) {
   const endCodesInTo = new Set(to.map((code) => code.endCode));
   const startCodesInFrom = new Set(from.map((code) => code.code));
@@ -23069,12 +22987,12 @@ function diffAnsiCodes(from, to) {
   ];
 }
 var init_diff = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/diff.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/diff.js"() {
     init_undo();
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/styledChars.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/styledChars.js
 function styledCharsFromTokens(tokens) {
   let codes = [];
   const ret = [];
@@ -23091,14 +23009,14 @@ function styledCharsFromTokens(tokens) {
   return ret;
 }
 var init_styledChars = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/styledChars.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/styledChars.js"() {
     init_ansiCodes();
     init_diff();
     init_reduce();
   }
 });
 
-// node_modules/is-fullwidth-code-point/index.js
+// ../node_modules/is-fullwidth-code-point/index.js
 function isFullwidthCodePoint(codePoint) {
   if (!Number.isInteger(codePoint)) {
     return false;
@@ -23121,11 +23039,11 @@ function isFullwidthCodePoint(codePoint) {
   131072 <= codePoint && codePoint <= 262141);
 }
 var init_is_fullwidth_code_point = __esm({
-  "node_modules/is-fullwidth-code-point/index.js"() {
+  "../node_modules/is-fullwidth-code-point/index.js"() {
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/tokenize.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/tokenize.js
 function findNumberIndex(str) {
   for (let index = 0; index < str.length; index++) {
     const charCode = str.charCodeAt(index);
@@ -23192,15 +23110,15 @@ function tokenize2(str, endChar = Number.POSITIVE_INFINITY) {
   return ret;
 }
 var init_tokenize2 = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/tokenize.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/tokenize.js"() {
     init_is_fullwidth_code_point();
     init_ansiCodes();
   }
 });
 
-// node_modules/@alcalzone/ansi-tokenize/build/index.js
+// ../node_modules/@alcalzone/ansi-tokenize/build/index.js
 var init_build = __esm({
-  "node_modules/@alcalzone/ansi-tokenize/build/index.js"() {
+  "../node_modules/@alcalzone/ansi-tokenize/build/index.js"() {
     init_ansiCodes();
     init_diff();
     init_reduce();
@@ -23226,19 +23144,19 @@ var init_lru = __esm({
   }
 });
 
-// node_modules/emoji-regex/index.js
+// ../node_modules/emoji-regex/index.js
 var require_emoji_regex = __commonJS({
-  "node_modules/emoji-regex/index.js"(exports, module) {
+  "../node_modules/emoji-regex/index.js"(exports, module) {
     module.exports = () => {
       return /[#*0-9]\uFE0F?\u20E3|[\xA9\xAE\u203C\u2049\u2122\u2139\u2194-\u2199\u21A9\u21AA\u231A\u231B\u2328\u23CF\u23ED-\u23EF\u23F1\u23F2\u23F8-\u23FA\u24C2\u25AA\u25AB\u25B6\u25C0\u25FB\u25FC\u25FE\u2600-\u2604\u260E\u2611\u2614\u2615\u2618\u2620\u2622\u2623\u2626\u262A\u262E\u262F\u2638-\u263A\u2640\u2642\u2648-\u2653\u265F\u2660\u2663\u2665\u2666\u2668\u267B\u267E\u267F\u2692\u2694-\u2697\u2699\u269B\u269C\u26A0\u26A7\u26AA\u26B0\u26B1\u26BD\u26BE\u26C4\u26C8\u26CF\u26D1\u26E9\u26F0-\u26F5\u26F7\u26F8\u26FA\u2702\u2708\u2709\u270F\u2712\u2714\u2716\u271D\u2721\u2733\u2734\u2744\u2747\u2757\u2763\u27A1\u2934\u2935\u2B05-\u2B07\u2B1B\u2B1C\u2B55\u3030\u303D\u3297\u3299]\uFE0F?|[\u261D\u270C\u270D](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\u270A\u270B](?:\uD83C[\uDFFB-\uDFFF])?|[\u23E9-\u23EC\u23F0\u23F3\u25FD\u2693\u26A1\u26AB\u26C5\u26CE\u26D4\u26EA\u26FD\u2705\u2728\u274C\u274E\u2753-\u2755\u2795-\u2797\u27B0\u27BF\u2B50]|\u26D3\uFE0F?(?:\u200D\uD83D\uDCA5)?|\u26F9(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\u2764\uFE0F?(?:\u200D(?:\uD83D\uDD25|\uD83E\uDE79))?|\uD83C(?:[\uDC04\uDD70\uDD71\uDD7E\uDD7F\uDE02\uDE37\uDF21\uDF24-\uDF2C\uDF36\uDF7D\uDF96\uDF97\uDF99-\uDF9B\uDF9E\uDF9F\uDFCD\uDFCE\uDFD4-\uDFDF\uDFF5\uDFF7]\uFE0F?|[\uDF85\uDFC2\uDFC7](?:\uD83C[\uDFFB-\uDFFF])?|[\uDFC4\uDFCA](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDFCB\uDFCC](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDCCF\uDD8E\uDD91-\uDD9A\uDE01\uDE1A\uDE2F\uDE32-\uDE36\uDE38-\uDE3A\uDE50\uDE51\uDF00-\uDF20\uDF2D-\uDF35\uDF37-\uDF43\uDF45-\uDF4A\uDF4C-\uDF7C\uDF7E-\uDF84\uDF86-\uDF93\uDFA0-\uDFC1\uDFC5\uDFC6\uDFC8\uDFC9\uDFCF-\uDFD3\uDFE0-\uDFF0\uDFF8-\uDFFF]|\uDDE6\uD83C[\uDDE8-\uDDEC\uDDEE\uDDF1\uDDF2\uDDF4\uDDF6-\uDDFA\uDDFC\uDDFD\uDDFF]|\uDDE7\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEF\uDDF1-\uDDF4\uDDF6-\uDDF9\uDDFB\uDDFC\uDDFE\uDDFF]|\uDDE8\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDEE\uDDF0-\uDDF7\uDDFA-\uDDFF]|\uDDE9\uD83C[\uDDEA\uDDEC\uDDEF\uDDF0\uDDF2\uDDF4\uDDFF]|\uDDEA\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDED\uDDF7-\uDDFA]|\uDDEB\uD83C[\uDDEE-\uDDF0\uDDF2\uDDF4\uDDF7]|\uDDEC\uD83C[\uDDE6\uDDE7\uDDE9-\uDDEE\uDDF1-\uDDF3\uDDF5-\uDDFA\uDDFC\uDDFE]|\uDDED\uD83C[\uDDF0\uDDF2\uDDF3\uDDF7\uDDF9\uDDFA]|\uDDEE\uD83C[\uDDE8-\uDDEA\uDDF1-\uDDF4\uDDF6-\uDDF9]|\uDDEF\uD83C[\uDDEA\uDDF2\uDDF4\uDDF5]|\uDDF0\uD83C[\uDDEA\uDDEC-\uDDEE\uDDF2\uDDF3\uDDF5\uDDF7\uDDFC\uDDFE\uDDFF]|\uDDF1\uD83C[\uDDE6-\uDDE8\uDDEE\uDDF0\uDDF7-\uDDFB\uDDFE]|\uDDF2\uD83C[\uDDE6\uDDE8-\uDDED\uDDF0-\uDDFF]|\uDDF3\uD83C[\uDDE6\uDDE8\uDDEA-\uDDEC\uDDEE\uDDF1\uDDF4\uDDF5\uDDF7\uDDFA\uDDFF]|\uDDF4\uD83C\uDDF2|\uDDF5\uD83C[\uDDE6\uDDEA-\uDDED\uDDF0-\uDDF3\uDDF7-\uDDF9\uDDFC\uDDFE]|\uDDF6\uD83C\uDDE6|\uDDF7\uD83C[\uDDEA\uDDF4\uDDF8\uDDFA\uDDFC]|\uDDF8\uD83C[\uDDE6-\uDDEA\uDDEC-\uDDF4\uDDF7-\uDDF9\uDDFB\uDDFD-\uDDFF]|\uDDF9\uD83C[\uDDE6\uDDE8\uDDE9\uDDEB-\uDDED\uDDEF-\uDDF4\uDDF7\uDDF9\uDDFB\uDDFC\uDDFF]|\uDDFA\uD83C[\uDDE6\uDDEC\uDDF2\uDDF3\uDDF8\uDDFE\uDDFF]|\uDDFB\uD83C[\uDDE6\uDDE8\uDDEA\uDDEC\uDDEE\uDDF3\uDDFA]|\uDDFC\uD83C[\uDDEB\uDDF8]|\uDDFD\uD83C\uDDF0|\uDDFE\uD83C[\uDDEA\uDDF9]|\uDDFF\uD83C[\uDDE6\uDDF2\uDDFC]|\uDF44(?:\u200D\uD83D\uDFEB)?|\uDF4B(?:\u200D\uD83D\uDFE9)?|\uDFC3(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDFF3\uFE0F?(?:\u200D(?:\u26A7\uFE0F?|\uD83C\uDF08))?|\uDFF4(?:\u200D\u2620\uFE0F?|\uDB40\uDC67\uDB40\uDC62\uDB40(?:\uDC65\uDB40\uDC6E\uDB40\uDC67|\uDC73\uDB40\uDC63\uDB40\uDC74|\uDC77\uDB40\uDC6C\uDB40\uDC73)\uDB40\uDC7F)?)|\uD83D(?:[\uDC3F\uDCFD\uDD49\uDD4A\uDD6F\uDD70\uDD73\uDD76-\uDD79\uDD87\uDD8A-\uDD8D\uDDA5\uDDA8\uDDB1\uDDB2\uDDBC\uDDC2-\uDDC4\uDDD1-\uDDD3\uDDDC-\uDDDE\uDDE1\uDDE3\uDDE8\uDDEF\uDDF3\uDDFA\uDECB\uDECD-\uDECF\uDEE0-\uDEE5\uDEE9\uDEF0\uDEF3]\uFE0F?|[\uDC42\uDC43\uDC46-\uDC50\uDC66\uDC67\uDC6B-\uDC6D\uDC72\uDC74-\uDC76\uDC78\uDC7C\uDC83\uDC85\uDC8F\uDC91\uDCAA\uDD7A\uDD95\uDD96\uDE4C\uDE4F\uDEC0\uDECC](?:\uD83C[\uDFFB-\uDFFF])?|[\uDC6E-\uDC71\uDC73\uDC77\uDC81\uDC82\uDC86\uDC87\uDE45-\uDE47\uDE4B\uDE4D\uDE4E\uDEA3\uDEB4\uDEB5](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD74\uDD90](?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?|[\uDC00-\uDC07\uDC09-\uDC14\uDC16-\uDC25\uDC27-\uDC3A\uDC3C-\uDC3E\uDC40\uDC44\uDC45\uDC51-\uDC65\uDC6A\uDC79-\uDC7B\uDC7D-\uDC80\uDC84\uDC88-\uDC8E\uDC90\uDC92-\uDCA9\uDCAB-\uDCFC\uDCFF-\uDD3D\uDD4B-\uDD4E\uDD50-\uDD67\uDDA4\uDDFB-\uDE2D\uDE2F-\uDE34\uDE37-\uDE41\uDE43\uDE44\uDE48-\uDE4A\uDE80-\uDEA2\uDEA4-\uDEB3\uDEB7-\uDEBF\uDEC1-\uDEC5\uDED0-\uDED2\uDED5-\uDED8\uDEDC-\uDEDF\uDEEB\uDEEC\uDEF4-\uDEFC\uDFE0-\uDFEB\uDFF0]|\uDC08(?:\u200D\u2B1B)?|\uDC15(?:\u200D\uD83E\uDDBA)?|\uDC26(?:\u200D(?:\u2B1B|\uD83D\uDD25))?|\uDC3B(?:\u200D\u2744\uFE0F?)?|\uDC41\uFE0F?(?:\u200D\uD83D\uDDE8\uFE0F?)?|\uDC68(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDC68\uDC69]\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?)|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFC-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFD-\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFD\uDFFF]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?\uDC68\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDD1D\uDEEF]\u200D\uD83D\uDC68\uD83C[\uDFFB-\uDFFE]|[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3])))?))?|\uDC69(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:\uDC8B\u200D\uD83D)?[\uDC68\uDC69]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?|\uDC69\u200D\uD83D(?:\uDC66(?:\u200D\uD83D\uDC66)?|\uDC67(?:\u200D\uD83D[\uDC66\uDC67])?))|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFC-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFD-\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFD\uDFFF]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D\uD83D(?:[\uDC68\uDC69]|\uDC8B\u200D\uD83D[\uDC68\uDC69])\uD83C[\uDFFB-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3]|\uDD1D\u200D\uD83D[\uDC68\uDC69]\uD83C[\uDFFB-\uDFFE]|\uDEEF\u200D\uD83D\uDC69\uD83C[\uDFFB-\uDFFE])))?))?|\uDD75(?:\uD83C[\uDFFB-\uDFFF]|\uFE0F)?(?:\u200D[\u2640\u2642]\uFE0F?)?|\uDE2E(?:\u200D\uD83D\uDCA8)?|\uDE35(?:\u200D\uD83D\uDCAB)?|\uDE36(?:\u200D\uD83C\uDF2B\uFE0F?)?|\uDE42(?:\u200D[\u2194\u2195]\uFE0F?)?|\uDEB6(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?)|\uD83E(?:[\uDD0C\uDD0F\uDD18-\uDD1F\uDD30-\uDD34\uDD36\uDD77\uDDB5\uDDB6\uDDBB\uDDD2\uDDD3\uDDD5\uDEC3-\uDEC5\uDEF0\uDEF2-\uDEF8](?:\uD83C[\uDFFB-\uDFFF])?|[\uDD26\uDD35\uDD37-\uDD39\uDD3C-\uDD3E\uDDB8\uDDB9\uDDCD\uDDCF\uDDD4\uDDD6-\uDDDD](?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDDDE\uDDDF](?:\u200D[\u2640\u2642]\uFE0F?)?|[\uDD0D\uDD0E\uDD10-\uDD17\uDD20-\uDD25\uDD27-\uDD2F\uDD3A\uDD3F-\uDD45\uDD47-\uDD76\uDD78-\uDDB4\uDDB7\uDDBA\uDDBC-\uDDCC\uDDD0\uDDE0-\uDDFF\uDE70-\uDE7C\uDE80-\uDE8A\uDE8E-\uDEC2\uDEC6\uDEC8\uDECD-\uDEDC\uDEDF-\uDEEA\uDEEF]|\uDDCE(?:\uD83C[\uDFFB-\uDFFF])?(?:\u200D(?:[\u2640\u2642]\uFE0F?(?:\u200D\u27A1\uFE0F?)?|\u27A1\uFE0F?))?|\uDDD1(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1|\uDDD1\u200D\uD83E\uDDD2(?:\u200D\uD83E\uDDD2)?|\uDDD2(?:\u200D\uD83E\uDDD2)?))|\uD83C(?:\uDFFB(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFC-\uDFFF])))?|\uDFFC(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFD-\uDFFF])))?|\uDFFD(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])))?|\uDFFE(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFD\uDFFF])))?|\uDFFF(?:\u200D(?:[\u2695\u2696\u2708]\uFE0F?|\u2764\uFE0F?\u200D(?:\uD83D\uDC8B\u200D)?\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE]|\uD83C[\uDF3E\uDF73\uDF7C\uDF84\uDF93\uDFA4\uDFA8\uDFEB\uDFED]|\uD83D(?:[\uDCBB\uDCBC\uDD27\uDD2C\uDE80\uDE92]|\uDC30\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])|\uD83E(?:[\uDDAF\uDDBC\uDDBD](?:\u200D\u27A1\uFE0F?)?|[\uDDB0-\uDDB3\uDE70]|\uDD1D\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFF]|\uDEEF\u200D\uD83E\uDDD1\uD83C[\uDFFB-\uDFFE])))?))?|\uDEF1(?:\uD83C(?:\uDFFB(?:\u200D\uD83E\uDEF2\uD83C[\uDFFC-\uDFFF])?|\uDFFC(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFD-\uDFFF])?|\uDFFD(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB\uDFFC\uDFFE\uDFFF])?|\uDFFE(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFD\uDFFF])?|\uDFFF(?:\u200D\uD83E\uDEF2\uD83C[\uDFFB-\uDFFE])?))?)/g;
     };
   }
 });
 
-// node_modules/get-east-asian-width/lookup-data.js
+// ../node_modules/get-east-asian-width/lookup-data.js
 var ambiguousMinimalCodePoint, ambiguousMaximumCodePoint, ambiguousRanges, fullwidthMinimalCodePoint, fullwidthMaximumCodePoint, fullwidthRanges, wideMinimalCodePoint, wideMaximumCodePoint, wideRanges;
 var init_lookup_data = __esm({
-  "node_modules/get-east-asian-width/lookup-data.js"() {
+  "../node_modules/get-east-asian-width/lookup-data.js"() {
     ambiguousMinimalCodePoint = 161;
     ambiguousMaximumCodePoint = 1114109;
     ambiguousRanges = [161, 161, 164, 164, 167, 168, 170, 170, 173, 174, 176, 180, 182, 186, 188, 191, 198, 198, 208, 208, 215, 216, 222, 225, 230, 230, 232, 234, 236, 237, 240, 240, 242, 243, 247, 250, 252, 252, 254, 254, 257, 257, 273, 273, 275, 275, 283, 283, 294, 295, 299, 299, 305, 307, 312, 312, 319, 322, 324, 324, 328, 331, 333, 333, 338, 339, 358, 359, 363, 363, 462, 462, 464, 464, 466, 466, 468, 468, 470, 470, 472, 472, 474, 474, 476, 476, 593, 593, 609, 609, 708, 708, 711, 711, 713, 715, 717, 717, 720, 720, 728, 731, 733, 733, 735, 735, 768, 879, 913, 929, 931, 937, 945, 961, 963, 969, 1025, 1025, 1040, 1103, 1105, 1105, 8208, 8208, 8211, 8214, 8216, 8217, 8220, 8221, 8224, 8226, 8228, 8231, 8240, 8240, 8242, 8243, 8245, 8245, 8251, 8251, 8254, 8254, 8308, 8308, 8319, 8319, 8321, 8324, 8364, 8364, 8451, 8451, 8453, 8453, 8457, 8457, 8467, 8467, 8470, 8470, 8481, 8482, 8486, 8486, 8491, 8491, 8531, 8532, 8539, 8542, 8544, 8555, 8560, 8569, 8585, 8585, 8592, 8601, 8632, 8633, 8658, 8658, 8660, 8660, 8679, 8679, 8704, 8704, 8706, 8707, 8711, 8712, 8715, 8715, 8719, 8719, 8721, 8721, 8725, 8725, 8730, 8730, 8733, 8736, 8739, 8739, 8741, 8741, 8743, 8748, 8750, 8750, 8756, 8759, 8764, 8765, 8776, 8776, 8780, 8780, 8786, 8786, 8800, 8801, 8804, 8807, 8810, 8811, 8814, 8815, 8834, 8835, 8838, 8839, 8853, 8853, 8857, 8857, 8869, 8869, 8895, 8895, 8978, 8978, 9312, 9449, 9451, 9547, 9552, 9587, 9600, 9615, 9618, 9621, 9632, 9633, 9635, 9641, 9650, 9651, 9654, 9655, 9660, 9661, 9664, 9665, 9670, 9672, 9675, 9675, 9678, 9681, 9698, 9701, 9711, 9711, 9733, 9734, 9737, 9737, 9742, 9743, 9756, 9756, 9758, 9758, 9792, 9792, 9794, 9794, 9824, 9825, 9827, 9829, 9831, 9834, 9836, 9837, 9839, 9839, 9886, 9887, 9919, 9919, 9926, 9933, 9935, 9939, 9941, 9953, 9955, 9955, 9960, 9961, 9963, 9969, 9972, 9972, 9974, 9977, 9979, 9980, 9982, 9983, 10045, 10045, 10102, 10111, 11094, 11097, 12872, 12879, 57344, 63743, 65024, 65039, 65533, 65533, 127232, 127242, 127248, 127277, 127280, 127337, 127344, 127373, 127375, 127376, 127387, 127404, 917760, 917999, 983040, 1048573, 1048576, 1114109];
@@ -23251,10 +23169,10 @@ var init_lookup_data = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/utilities.js
+// ../node_modules/get-east-asian-width/utilities.js
 var isInRange;
 var init_utilities = __esm({
-  "node_modules/get-east-asian-width/utilities.js"() {
+  "../node_modules/get-east-asian-width/utilities.js"() {
     isInRange = (ranges, codePoint) => {
       let low = 0;
       let high = Math.floor(ranges.length / 2) - 1;
@@ -23274,7 +23192,7 @@ var init_utilities = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/lookup.js
+// ../node_modules/get-east-asian-width/lookup.js
 function findWideFastPathRange(ranges) {
   let fastPathStart = ranges[0];
   let fastPathEnd = ranges[1];
@@ -23293,7 +23211,7 @@ function findWideFastPathRange(ranges) {
 }
 var commonCjkCodePoint, wideFastPathStart, wideFastPathEnd, isAmbiguous, isFullWidth, isWide;
 var init_lookup = __esm({
-  "node_modules/get-east-asian-width/lookup.js"() {
+  "../node_modules/get-east-asian-width/lookup.js"() {
     init_lookup_data();
     init_utilities();
     commonCjkCodePoint = 19968;
@@ -23322,7 +23240,7 @@ var init_lookup = __esm({
   }
 });
 
-// node_modules/get-east-asian-width/index.js
+// ../node_modules/get-east-asian-width/index.js
 function validate(codePoint) {
   if (!Number.isSafeInteger(codePoint)) {
     throw new TypeError(`Expected a code point, got \`${typeof codePoint}\`.`);
@@ -23336,12 +23254,12 @@ function eastAsianWidth(codePoint, { ambiguousAsWide = false } = {}) {
   return 1;
 }
 var init_get_east_asian_width = __esm({
-  "node_modules/get-east-asian-width/index.js"() {
+  "../node_modules/get-east-asian-width/index.js"() {
     init_lookup();
   }
 });
 
-// node_modules/ansi-regex/index.js
+// ../node_modules/strip-ansi/node_modules/ansi-regex/index.js
 function ansiRegex({ onlyFirst = false } = {}) {
   const ST3 = "(?:\\u0007|\\u001B\\u005C|\\u009C)";
   const osc2 = `(?:\\u001B\\][\\s\\S]*?${ST3})`;
@@ -23350,11 +23268,11 @@ function ansiRegex({ onlyFirst = false } = {}) {
   return new RegExp(pattern, onlyFirst ? void 0 : "g");
 }
 var init_ansi_regex = __esm({
-  "node_modules/ansi-regex/index.js"() {
+  "../node_modules/strip-ansi/node_modules/ansi-regex/index.js"() {
   }
 });
 
-// node_modules/strip-ansi/index.js
+// ../node_modules/strip-ansi/index.js
 function stripAnsi(string) {
   if (typeof string !== "string") {
     throw new TypeError(`Expected a \`string\`, got \`${typeof string}\``);
@@ -23366,7 +23284,7 @@ function stripAnsi(string) {
 }
 var regex;
 var init_strip_ansi = __esm({
-  "node_modules/strip-ansi/index.js"() {
+  "../node_modules/strip-ansi/index.js"() {
     init_ansi_regex();
     regex = ansiRegex();
   }
@@ -23690,7 +23608,7 @@ var init_line_width_cache = __esm({
   }
 });
 
-// node_modules/wrap-ansi/node_modules/string-width/index.js
+// ../node_modules/wrap-ansi/node_modules/string-width/index.js
 function stringWidth2(string, options = {}) {
   if (typeof string !== "string" || string.length === 0) {
     return 0;
@@ -23737,7 +23655,7 @@ function stringWidth2(string, options = {}) {
 }
 var import_emoji_regex2, segmenter, defaultIgnorableCodePointRegex;
 var init_string_width = __esm({
-  "node_modules/wrap-ansi/node_modules/string-width/index.js"() {
+  "../node_modules/wrap-ansi/node_modules/string-width/index.js"() {
     init_strip_ansi();
     init_get_east_asian_width();
     import_emoji_regex2 = __toESM(require_emoji_regex(), 1);
@@ -23746,13 +23664,13 @@ var init_string_width = __esm({
   }
 });
 
-// node_modules/wrap-ansi/index.js
+// ../node_modules/wrap-ansi/index.js
 function wrapAnsi(string, columns, options) {
   return String(string).normalize().replaceAll("\r\n", "\n").split("\n").map((line) => exec(line, columns, options)).join("\n");
 }
 var ESCAPES2, END_CODE, ANSI_ESCAPE_BELL, ANSI_CSI, ANSI_OSC, ANSI_SGR_TERMINATOR, ANSI_ESCAPE_LINK, wrapAnsiCode, wrapAnsiHyperlink, wordLengths, wrapWord, stringVisibleTrimSpacesRight, exec;
 var init_wrap_ansi = __esm({
-  "node_modules/wrap-ansi/index.js"() {
+  "../node_modules/wrap-ansi/index.js"() {
     init_string_width();
     init_strip_ansi();
     init_ansi_styles();
@@ -29317,9 +29235,9 @@ var init_dom = __esm({
   }
 });
 
-// node_modules/scheduler/cjs/scheduler.production.js
+// ../node_modules/scheduler/cjs/scheduler.production.js
 var require_scheduler_production = __commonJS({
-  "node_modules/scheduler/cjs/scheduler.production.js"(exports) {
+  "../node_modules/scheduler/cjs/scheduler.production.js"(exports) {
     "use strict";
     function push(heap, node) {
       var index = heap.length;
@@ -29590,9 +29508,9 @@ var require_scheduler_production = __commonJS({
   }
 });
 
-// node_modules/scheduler/cjs/scheduler.development.js
+// ../node_modules/scheduler/cjs/scheduler.development.js
 var require_scheduler_development = __commonJS({
-  "node_modules/scheduler/cjs/scheduler.development.js"(exports) {
+  "../node_modules/scheduler/cjs/scheduler.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (function() {
       function performWorkUntilDeadline() {
@@ -29849,9 +29767,9 @@ var require_scheduler_development = __commonJS({
   }
 });
 
-// node_modules/scheduler/index.js
+// ../node_modules/scheduler/index.js
 var require_scheduler = __commonJS({
-  "node_modules/scheduler/index.js"(exports, module) {
+  "../node_modules/scheduler/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_scheduler_production();
@@ -29861,9 +29779,9 @@ var require_scheduler = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler.production.js
+// ../node_modules/react-reconciler/cjs/react-reconciler.production.js
 var require_react_reconciler_production = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler.production.js"(exports, module) {
+  "../node_modules/react-reconciler/cjs/react-reconciler.production.js"(exports, module) {
     "use strict";
     module.exports = function($$$config) {
       function createFiber(tag, pendingProps, key, mode) {
@@ -38040,9 +37958,9 @@ var require_react_reconciler_production = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler.development.js
+// ../node_modules/react-reconciler/cjs/react-reconciler.development.js
 var require_react_reconciler_development = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler.development.js"(exports, module) {
+  "../node_modules/react-reconciler/cjs/react-reconciler.development.js"(exports, module) {
     "use strict";
     "production" !== process.env.NODE_ENV && (module.exports = function($$$config) {
       function findHook(fiber, id) {
@@ -51813,9 +51731,9 @@ var require_react_reconciler_development = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/index.js
+// ../node_modules/react-reconciler/index.js
 var require_react_reconciler = __commonJS({
-  "node_modules/react-reconciler/index.js"(exports, module) {
+  "../node_modules/react-reconciler/index.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_reconciler_production();
@@ -51825,9 +51743,9 @@ var require_react_reconciler = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler-constants.production.js
+// ../node_modules/react-reconciler/cjs/react-reconciler-constants.production.js
 var require_react_reconciler_constants_production = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler-constants.production.js"(exports) {
+  "../node_modules/react-reconciler/cjs/react-reconciler-constants.production.js"(exports) {
     "use strict";
     exports.ConcurrentRoot = 1;
     exports.ContinuousEventPriority = 8;
@@ -51839,17 +51757,17 @@ var require_react_reconciler_constants_production = __commonJS({
   }
 });
 
-// node_modules/react-reconciler/cjs/react-reconciler-constants.development.js
+// ../node_modules/react-reconciler/cjs/react-reconciler-constants.development.js
 var require_react_reconciler_constants_development = __commonJS({
-  "node_modules/react-reconciler/cjs/react-reconciler-constants.development.js"(exports) {
+  "../node_modules/react-reconciler/cjs/react-reconciler-constants.development.js"(exports) {
     "use strict";
     "production" !== process.env.NODE_ENV && (exports.ConcurrentRoot = 1, exports.ContinuousEventPriority = 8, exports.DefaultEventPriority = 32, exports.DiscreteEventPriority = 2, exports.IdleEventPriority = 268435456, exports.LegacyRoot = 0, exports.NoEventPriority = 0);
   }
 });
 
-// node_modules/react-reconciler/constants.js
+// ../node_modules/react-reconciler/constants.js
 var require_constants7 = __commonJS({
-  "node_modules/react-reconciler/constants.js"(exports, module) {
+  "../node_modules/react-reconciler/constants.js"(exports, module) {
     "use strict";
     if (process.env.NODE_ENV === "production") {
       module.exports = require_react_reconciler_constants_production();
@@ -52933,26 +52851,43 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
   (0, import_react7.useImperativeHandle)(
     ref,
     () => ({
+      adjustScrollTop(dy) {
+        const el = domRef.current;
+        if (!el || !validSignedGeometry(dy)) {
+          return;
+        }
+        const current = safeUnsignedGeometry(el.scrollTop);
+        const next = Math.max(0, current + Math.floor(dy));
+        const compensation = safeSignedGeometry(el.scrollTopCompensation) + (next - current);
+        if (next === current || !validUnsignedGeometry(next) || !validSignedGeometry(compensation)) {
+          return;
+        }
+        el.scrollTop = next;
+        el.scrollTopCompensation = compensation;
+        scrollMutated(el);
+      },
       scrollTo(y) {
         const el = domRef.current;
-        if (!el) {
+        if (!el || !validSignedGeometry(y)) {
           return;
         }
         el.stickyScroll = false;
         manualScrollAtRef.current = Date.now();
         el.pendingScrollDelta = void 0;
+        el.scrollTopCompensation = void 0;
         el.scrollAnchor = void 0;
         el.scrollTop = Math.max(0, Math.floor(y));
         scrollMutated(el);
       },
       scrollToElement(el, offset = 0) {
         const box = domRef.current;
-        if (!box) {
+        if (!box || !validSignedGeometry(offset)) {
           return;
         }
         box.stickyScroll = false;
         manualScrollAtRef.current = Date.now();
         box.pendingScrollDelta = void 0;
+        box.scrollTopCompensation = void 0;
         box.scrollAnchor = {
           el,
           offset
@@ -52961,13 +52896,17 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
       },
       scrollBy(dy) {
         const el = domRef.current;
-        if (!el) {
+        if (!el || !validSignedGeometry(dy)) {
+          return;
+        }
+        const pending = safeSignedGeometry(el.pendingScrollDelta) + Math.floor(dy);
+        if (!validSignedGeometry(pending)) {
           return;
         }
         el.stickyScroll = false;
         manualScrollAtRef.current = Date.now();
         el.scrollAnchor = void 0;
-        el.pendingScrollDelta = (el.pendingScrollDelta ?? 0) + Math.floor(dy);
+        el.pendingScrollDelta = pending;
         scrollMutated(el);
       },
       scrollToBottom() {
@@ -52976,26 +52915,28 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
           return;
         }
         el.pendingScrollDelta = void 0;
+        el.scrollTopCompensation = void 0;
         el.stickyScroll = true;
         markDirty(el);
         notify();
         forceRender((n) => n + 1);
       },
       getScrollTop() {
-        return domRef.current?.scrollTop ?? 0;
+        return safeUnsignedGeometry(domRef.current?.scrollTop);
       },
       getPendingDelta() {
-        return domRef.current?.pendingScrollDelta ?? 0;
+        return safeSignedGeometry(domRef.current?.pendingScrollDelta);
       },
       getScrollHeight() {
-        return domRef.current?.scrollHeight ?? 0;
+        return safeUnsignedGeometry(domRef.current?.scrollHeight);
       },
       getFreshScrollHeight() {
         const content = domRef.current?.childNodes[0];
-        return content?.yogaNode?.getComputedHeight() ?? domRef.current?.scrollHeight ?? 0;
+        const height = content?.yogaNode?.getComputedHeight();
+        return validUnsignedGeometry(height ?? Number.NaN) ? height : safeUnsignedGeometry(domRef.current?.scrollHeight);
       },
       getViewportHeight() {
-        return domRef.current?.scrollViewportHeight ?? 0;
+        return safeUnsignedGeometry(domRef.current?.scrollViewportHeight);
       },
       getViewportTop() {
         return domRef.current?.scrollViewportTop ?? 0;
@@ -53019,6 +52960,16 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
         if (!el) {
           return;
         }
+        if (min === void 0 && max === void 0) {
+          el.scrollClampMin = void 0;
+          el.scrollClampMax = void 0;
+          return;
+        }
+        if (min === void 0 || max === void 0 || !validUnsignedGeometry(min) || !validClampMaximum(max) || min > max) {
+          el.scrollClampMin = void 0;
+          el.scrollClampMax = void 0;
+          return;
+        }
         el.scrollClampMin = min;
         el.scrollClampMax = max;
       }
@@ -53034,7 +52985,7 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
       ref: (el) => {
         domRef.current = el;
         if (el) {
-          el.scrollTop ??= 0;
+          el.scrollTop = safeUnsignedGeometry(el.scrollTop);
           el.notifyScrollChange = notify;
         }
       },
@@ -53054,7 +53005,7 @@ function ScrollBox({ children, ref, stickyScroll, ...style }) {
     }
   );
 }
-var import_react7, import_jsx_runtime9, ScrollBox_default;
+var import_react7, import_jsx_runtime9, MAX_SCROLL_GEOMETRY, validUnsignedGeometry, validClampMaximum, validSignedGeometry, safeUnsignedGeometry, safeSignedGeometry, ScrollBox_default;
 var init_ScrollBox = __esm({
   "packages/hermes-ink/src/ink/components/ScrollBox.tsx"() {
     "use strict";
@@ -53065,6 +53016,12 @@ var init_ScrollBox = __esm({
     init_reconciler();
     init_Box();
     import_jsx_runtime9 = __toESM(require_jsx_runtime(), 1);
+    MAX_SCROLL_GEOMETRY = 1e9;
+    validUnsignedGeometry = (value) => Number.isFinite(value) && value >= 0 && value <= MAX_SCROLL_GEOMETRY;
+    validClampMaximum = (value) => value === Number.POSITIVE_INFINITY || validUnsignedGeometry(value);
+    validSignedGeometry = (value) => Number.isFinite(value) && Math.abs(value) <= MAX_SCROLL_GEOMETRY;
+    safeUnsignedGeometry = (value) => value !== void 0 && validUnsignedGeometry(value) ? value : 0;
+    safeSignedGeometry = (value) => value !== void 0 && validSignedGeometry(value) ? value : 0;
     ScrollBox_default = ScrollBox;
   }
 });
@@ -53216,9 +53173,9 @@ var init_use_external_process = __esm({
   }
 });
 
-// node_modules/lodash.debounce/index.js
+// ../node_modules/lodash.debounce/index.js
 var require_lodash = __commonJS({
-  "node_modules/lodash.debounce/index.js"(exports, module) {
+  "../node_modules/lodash.debounce/index.js"(exports, module) {
     var FUNC_ERROR_TEXT3 = "Expected a function";
     var NAN2 = 0 / 0;
     var symbolTag2 = "[object Symbol]";
@@ -53349,7 +53306,7 @@ var require_lodash = __commonJS({
   }
 });
 
-// node_modules/usehooks-ts/dist/index.js
+// ../node_modules/usehooks-ts/dist/index.js
 function useEventCallback(fn) {
   const ref = (0, import_react15.useRef)(() => {
     throw new Error("Cannot call an event handler while rendering.");
@@ -53364,7 +53321,7 @@ function useEventCallback(fn) {
 }
 var import_react15, import_lodash, useIsomorphicLayoutEffect;
 var init_dist = __esm({
-  "node_modules/usehooks-ts/dist/index.js"() {
+  "../node_modules/usehooks-ts/dist/index.js"() {
     import_react15 = __toESM(require_react(), 1);
     import_lodash = __toESM(require_lodash(), 1);
     useIsomorphicLayoutEffect = typeof window !== "undefined" ? import_react15.useLayoutEffect : import_react15.useEffect;
@@ -55263,7 +55220,7 @@ var init_measure_element = __esm({
   }
 });
 
-// node_modules/indent-string/index.js
+// ../node_modules/indent-string/index.js
 function indentString(string, count = 1, options = {}) {
   const {
     indent = " ",
@@ -55296,11 +55253,11 @@ function indentString(string, count = 1, options = {}) {
   return string.replace(regex2, indent.repeat(count));
 }
 var init_indent_string = __esm({
-  "node_modules/indent-string/index.js"() {
+  "../node_modules/indent-string/index.js"() {
   }
 });
 
-// packages/hermes-ink/node_modules/chalk/source/vendor/ansi-styles/index.js
+// ../node_modules/chalk/source/vendor/ansi-styles/index.js
 function assembleStyles2() {
   const codes = /* @__PURE__ */ new Map();
   for (const [groupName, group] of Object.entries(styles3)) {
@@ -55417,7 +55374,7 @@ function assembleStyles2() {
 }
 var ANSI_BACKGROUND_OFFSET2, wrapAnsi162, wrapAnsi2562, wrapAnsi16m2, styles3, modifierNames2, foregroundColorNames2, backgroundColorNames2, colorNames2, ansiStyles2, ansi_styles_default2;
 var init_ansi_styles2 = __esm({
-  "packages/hermes-ink/node_modules/chalk/source/vendor/ansi-styles/index.js"() {
+  "../node_modules/chalk/source/vendor/ansi-styles/index.js"() {
     ANSI_BACKGROUND_OFFSET2 = 10;
     wrapAnsi162 = (offset = 0) => (code) => `\x1B[${code + offset}m`;
     wrapAnsi2562 = (offset = 0) => (code) => `\x1B[${38 + offset};5;${code}m`;
@@ -55491,7 +55448,7 @@ var init_ansi_styles2 = __esm({
   }
 });
 
-// packages/hermes-ink/node_modules/chalk/source/vendor/supports-color/index.js
+// ../node_modules/chalk/source/vendor/supports-color/index.js
 import process2 from "node:process";
 import os from "node:os";
 import tty from "node:tty";
@@ -55612,7 +55569,7 @@ function createSupportsColor(stream, options = {}) {
 }
 var env2, flagForceColor, supportsColor, supports_color_default;
 var init_supports_color = __esm({
-  "packages/hermes-ink/node_modules/chalk/source/vendor/supports-color/index.js"() {
+  "../node_modules/chalk/source/vendor/supports-color/index.js"() {
     ({ env: env2 } = process2);
     if (hasFlag("no-color") || hasFlag("no-colors") || hasFlag("color=false") || hasFlag("color=never")) {
       flagForceColor = 0;
@@ -55627,7 +55584,7 @@ var init_supports_color = __esm({
   }
 });
 
-// packages/hermes-ink/node_modules/chalk/source/utilities.js
+// ../node_modules/chalk/source/utilities.js
 function stringReplaceAll(string, substring, replacer) {
   let index = string.indexOf(substring);
   if (index === -1) {
@@ -55657,17 +55614,17 @@ function stringEncaseCRLFWithFirstIndex(string, prefix, postfix, index) {
   return returnValue;
 }
 var init_utilities2 = __esm({
-  "packages/hermes-ink/node_modules/chalk/source/utilities.js"() {
+  "../node_modules/chalk/source/utilities.js"() {
   }
 });
 
-// packages/hermes-ink/node_modules/chalk/source/index.js
+// ../node_modules/chalk/source/index.js
 function createChalk(options) {
   return chalkFactory(options);
 }
 var stdoutColor, stderrColor, GENERATOR, STYLER, IS_EMPTY, levelMapping, styles4, applyOptions, chalkFactory, getModelAnsi, usedModels, proto, createStyler, createBuilder, applyStyle, chalk, chalkStderr, source_default;
 var init_source = __esm({
-  "packages/hermes-ink/node_modules/chalk/source/index.js"() {
+  "../node_modules/chalk/source/index.js"() {
     init_ansi_styles2();
     init_supports_color();
     init_utilities2();
@@ -55991,9 +55948,9 @@ var init_get_max_width = __esm({
   }
 });
 
-// node_modules/cli-boxes/boxes.json
+// ../node_modules/cli-boxes/boxes.json
 var require_boxes = __commonJS({
-  "node_modules/cli-boxes/boxes.json"(exports, module) {
+  "../node_modules/cli-boxes/boxes.json"(exports, module) {
     module.exports = {
       single: {
         topLeft: "\u250C",
@@ -56079,9 +56036,9 @@ var require_boxes = __commonJS({
   }
 });
 
-// node_modules/cli-boxes/index.js
+// ../node_modules/cli-boxes/index.js
 var require_cli_boxes = __commonJS({
-  "node_modules/cli-boxes/index.js"(exports, module) {
+  "../node_modules/cli-boxes/index.js"(exports, module) {
     "use strict";
     var cliBoxes2 = require_boxes();
     module.exports = cliBoxes2;
@@ -56090,25 +56047,6 @@ var require_cli_boxes = __commonJS({
 });
 
 // packages/hermes-ink/src/ink/render-border.ts
-function embedTextInBorder(borderLine, text, align, offset = 0, borderChar) {
-  const textLength = stringWidth(text);
-  const borderLength = borderLine.length;
-  if (textLength >= borderLength - 2) {
-    return ["", text.substring(0, borderLength), ""];
-  }
-  let position;
-  if (align === "center") {
-    position = Math.floor((borderLength - textLength) / 2);
-  } else if (align === "start") {
-    position = offset + 1;
-  } else {
-    position = borderLength - textLength - offset - 1;
-  }
-  position = Math.max(1, Math.min(position, borderLength - textLength - 1));
-  const before = borderLine.substring(0, 1) + borderChar.repeat(position - 1);
-  const after = borderChar.repeat(borderLength - position - textLength - 1) + borderLine.substring(borderLength - 1);
-  return [before, text, after];
-}
 function styleBorderLine(line, color, dim) {
   let styled = applyColor(line, color);
   if (dim) {
@@ -56116,12 +56054,81 @@ function styleBorderLine(line, color, dim) {
   }
   return styled;
 }
+function sliceAnsiToWidth(text, start, end) {
+  const leadingColumns = Math.max(0, stringWidth(sliceAnsi(text, 0, start)) - start);
+  let sliced = sliceAnsi(text, start, end);
+  if (stringWidth(sliced) > end - start - leadingColumns) {
+    sliced = sliceAnsi(text, start, end - 1);
+  }
+  return { leadingColumns, text: sliced };
+}
+function borderRun(start, end, borderLength, borderChar, startCorner, endCorner) {
+  if (start >= end) {
+    return "";
+  }
+  const includeStartCorner = start === 0 && startCorner.length > 0;
+  const includeEndCorner = end === borderLength && endCorner.length > 0;
+  const repeated = Math.max(0, end - start - (includeStartCorner ? 1 : 0) - (includeEndCorner ? 1 : 0));
+  return (includeStartCorner ? startCorner : "") + borderChar.repeat(repeated) + (includeEndCorner ? endCorner : "");
+}
+function renderHorizontalBorder(x, y, width, output, visibleX1, visibleX2, borderChar, startCorner, endCorner, color, dim, borderText) {
+  const borderLength = Math.max(0, width - (startCorner ? 1 : 0) - (endCorner ? 1 : 0)) + (startCorner ? 1 : 0) + (endCorner ? 1 : 0);
+  const clippedX1 = Math.max(0, Math.floor(visibleX1));
+  const clippedX2 = Math.min(output.width, Math.ceil(visibleX2));
+  const sliceStart = Math.max(0, Math.ceil(clippedX1 - x));
+  const sliceEnd = Math.min(borderLength, Math.ceil(clippedX2 - x));
+  if (!Number.isSafeInteger(width) || width < 0 || !Number.isSafeInteger(sliceStart) || !Number.isSafeInteger(sliceEnd) || sliceStart >= sliceEnd) {
+    return;
+  }
+  const writeBorderRun = (start, end) => {
+    const text = borderRun(start, end, borderLength, borderChar, startCorner, endCorner);
+    if (text) {
+      output.write(x + start, y, styleBorderLine(text, color, dim));
+    }
+  };
+  if (!borderText) {
+    writeBorderRun(sliceStart, sliceEnd);
+    return;
+  }
+  const textLength = stringWidth(borderText.content);
+  if (textLength >= borderLength - 2) {
+    const { leadingColumns, text } = sliceAnsiToWidth(borderText.content, sliceStart, sliceEnd);
+    if (text) {
+      output.write(x + sliceStart + leadingColumns, y, text);
+    }
+    return;
+  }
+  let position;
+  if (borderText.align === "center") {
+    position = Math.floor((borderLength - textLength) / 2);
+  } else if (borderText.align === "start") {
+    position = (borderText.offset ?? 0) + 1;
+  } else {
+    position = borderLength - textLength - (borderText.offset ?? 0) - 1;
+  }
+  position = Math.max(1, Math.min(position, borderLength - textLength - 1));
+  writeBorderRun(sliceStart, Math.min(sliceEnd, position));
+  const visibleTextStart = Math.max(sliceStart, position);
+  const visibleTextEnd = Math.min(sliceEnd, position + textLength);
+  if (visibleTextStart < visibleTextEnd) {
+    const { leadingColumns, text } = sliceAnsiToWidth(
+      borderText.content,
+      visibleTextStart - position,
+      visibleTextEnd - position
+    );
+    if (text) {
+      output.write(x + visibleTextStart + leadingColumns, y, text);
+    }
+  }
+  writeBorderRun(Math.max(sliceStart, position + textLength), sliceEnd);
+}
 var import_cli_boxes, CUSTOM_BORDER_STYLES, renderBorder, render_border_default;
 var init_render_border = __esm({
   "packages/hermes-ink/src/ink/render-border.ts"() {
     "use strict";
     init_source();
     import_cli_boxes = __toESM(require_cli_boxes(), 1);
+    init_sliceAnsi();
     init_colorize();
     init_stringWidth();
     CUSTOM_BORDER_STYLES = {
@@ -56137,7 +56144,7 @@ var init_render_border = __esm({
         bottomRight: " "
       }
     };
-    renderBorder = (x, y, node, output) => {
+    renderBorder = (x, y, node, output, visibleX1 = 0, visibleX2 = output.width, visibleY1 = 0, visibleY2 = output.height) => {
       if (node.style.borderStyle) {
         const width = Math.floor(node.yogaNode.getComputedWidth());
         const height = Math.floor(node.yogaNode.getComputedHeight());
@@ -56154,63 +56161,58 @@ var init_render_border = __esm({
         const showBottomBorder = node.style.borderBottom !== false;
         const showLeftBorder = node.style.borderLeft !== false;
         const showRightBorder = node.style.borderRight !== false;
-        const contentWidth = Math.max(0, width - (showLeftBorder ? 1 : 0) - (showRightBorder ? 1 : 0));
-        const topBorderLine = showTopBorder ? (showLeftBorder ? box.topLeft : "") + box.top.repeat(contentWidth) + (showRightBorder ? box.topRight : "") : "";
-        let topBorder;
-        if (showTopBorder && node.style.borderText?.position === "top") {
-          const [before, text, after] = embedTextInBorder(
-            topBorderLine,
-            node.style.borderText.content,
-            node.style.borderText.align,
-            node.style.borderText.offset,
-            box.top
-          );
-          topBorder = styleBorderLine(before, topBorderColor, dimTopBorderColor) + text + styleBorderLine(after, topBorderColor, dimTopBorderColor);
-        } else if (showTopBorder) {
-          topBorder = styleBorderLine(topBorderLine, topBorderColor, dimTopBorderColor);
-        }
-        let verticalBorderHeight = height;
-        if (showTopBorder) {
-          verticalBorderHeight -= 1;
-        }
-        if (showBottomBorder) {
-          verticalBorderHeight -= 1;
-        }
-        verticalBorderHeight = Math.max(0, verticalBorderHeight);
-        let leftBorder = (applyColor(box.left, leftBorderColor) + "\n").repeat(verticalBorderHeight);
+        const verticalTop = Math.floor(y + (showTopBorder ? 1 : 0));
+        const verticalBottom = Math.ceil(y + height - (showBottomBorder ? 1 : 0));
+        const clippedVerticalTop = Math.max(0, Math.floor(visibleY1), verticalTop);
+        const clippedVerticalBottom = Math.min(output.height, Math.ceil(visibleY2), verticalBottom);
+        const clippedVerticalHeight = Math.max(0, clippedVerticalBottom - clippedVerticalTop);
+        let leftBorder = (applyColor(box.left, leftBorderColor) + "\n").repeat(clippedVerticalHeight);
         if (dimLeftBorderColor) {
           leftBorder = source_default.dim(leftBorder);
         }
-        let rightBorder = (applyColor(box.right, rightBorderColor) + "\n").repeat(verticalBorderHeight);
+        let rightBorder = (applyColor(box.right, rightBorderColor) + "\n").repeat(clippedVerticalHeight);
         if (dimRightBorderColor) {
           rightBorder = source_default.dim(rightBorder);
         }
-        const bottomBorderLine = showBottomBorder ? (showLeftBorder ? box.bottomLeft : "") + box.bottom.repeat(contentWidth) + (showRightBorder ? box.bottomRight : "") : "";
-        let bottomBorder;
-        if (showBottomBorder && node.style.borderText?.position === "bottom") {
-          const [before, text, after] = embedTextInBorder(
-            bottomBorderLine,
-            node.style.borderText.content,
-            node.style.borderText.align,
-            node.style.borderText.offset,
-            box.bottom
+        if (showTopBorder && y >= visibleY1 && y < visibleY2 && y >= 0 && y < output.height) {
+          renderHorizontalBorder(
+            x,
+            y,
+            width,
+            output,
+            visibleX1,
+            visibleX2,
+            box.top,
+            showLeftBorder ? box.topLeft : "",
+            showRightBorder ? box.topRight : "",
+            topBorderColor,
+            dimTopBorderColor,
+            node.style.borderText?.position === "top" ? node.style.borderText : void 0
           );
-          bottomBorder = styleBorderLine(before, bottomBorderColor, dimBottomBorderColor) + text + styleBorderLine(after, bottomBorderColor, dimBottomBorderColor);
-        } else if (showBottomBorder) {
-          bottomBorder = styleBorderLine(bottomBorderLine, bottomBorderColor, dimBottomBorderColor);
         }
-        const offsetY = showTopBorder ? 1 : 0;
-        if (topBorder) {
-          output.write(x, y, topBorder);
+        if (showLeftBorder && clippedVerticalHeight > 0 && x >= visibleX1 && x < visibleX2 && x >= 0 && x < output.width) {
+          output.write(x, clippedVerticalTop, leftBorder);
         }
-        if (showLeftBorder) {
-          output.write(x, y + offsetY, leftBorder);
+        const rightX = x + width - 1;
+        if (showRightBorder && clippedVerticalHeight > 0 && rightX >= visibleX1 && rightX < visibleX2 && rightX >= 0 && rightX < output.width) {
+          output.write(rightX, clippedVerticalTop, rightBorder);
         }
-        if (showRightBorder) {
-          output.write(x + width - 1, y + offsetY, rightBorder);
-        }
-        if (bottomBorder) {
-          output.write(x, y + height - 1, bottomBorder);
+        const bottomY = y + height - 1;
+        if (showBottomBorder && bottomY >= visibleY1 && bottomY < visibleY2 && bottomY >= 0 && bottomY < output.height) {
+          renderHorizontalBorder(
+            x,
+            bottomY,
+            width,
+            output,
+            visibleX1,
+            visibleX2,
+            box.bottom,
+            showLeftBorder ? box.bottomLeft : "",
+            showRightBorder ? box.bottomRight : "",
+            bottomBorderColor,
+            dimBottomBorderColor,
+            node.style.borderText?.position === "bottom" ? node.style.borderText : void 0
+          );
         }
       }
     };
@@ -56386,11 +56388,14 @@ function wrapWithSoftWrap(plainText, maxWidth, textWrap) {
   }
   return { wrapped: outLines.join("\n"), softWrap };
 }
-function applyPaddingToText(node, text, softWrap) {
+function applyPaddingToText(node, text, softWrap, maxOffsetX, maxOffsetY) {
   const yogaNode = node.childNodes[0]?.yogaNode;
   if (yogaNode) {
     const offsetX = yogaNode.getComputedLeft();
     const offsetY = yogaNode.getComputedTop();
+    if (!Number.isSafeInteger(offsetX) || offsetX < 0 || offsetX > maxOffsetX || !Number.isSafeInteger(offsetY) || offsetY < 0 || offsetY > maxOffsetY) {
+      return "";
+    }
     text = "\n".repeat(offsetY) + indentString(text, offsetX);
     if (softWrap && offsetY > 0) {
       softWrap.unshift(...Array(offsetY).fill(false));
@@ -56403,7 +56408,11 @@ function renderNodeToOutput(node, output, {
   offsetY = 0,
   prevScreen,
   skipSelfBlit = false,
-  inheritedBackgroundColor
+  inheritedBackgroundColor,
+  visibleX1 = 0,
+  visibleX2 = output.width,
+  visibleY1 = 0,
+  visibleY2 = output.height
 }) {
   const { yogaNode } = node;
   if (yogaNode) {
@@ -56431,6 +56440,14 @@ function renderNodeToOutput(node, output, {
     if (y < 0 && node.style.position === "absolute") {
       y = 0;
     }
+    if (!validYogaRect(x, y, width, height)) {
+      dropSubtreeCache(node);
+      return;
+    }
+    const activeVisibleX1 = Math.max(0, Math.floor(visibleX1));
+    const activeVisibleX2 = Math.min(output.width, Math.ceil(visibleX2));
+    const activeVisibleY1 = Math.max(0, Math.floor(visibleY1));
+    const activeVisibleY2 = Math.min(output.height, Math.ceil(visibleY2));
     const cached = nodeCache.get(node);
     if (!node.dirty && !skipSelfBlit && node.pendingScrollDelta === void 0 && cached && cached.x === x && cached.y === y && cached.width === width && cached.height === height && prevScreen) {
       const fx = Math.floor(x);
@@ -56450,15 +56467,25 @@ function renderNodeToOutput(node, output, {
       absoluteOverlayMoved ||= node.style.position === "absolute";
     }
     if (cached && (node.dirty || positionChanged)) {
-      output.clear(
-        {
-          x: Math.floor(cached.x),
-          y: Math.floor(cached.y),
-          width: Math.floor(cached.width),
-          height: Math.floor(cached.height)
-        },
-        node.style.position === "absolute"
-      );
+      if (validYogaRect(cached.x, cached.y, cached.width, cached.height)) {
+        const clearX1 = Math.max(activeVisibleX1, Math.floor(cached.x));
+        const clearX2 = Math.min(activeVisibleX2, Math.ceil(cached.x + cached.width));
+        const clearY1 = Math.max(activeVisibleY1, Math.floor(cached.y));
+        const clearY2 = Math.min(activeVisibleY2, Math.ceil(cached.y + cached.height));
+        if (clearX1 < clearX2 && clearY1 < clearY2) {
+          output.clear(
+            {
+              x: clearX1,
+              y: clearY1,
+              width: clearX2 - clearX1,
+              height: clearY2 - clearY1
+            },
+            node.style.position === "absolute"
+          );
+        }
+      } else {
+        dropSubtreeCache(node);
+      }
     }
     const clears = pendingClears.get(node);
     const hasRemovedChild = clears !== void 0;
@@ -56521,7 +56548,7 @@ function renderNodeToOutput(node, output, {
             return styledText;
           }).join("");
         }
-        text = applyPaddingToText(node, text, softWrap);
+        text = applyPaddingToText(node, text, softWrap, output.width, output.height);
         output.write(x, y, text, softWrap);
       }
     } else if (node.nodeName === "ink-box") {
@@ -56542,59 +56569,72 @@ function renderNodeToOutput(node, output, {
       const clipVertically = overflowY === "hidden" || overflowY === "scroll";
       const isScrollY = overflowY === "scroll";
       const needsClip = clipHorizontally || clipVertically;
+      let x1;
+      let x2;
       let y1;
       let y2;
       if (needsClip) {
-        const x1 = clipHorizontally ? x + yogaNode.getComputedBorder(LayoutEdge.Left) : void 0;
-        const x2 = clipHorizontally ? x + yogaNode.getComputedWidth() - yogaNode.getComputedBorder(LayoutEdge.Right) : void 0;
+        x1 = clipHorizontally ? x + yogaNode.getComputedBorder(LayoutEdge.Left) : void 0;
+        x2 = clipHorizontally ? x + yogaNode.getComputedWidth() - yogaNode.getComputedBorder(LayoutEdge.Right) : void 0;
         y1 = clipVertically ? y + yogaNode.getComputedBorder(LayoutEdge.Top) : void 0;
         y2 = clipVertically ? y + yogaNode.getComputedHeight() - yogaNode.getComputedBorder(LayoutEdge.Bottom) : void 0;
         output.clip({ x1, x2, y1, y2 });
       }
+      const childVisibleX1 = Math.max(activeVisibleX1, Math.floor(x1 ?? activeVisibleX1));
+      const childVisibleX2 = Math.min(activeVisibleX2, Math.ceil(x2 ?? activeVisibleX2));
+      const childVisibleY1 = Math.max(activeVisibleY1, Math.floor(y1 ?? activeVisibleY1));
+      const childVisibleY2 = Math.min(activeVisibleY2, Math.ceil(y2 ?? activeVisibleY2));
       if (isScrollY) {
         const padTop = yogaNode.getComputedPadding(LayoutEdge.Top);
-        const innerHeight = Math.max(
-          0,
-          (y2 ?? y + height) - (y1 ?? y) - padTop - yogaNode.getComputedPadding(LayoutEdge.Bottom)
+        const innerHeight = safeUnsignedGeometry2(
+          Math.max(0, (y2 ?? y + height) - (y1 ?? y) - padTop - yogaNode.getComputedPadding(LayoutEdge.Bottom))
         );
         const content = node.childNodes.find((c) => c.yogaNode);
         const contentYoga = content?.yogaNode;
-        let scrollHeight = Math.ceil(contentYoga?.getComputedHeight() ?? 0);
+        let scrollHeight = safeUnsignedGeometry2(Math.ceil(contentYoga?.getComputedHeight() ?? 0));
         if (content) {
           for (const child of content.childNodes) {
             const childYoga = child.yogaNode;
             if (childYoga) {
-              scrollHeight = Math.max(
-                scrollHeight,
-                Math.ceil(childYoga.getComputedTop() + childYoga.getComputedHeight())
-              );
+              const childBottom = Math.ceil(childYoga.getComputedTop() + childYoga.getComputedHeight());
+              if (validUnsignedGeometry2(childBottom)) {
+                scrollHeight = Math.max(scrollHeight, childBottom);
+              }
             }
           }
         }
-        const prevScrollHeight = node.scrollHeight ?? scrollHeight;
-        const prevInnerHeight = node.scrollViewportHeight ?? innerHeight;
+        const prevScrollHeight = safeUnsignedGeometry2(node.scrollHeight, scrollHeight);
+        const prevInnerHeight = safeUnsignedGeometry2(node.scrollViewportHeight, innerHeight);
         node.scrollHeight = scrollHeight;
         node.scrollViewportHeight = innerHeight;
-        node.scrollViewportTop = (y1 ?? y) + padTop;
+        node.scrollViewportTop = safeUnsignedGeometry2((y1 ?? y) + padTop);
         const maxScroll = Math.max(0, scrollHeight - innerHeight);
         if (node.scrollAnchor) {
           const anchorTop = node.scrollAnchor.el.yogaNode?.getComputedTop();
-          if (anchorTop != null) {
-            node.scrollTop = anchorTop + node.scrollAnchor.offset;
+          const anchorOffset = node.scrollAnchor.offset;
+          const anchorTarget = (anchorTop ?? Number.NaN) + anchorOffset;
+          if (anchorTop != null && validUnsignedGeometry2(anchorTop) && validSignedGeometry2(anchorOffset) && validUnsignedGeometry2(anchorTarget)) {
+            node.scrollTop = anchorTarget;
             node.pendingScrollDelta = void 0;
           }
           node.scrollAnchor = void 0;
         }
-        const scrollTopBeforeFollow = node.scrollTop ?? 0;
+        const scrollTopBeforeFollow = safeUnsignedGeometry2(node.scrollTop);
         const stickyBeforeFollow = node.stickyScroll;
+        const scrollTopCompensation = safeSignedGeometry2(node.scrollTopCompensation);
+        const scrollTopBeforeCompensation = safeUnsignedGeometry2(scrollTopBeforeFollow - scrollTopCompensation);
+        node.scrollTopCompensation = void 0;
         const sticky = node.stickyScroll ?? Boolean(node.attributes["stickyScroll"]);
         const prevMaxScroll = Math.max(0, prevScrollHeight - prevInnerHeight);
         const grew = scrollHeight >= prevScrollHeight;
-        const atBottom = sticky || grew && scrollTopBeforeFollow >= prevMaxScroll;
+        if (node.pendingScrollDelta !== void 0 && !validSignedGeometry2(node.pendingScrollDelta)) {
+          node.pendingScrollDelta = void 0;
+        }
+        const atBottom = sticky || grew && scrollTopBeforeCompensation >= prevMaxScroll;
         if (atBottom && (node.pendingScrollDelta ?? 0) >= 0) {
           node.scrollTop = maxScroll;
           node.pendingScrollDelta = void 0;
-          if (node.stickyScroll === false && scrollTopBeforeFollow >= prevMaxScroll) {
+          if (node.stickyScroll === false && scrollTopBeforeCompensation >= prevMaxScroll) {
             node.stickyScroll = true;
           }
         }
@@ -56607,19 +56647,28 @@ function renderNodeToOutput(node, output, {
             viewportBottom: vpTop + innerHeight - 1
           };
         }
-        let cur = node.scrollTop ?? 0;
-        const pending = node.pendingScrollDelta;
+        let cur = safeUnsignedGeometry2(node.scrollTop);
+        let pending = node.pendingScrollDelta;
+        if (pending !== void 0 && !validSignedGeometry2(pending)) {
+          node.pendingScrollDelta = void 0;
+          pending = void 0;
+        }
         const cMin = node.scrollClampMin;
         const cMax = node.scrollClampMax;
-        const haveClamp = cMin !== void 0 && cMax !== void 0;
-        if (pending !== void 0 && pending !== 0) {
+        const haveClamp = cMin !== void 0 && cMax !== void 0 && validUnsignedGeometry2(cMin) && validClampMaximum2(cMax) && cMin <= cMax;
+        if (!haveClamp && (cMin !== void 0 || cMax !== void 0)) {
+          node.scrollClampMin = void 0;
+          node.scrollClampMax = void 0;
+        }
+        if (scrollTopCompensation === 0 && pending !== void 0 && pending !== 0) {
           const pastClamp = haveClamp && (pending < 0 && cur < cMin || pending > 0 && cur > cMax);
           const eff = pastClamp ? Math.min(4, innerHeight >> 3) : innerHeight;
-          cur += isXtermJsHost() ? drainAdaptive(node, pending, eff) : drainProportional(node, pending, eff);
-        } else if (pending === 0) {
+          const drained = cur + (isXtermJsHost() ? drainAdaptive(node, pending, eff) : drainProportional(node, pending, eff));
+          cur = safeUnsignedGeometry2(drained, cur);
+        } else if (scrollTopCompensation === 0 && pending === 0) {
           node.pendingScrollDelta = void 0;
         }
-        let scrollTop = Math.max(0, Math.min(cur, maxScroll));
+        let scrollTop = safeUnsignedGeometry2(Math.max(0, Math.min(cur, maxScroll)));
         const clamped = haveClamp ? Math.max(cMin, Math.min(scrollTop, cMax)) : scrollTop;
         node.scrollTop = scrollTop;
         if (scrollTop !== cur) {
@@ -56651,16 +56700,35 @@ function renderNodeToOutput(node, output, {
           const scrollHeight2 = contentYoga.getComputedHeight();
           const prevHeight = contentCached?.height ?? scrollHeight2;
           const heightDelta = scrollHeight2 - prevHeight;
-          const safeForFastPath = !hint || heightDelta === 0 || hint.delta > 0 && heightDelta === hint.delta;
+          const heightSafeForFastPath = !hint || heightDelta === 0 || hint.delta > 0 && heightDelta === hint.delta;
+          const outputWidth = Number.isSafeInteger(output.width) && output.width > 0 ? output.width : 0;
+          const outputHeight = Number.isSafeInteger(output.height) && output.height > 0 ? output.height : 0;
+          const fastPathBounds = (() => {
+            if (!hint || !Number.isSafeInteger(hint.top) || !Number.isSafeInteger(hint.bottom) || !Number.isSafeInteger(hint.delta) || hint.delta === 0 || hint.top > hint.bottom || !Number.isFinite(x) || !Number.isFinite(width) || width < 0 || !Number.isFinite(childVisibleX1) || !Number.isFinite(childVisibleX2) || !Number.isFinite(childVisibleY1) || !Number.isFinite(childVisibleY2)) {
+              return null;
+            }
+            const x12 = Math.max(0, Math.floor(x), Math.floor(childVisibleX1));
+            const x22 = Math.min(outputWidth, Math.ceil(x + width), Math.ceil(childVisibleX2));
+            const top = Math.max(0, hint.top, Math.floor(childVisibleY1));
+            const bottom = Math.min(outputHeight, hint.bottom + 1, Math.ceil(childVisibleY2));
+            if (x12 >= x22 || top >= bottom || Math.abs(hint.delta) > bottom - top) {
+              return null;
+            }
+            return { bottom, top, width: x22 - x12, x: x12 };
+          })();
+          const safeForFastPath = heightSafeForFastPath && (!hint || fastPathBounds !== null);
           if (hint) {
             scrollFastPathStats.captured++;
             scrollFastPathStats.lastHintDelta = hint.delta;
             scrollFastPathStats.lastScrollHeight = scrollHeight2;
             scrollFastPathStats.lastPrevHeight = prevHeight;
             scrollFastPathStats.lastHeightDelta = heightDelta;
-            if (!safeForFastPath) {
+            if (!heightSafeForFastPath) {
               scrollFastPathStats.declined.heightDeltaMismatch++;
               scrollFastPathStats.lastDeclineReason = `heightDelta=${heightDelta} hintDelta=${hint.delta}`;
+            } else if (!fastPathBounds) {
+              scrollFastPathStats.declined.other++;
+              scrollFastPathStats.lastDeclineReason = "invalidOrEmptyRepairBounds";
             } else if (!prevScreen) {
               scrollFastPathStats.declined.noPrevScreen++;
               scrollFastPathStats.lastDeclineReason = "noPrevScreen";
@@ -56671,44 +56739,46 @@ function renderNodeToOutput(node, output, {
           if (!safeForFastPath) {
             scrollHint = null;
           }
-          if (hint && prevScreen && safeForFastPath) {
-            const { top, bottom, delta } = hint;
-            const w = Math.floor(width);
-            output.blit(prevScreen, Math.floor(x), top, w, bottom - top + 1);
-            output.shift(top, bottom, delta);
-            const edgeTop = delta > 0 ? bottom - delta + 1 : top;
-            const edgeBottom = delta > 0 ? bottom : top - delta - 1;
-            output.clear({
-              x: Math.floor(x),
-              y: edgeTop,
-              width: w,
-              height: edgeBottom - edgeTop + 1
-            });
-            output.clip({
-              x1: void 0,
-              x2: void 0,
-              y1: edgeTop,
-              y2: edgeBottom + 1
-            });
+          if (hint && prevScreen && safeForFastPath && fastPathBounds) {
+            const { delta } = hint;
+            const { bottom, top, width: repairWidth, x: repairX } = fastPathBounds;
+            const bottomInclusive = bottom - 1;
+            scrollHint = { bottom: bottomInclusive, delta, top };
+            output.blit(prevScreen, repairX, top, repairWidth, bottom - top);
+            output.shift(top, bottomInclusive, delta);
+            const edgeTop = Math.max(top, delta > 0 ? bottom - delta : top);
+            const edgeBottom = Math.min(bottom, delta > 0 ? bottom : top - delta);
             const dirtyChildren = content.dirty ? new Set(content.childNodes.filter((c) => c.dirty)) : null;
-            renderScrolledChildren(
-              content,
-              output,
-              contentX,
-              contentY,
-              hasRemovedChild,
-              void 0,
-              // Cull to edge in child-local coords (inverse of contentY offset).
-              edgeTop - contentY,
-              edgeBottom + 1 - contentY,
-              boxBackgroundColor,
-              true
-            );
-            output.unclip();
+            if (edgeTop < edgeBottom) {
+              output.clear({
+                x: repairX,
+                y: edgeTop,
+                width: repairWidth,
+                height: edgeBottom - edgeTop
+              });
+              output.clip({ x1: repairX, x2: repairX + repairWidth, y1: edgeTop, y2: edgeBottom });
+              renderScrolledChildren(
+                content,
+                output,
+                contentX,
+                contentY,
+                hasRemovedChild,
+                void 0,
+                // Cull to edge in child-local coords (inverse of contentY offset).
+                edgeTop - contentY,
+                edgeBottom - contentY,
+                boxBackgroundColor,
+                true,
+                repairX,
+                repairX + repairWidth,
+                edgeTop,
+                edgeBottom
+              );
+              output.unclip();
+            }
             if (dirtyChildren) {
               const edgeTopLocal = edgeTop - contentY;
-              const edgeBottomLocal = edgeBottom + 1 - contentY;
-              const spaces2 = " ".repeat(w);
+              const edgeBottomLocal = edgeBottom - contentY;
               let cumHeightShift = 0;
               for (const childNode of content.childNodes) {
                 const childElem = childNode;
@@ -56722,8 +56792,14 @@ function renderNodeToOutput(node, output, {
                 if (!cy) {
                   continue;
                 }
+                const childLeft = cy.getComputedLeft();
                 const childTop = cy.getComputedTop();
+                const childW = cy.getComputedWidth();
                 const childH = cy.getComputedHeight();
+                if (!validYogaRect(childLeft, childTop, childW, childH)) {
+                  dropSubtreeCache(childElem);
+                  continue;
+                }
                 const childBottom = childTop + childH;
                 if (isDirty) {
                   const prev = nodeCache.get(childElem);
@@ -56735,54 +56811,73 @@ function renderNodeToOutput(node, output, {
                 if (childTop >= edgeTopLocal && childBottom <= edgeBottomLocal) {
                   continue;
                 }
-                const screenY = Math.floor(contentY + childTop);
+                const childScreenX = contentX + childLeft;
+                const childScreenRight = childScreenX + childW;
+                const childScreenY = contentY + childTop;
+                const childScreenBottom = contentY + childBottom;
+                if (!validSignedGeometry2(childScreenX) || !validSignedGeometry2(childScreenRight) || !validSignedGeometry2(childScreenY) || !validSignedGeometry2(childScreenBottom)) {
+                  dropSubtreeCache(childElem);
+                  continue;
+                }
+                const screenY = Math.floor(childScreenY);
                 if (!isDirty) {
                   const childCached = nodeCache.get(childElem);
                   if (childCached && Math.floor(childCached.y) - delta === screenY) {
                     continue;
                   }
                 }
-                const screenBottom = Math.min(
-                  Math.floor(contentY + childBottom),
+                const repairChildX = Math.max(repairX, Math.floor(childScreenX));
+                const repairChildRight = Math.min(repairX + repairWidth, Math.ceil(childScreenRight));
+                const repairChildTop = Math.max(top, screenY);
+                const repairChildBottom = Math.min(
+                  bottom,
+                  Math.floor(childScreenBottom),
                   Math.floor((y1 ?? y) + padTop + innerHeight)
                 );
-                if (screenY < screenBottom) {
-                  const fill = Array(screenBottom - screenY).fill(spaces2).join("\n");
-                  output.write(Math.floor(x), screenY, fill);
+                if (repairChildX < repairChildRight && repairChildTop < repairChildBottom) {
+                  const spaces = " ".repeat(repairChildRight - repairChildX);
+                  const fill = Array(repairChildBottom - repairChildTop).fill(spaces).join("\n");
+                  output.write(repairChildX, repairChildTop, fill);
                   output.clip({
-                    x1: void 0,
-                    x2: void 0,
-                    y1: screenY,
-                    y2: screenBottom
+                    x1: repairChildX,
+                    x2: repairChildRight,
+                    y1: repairChildTop,
+                    y2: repairChildBottom
                   });
                   renderNodeToOutput(childElem, output, {
                     offsetX: contentX,
                     offsetY: contentY,
                     prevScreen: void 0,
-                    inheritedBackgroundColor: boxBackgroundColor
+                    inheritedBackgroundColor: boxBackgroundColor,
+                    visibleX1: repairChildX,
+                    visibleX2: repairChildRight,
+                    visibleY1: repairChildTop,
+                    visibleY2: repairChildBottom
                   });
                   output.unclip();
                 }
               }
             }
-            const spaces = absoluteRectsPrev.length ? " ".repeat(w) : "";
             for (const r of absoluteRectsPrev) {
-              if (r.y >= bottom + 1 || r.y + r.height <= top) {
+              if (!validYogaRect(r.x, r.y, r.width, r.height)) {
                 continue;
               }
+              const repairOverlayX = Math.max(repairX, Math.floor(r.x));
+              const repairOverlayRight = Math.min(repairX + repairWidth, Math.ceil(r.x + r.width));
               const shiftedTop = Math.max(top, Math.floor(r.y) - delta);
-              const shiftedBottom = Math.min(bottom + 1, Math.floor(r.y + r.height) - delta);
-              if (shiftedTop >= edgeTop && shiftedBottom <= edgeBottom + 1) {
+              const shiftedBottom = Math.min(bottom, Math.floor(r.y + r.height) - delta);
+              if (edgeTop < edgeBottom && shiftedTop >= edgeTop && shiftedBottom <= edgeBottom) {
                 continue;
               }
-              if (shiftedTop >= shiftedBottom) {
+              if (repairOverlayX >= repairOverlayRight || shiftedTop >= shiftedBottom) {
                 continue;
               }
+              const spaces = " ".repeat(repairOverlayRight - repairOverlayX);
               const fill = Array(shiftedBottom - shiftedTop).fill(spaces).join("\n");
-              output.write(Math.floor(x), shiftedTop, fill);
+              output.write(repairOverlayX, shiftedTop, fill);
               output.clip({
-                x1: void 0,
-                x2: void 0,
+                x1: repairOverlayX,
+                x2: repairOverlayRight,
                 y1: shiftedTop,
                 y2: shiftedBottom
               });
@@ -56796,7 +56891,11 @@ function renderNodeToOutput(node, output, {
                 shiftedTop - contentY,
                 shiftedBottom - contentY,
                 boxBackgroundColor,
-                true
+                true,
+                repairOverlayX,
+                repairOverlayRight,
+                shiftedTop,
+                shiftedBottom
               );
               output.unclip();
             }
@@ -56819,7 +56918,12 @@ function renderNodeToOutput(node, output, {
               scrolled || positionChanged ? void 0 : prevScreen,
               scrollTop,
               scrollTop + innerHeight,
-              boxBackgroundColor
+              boxBackgroundColor,
+              false,
+              childVisibleX1,
+              childVisibleX2,
+              childVisibleY1,
+              childVisibleY2
             );
           }
           nodeCache.set(content, {
@@ -56840,10 +56944,18 @@ function renderNodeToOutput(node, output, {
           const innerWidth = Math.floor(width) - borderLeft - borderRight;
           const innerHeight = Math.floor(height) - borderTop - borderBottom;
           if (innerWidth > 0 && innerHeight > 0) {
-            const spaces = " ".repeat(innerWidth);
+            const fillX1 = Math.max(0, Math.floor(x + borderLeft));
+            const fillX2 = Math.min(output.width, Math.ceil(x + width - borderRight));
+            const fillY1 = Math.max(childVisibleY1, Math.floor(y + borderTop));
+            const fillY2 = Math.min(childVisibleY2, Math.ceil(y + height - borderBottom));
+            const fillWidth = Math.max(0, fillX2 - fillX1);
+            const fillHeight = Math.max(0, fillY2 - fillY1);
+            const spaces = " ".repeat(fillWidth);
             const fillLine = ownBackgroundColor ? applyTextStyles(spaces, { backgroundColor: ownBackgroundColor }) : spaces;
-            const fill = Array(innerHeight).fill(fillLine).join("\n");
-            output.write(x + borderLeft, y + borderTop, fill);
+            if (fillWidth > 0 && fillHeight > 0) {
+              const fill = Array(fillHeight).fill(fillLine).join("\n");
+              output.write(fillX1, fillY1, fill);
+            }
           }
         }
         renderChildren(
@@ -56860,15 +56972,31 @@ function renderNodeToOutput(node, output, {
           // valid composite, but children CAN reposition (ScrollBox remeasure
           // on re-render → /permissions body blanked on Down arrow, #25436).
           ownBackgroundColor || node.style.opaque ? void 0 : prevScreen,
-          boxBackgroundColor
+          boxBackgroundColor,
+          childVisibleX1,
+          childVisibleX2,
+          childVisibleY1,
+          childVisibleY2
         );
       }
       if (needsClip) {
         output.unclip();
       }
-      render_border_default(x, y, node, output);
+      render_border_default(x, y, node, output, activeVisibleX1, activeVisibleX2, activeVisibleY1, activeVisibleY2);
     } else if (node.nodeName === "ink-root") {
-      renderChildren(node, output, x, y, hasRemovedChild, prevScreen, inheritedBackgroundColor);
+      renderChildren(
+        node,
+        output,
+        x,
+        y,
+        hasRemovedChild,
+        prevScreen,
+        inheritedBackgroundColor,
+        activeVisibleX1,
+        activeVisibleX2,
+        activeVisibleY1,
+        activeVisibleY2
+      );
     }
     const rect = { x, y, width, height, top: yogaTop };
     nodeCache.set(node, rect);
@@ -56878,7 +57006,7 @@ function renderNodeToOutput(node, output, {
     node.dirty = false;
   }
 }
-function renderChildren(node, output, offsetX, offsetY, hasRemovedChild, prevScreen, inheritedBackgroundColor) {
+function renderChildren(node, output, offsetX, offsetY, hasRemovedChild, prevScreen, inheritedBackgroundColor, visibleX1, visibleX2, visibleY1, visibleY2) {
   let seenDirtyChild = false;
   let seenDirtyClipped = false;
   for (const childNode of node.childNodes) {
@@ -56892,7 +57020,11 @@ function renderChildren(node, output, offsetX, offsetY, hasRemovedChild, prevScr
       // Short-circuits on seenDirtyClipped (false in the common case) so
       // the opaque/bg reads don't happen per-child per-frame.
       skipSelfBlit: seenDirtyClipped && isAbsolute && !childElem.style.opaque && childElem.style.backgroundColor === void 0,
-      inheritedBackgroundColor
+      inheritedBackgroundColor,
+      visibleX1,
+      visibleX2,
+      visibleY1,
+      visibleY2
     });
     if (wasDirty && !seenDirtyChild) {
       if (!clipsBothAxes(childElem) || isAbsolute) {
@@ -56956,7 +57088,7 @@ function blitEscapingAbsoluteDescendants(node, output, prevScreen, px, py, pw, p
     blitEscapingAbsoluteDescendants(elem, output, prevScreen, px, py, pw, ph);
   }
 }
-function renderScrolledChildren(node, output, offsetX, offsetY, hasRemovedChild, prevScreen, scrollTopY, scrollBottomY, inheritedBackgroundColor, preserveCulledCache = false) {
+function renderScrolledChildren(node, output, offsetX, offsetY, hasRemovedChild, prevScreen, scrollTopY, scrollBottomY, inheritedBackgroundColor, preserveCulledCache = false, visibleX1 = 0, visibleX2 = output.width, visibleY1 = 0, visibleY2 = output.height) {
   let seenDirtyChild = false;
   let cumHeightShift = 0;
   for (const childNode of node.childNodes) {
@@ -56972,6 +57104,11 @@ function renderScrolledChildren(node, output, offsetX, offsetY, hasRemovedChild,
       } else {
         top = cy.getComputedTop();
         height = cy.getComputedHeight();
+        const bottom2 = top + height;
+        if (!validSignedGeometry2(top) || !validYogaDimension(height) || !validSignedGeometry2(bottom2) || bottom2 < top) {
+          dropSubtreeCache(childElem);
+          continue;
+        }
         if (childElem.dirty) {
           cumHeightShift += height - (cached ? cached.height : 0);
         }
@@ -56980,6 +57117,10 @@ function renderScrolledChildren(node, output, offsetX, offsetY, hasRemovedChild,
         }
       }
       const bottom = top + height;
+      if (!validSignedGeometry2(top) || !validYogaDimension(height) || !validSignedGeometry2(bottom) || bottom < top) {
+        dropSubtreeCache(childElem);
+        continue;
+      }
       if (bottom <= scrollTopY || top >= scrollBottomY) {
         if (!preserveCulledCache) {
           dropSubtreeCache(childElem);
@@ -56992,7 +57133,11 @@ function renderScrolledChildren(node, output, offsetX, offsetY, hasRemovedChild,
       offsetX,
       offsetY,
       prevScreen: hasRemovedChild || seenDirtyChild ? void 0 : prevScreen,
-      inheritedBackgroundColor
+      inheritedBackgroundColor,
+      visibleX1,
+      visibleX2,
+      visibleY1: Math.max(visibleY1, offsetY + scrollTopY),
+      visibleY2: Math.min(visibleY2, offsetY + scrollBottomY)
     });
     if (wasDirty) {
       seenDirtyChild = true;
@@ -57007,7 +57152,7 @@ function dropSubtreeCache(node) {
     }
   }
 }
-var layoutShifted, absoluteOverlayMoved, scrollHint, absoluteRectsPrev, absoluteRectsCur, scrollFastPathStats, scrollDrainNode, followScroll, SCROLL_MIN_PER_FRAME, SCROLL_INSTANT_THRESHOLD, SCROLL_HIGH_PENDING, SCROLL_STEP_MED, SCROLL_STEP_HIGH, SCROLL_MAX_PENDING, OSC2, BEL2, render_node_to_output_default;
+var MAX_SCROLL_GEOMETRY2, MAX_YOGA_DIMENSION, validUnsignedGeometry2, validClampMaximum2, validSignedGeometry2, safeUnsignedGeometry2, safeSignedGeometry2, validYogaDimension, validYogaRect, layoutShifted, absoluteOverlayMoved, scrollHint, absoluteRectsPrev, absoluteRectsCur, scrollFastPathStats, scrollDrainNode, followScroll, SCROLL_MIN_PER_FRAME, SCROLL_INSTANT_THRESHOLD, SCROLL_HIGH_PENDING, SCROLL_STEP_MED, SCROLL_STEP_HIGH, SCROLL_MAX_PENDING, OSC2, BEL2, render_node_to_output_default;
 var init_render_node_to_output = __esm({
   "packages/hermes-ink/src/ink/render-node-to-output.ts"() {
     "use strict";
@@ -57021,6 +57166,15 @@ var init_render_node_to_output = __esm({
     init_terminal();
     init_widest_line();
     init_wrap_text();
+    MAX_SCROLL_GEOMETRY2 = 1e9;
+    MAX_YOGA_DIMENSION = 1e8;
+    validUnsignedGeometry2 = (value) => Number.isFinite(value) && value >= 0 && value <= MAX_SCROLL_GEOMETRY2;
+    validClampMaximum2 = (value) => value === Number.POSITIVE_INFINITY || validUnsignedGeometry2(value);
+    validSignedGeometry2 = (value) => Number.isFinite(value) && Math.abs(value) <= MAX_SCROLL_GEOMETRY2;
+    safeUnsignedGeometry2 = (value, fallback = 0) => value !== void 0 && validUnsignedGeometry2(value) ? value : fallback;
+    safeSignedGeometry2 = (value, fallback = 0) => value !== void 0 && validSignedGeometry2(value) ? value : fallback;
+    validYogaDimension = (value) => Number.isFinite(value) && value >= 0 && value <= MAX_YOGA_DIMENSION;
+    validYogaRect = (x, y, width, height) => validSignedGeometry2(x) && validSignedGeometry2(y) && validYogaDimension(width) && validYogaDimension(height) && validSignedGeometry2(x + width) && validSignedGeometry2(y + height);
     layoutShifted = false;
     absoluteOverlayMoved = false;
     scrollHint = null;
@@ -57049,7 +57203,7 @@ var init_render_node_to_output = __esm({
   }
 });
 
-// node_modules/auto-bind/index.js
+// ../node_modules/auto-bind/index.js
 function autoBind(self2, { include, exclude } = {}) {
   const filter = (key) => {
     const match = (pattern) => typeof pattern === "string" ? key === pattern : pattern.test(key);
@@ -57074,7 +57228,7 @@ function autoBind(self2, { include, exclude } = {}) {
 }
 var getAllProperties;
 var init_auto_bind = __esm({
-  "node_modules/auto-bind/index.js"() {
+  "../node_modules/auto-bind/index.js"() {
     getAllProperties = (object) => {
       const properties = /* @__PURE__ */ new Set();
       do {
@@ -57087,41 +57241,41 @@ var init_auto_bind = __esm({
   }
 });
 
-// node_modules/lodash-es/noop.js
+// ../node_modules/lodash-es/noop.js
 function noop() {
 }
 var noop_default;
 var init_noop = __esm({
-  "node_modules/lodash-es/noop.js"() {
+  "../node_modules/lodash-es/noop.js"() {
     noop_default = noop;
   }
 });
 
-// node_modules/lodash-es/isObject.js
+// ../node_modules/lodash-es/isObject.js
 function isObject(value) {
   var type = typeof value;
   return value != null && (type == "object" || type == "function");
 }
 var isObject_default;
 var init_isObject = __esm({
-  "node_modules/lodash-es/isObject.js"() {
+  "../node_modules/lodash-es/isObject.js"() {
     isObject_default = isObject;
   }
 });
 
-// node_modules/lodash-es/_freeGlobal.js
+// ../node_modules/lodash-es/_freeGlobal.js
 var freeGlobal, freeGlobal_default;
 var init_freeGlobal = __esm({
-  "node_modules/lodash-es/_freeGlobal.js"() {
+  "../node_modules/lodash-es/_freeGlobal.js"() {
     freeGlobal = typeof global == "object" && global && global.Object === Object && global;
     freeGlobal_default = freeGlobal;
   }
 });
 
-// node_modules/lodash-es/_root.js
+// ../node_modules/lodash-es/_root.js
 var freeSelf, root, root_default;
 var init_root = __esm({
-  "node_modules/lodash-es/_root.js"() {
+  "../node_modules/lodash-es/_root.js"() {
     init_freeGlobal();
     freeSelf = typeof self == "object" && self && self.Object === Object && self;
     root = freeGlobal_default || freeSelf || Function("return this")();
@@ -57129,10 +57283,10 @@ var init_root = __esm({
   }
 });
 
-// node_modules/lodash-es/now.js
+// ../node_modules/lodash-es/now.js
 var now, now_default;
 var init_now = __esm({
-  "node_modules/lodash-es/now.js"() {
+  "../node_modules/lodash-es/now.js"() {
     init_root();
     now = function() {
       return root_default.Date.now();
@@ -57141,7 +57295,7 @@ var init_now = __esm({
   }
 });
 
-// node_modules/lodash-es/_trimmedEndIndex.js
+// ../node_modules/lodash-es/_trimmedEndIndex.js
 function trimmedEndIndex(string) {
   var index = string.length;
   while (index-- && reWhitespace.test(string.charAt(index))) {
@@ -57150,36 +57304,36 @@ function trimmedEndIndex(string) {
 }
 var reWhitespace, trimmedEndIndex_default;
 var init_trimmedEndIndex = __esm({
-  "node_modules/lodash-es/_trimmedEndIndex.js"() {
+  "../node_modules/lodash-es/_trimmedEndIndex.js"() {
     reWhitespace = /\s/;
     trimmedEndIndex_default = trimmedEndIndex;
   }
 });
 
-// node_modules/lodash-es/_baseTrim.js
+// ../node_modules/lodash-es/_baseTrim.js
 function baseTrim(string) {
   return string ? string.slice(0, trimmedEndIndex_default(string) + 1).replace(reTrimStart, "") : string;
 }
 var reTrimStart, baseTrim_default;
 var init_baseTrim = __esm({
-  "node_modules/lodash-es/_baseTrim.js"() {
+  "../node_modules/lodash-es/_baseTrim.js"() {
     init_trimmedEndIndex();
     reTrimStart = /^\s+/;
     baseTrim_default = baseTrim;
   }
 });
 
-// node_modules/lodash-es/_Symbol.js
+// ../node_modules/lodash-es/_Symbol.js
 var Symbol2, Symbol_default;
 var init_Symbol = __esm({
-  "node_modules/lodash-es/_Symbol.js"() {
+  "../node_modules/lodash-es/_Symbol.js"() {
     init_root();
     Symbol2 = root_default.Symbol;
     Symbol_default = Symbol2;
   }
 });
 
-// node_modules/lodash-es/_getRawTag.js
+// ../node_modules/lodash-es/_getRawTag.js
 function getRawTag(value) {
   var isOwn = hasOwnProperty.call(value, symToStringTag), tag = value[symToStringTag];
   try {
@@ -57199,7 +57353,7 @@ function getRawTag(value) {
 }
 var objectProto, hasOwnProperty, nativeObjectToString, symToStringTag, getRawTag_default;
 var init_getRawTag = __esm({
-  "node_modules/lodash-es/_getRawTag.js"() {
+  "../node_modules/lodash-es/_getRawTag.js"() {
     init_Symbol();
     objectProto = Object.prototype;
     hasOwnProperty = objectProto.hasOwnProperty;
@@ -57209,20 +57363,20 @@ var init_getRawTag = __esm({
   }
 });
 
-// node_modules/lodash-es/_objectToString.js
+// ../node_modules/lodash-es/_objectToString.js
 function objectToString(value) {
   return nativeObjectToString2.call(value);
 }
 var objectProto2, nativeObjectToString2, objectToString_default;
 var init_objectToString = __esm({
-  "node_modules/lodash-es/_objectToString.js"() {
+  "../node_modules/lodash-es/_objectToString.js"() {
     objectProto2 = Object.prototype;
     nativeObjectToString2 = objectProto2.toString;
     objectToString_default = objectToString;
   }
 });
 
-// node_modules/lodash-es/_baseGetTag.js
+// ../node_modules/lodash-es/_baseGetTag.js
 function baseGetTag(value) {
   if (value == null) {
     return value === void 0 ? undefinedTag : nullTag;
@@ -57231,7 +57385,7 @@ function baseGetTag(value) {
 }
 var nullTag, undefinedTag, symToStringTag2, baseGetTag_default;
 var init_baseGetTag = __esm({
-  "node_modules/lodash-es/_baseGetTag.js"() {
+  "../node_modules/lodash-es/_baseGetTag.js"() {
     init_Symbol();
     init_getRawTag();
     init_objectToString();
@@ -57242,24 +57396,24 @@ var init_baseGetTag = __esm({
   }
 });
 
-// node_modules/lodash-es/isObjectLike.js
+// ../node_modules/lodash-es/isObjectLike.js
 function isObjectLike(value) {
   return value != null && typeof value == "object";
 }
 var isObjectLike_default;
 var init_isObjectLike = __esm({
-  "node_modules/lodash-es/isObjectLike.js"() {
+  "../node_modules/lodash-es/isObjectLike.js"() {
     isObjectLike_default = isObjectLike;
   }
 });
 
-// node_modules/lodash-es/isSymbol.js
+// ../node_modules/lodash-es/isSymbol.js
 function isSymbol(value) {
   return typeof value == "symbol" || isObjectLike_default(value) && baseGetTag_default(value) == symbolTag;
 }
 var symbolTag, isSymbol_default;
 var init_isSymbol = __esm({
-  "node_modules/lodash-es/isSymbol.js"() {
+  "../node_modules/lodash-es/isSymbol.js"() {
     init_baseGetTag();
     init_isObjectLike();
     symbolTag = "[object Symbol]";
@@ -57267,7 +57421,7 @@ var init_isSymbol = __esm({
   }
 });
 
-// node_modules/lodash-es/toNumber.js
+// ../node_modules/lodash-es/toNumber.js
 function toNumber(value) {
   if (typeof value == "number") {
     return value;
@@ -57288,7 +57442,7 @@ function toNumber(value) {
 }
 var NAN, reIsBadHex, reIsBinary, reIsOctal, freeParseInt, toNumber_default;
 var init_toNumber = __esm({
-  "node_modules/lodash-es/toNumber.js"() {
+  "../node_modules/lodash-es/toNumber.js"() {
     init_baseTrim();
     init_isObject();
     init_isSymbol();
@@ -57301,7 +57455,7 @@ var init_toNumber = __esm({
   }
 });
 
-// node_modules/lodash-es/debounce.js
+// ../node_modules/lodash-es/debounce.js
 function debounce2(func, wait, options) {
   var lastArgs, lastThis, maxWait, result, timerId, lastCallTime, lastInvokeTime = 0, leading = false, maxing = false, trailing = true;
   if (typeof func != "function") {
@@ -57385,7 +57539,7 @@ function debounce2(func, wait, options) {
 }
 var FUNC_ERROR_TEXT, nativeMax, nativeMin, debounce_default;
 var init_debounce = __esm({
-  "node_modules/lodash-es/debounce.js"() {
+  "../node_modules/lodash-es/debounce.js"() {
     init_isObject();
     init_now();
     init_toNumber();
@@ -57396,7 +57550,7 @@ var init_debounce = __esm({
   }
 });
 
-// node_modules/lodash-es/throttle.js
+// ../node_modules/lodash-es/throttle.js
 function throttle(func, wait, options) {
   var leading = true, trailing = true;
   if (typeof func != "function") {
@@ -57414,7 +57568,7 @@ function throttle(func, wait, options) {
 }
 var FUNC_ERROR_TEXT2, throttle_default;
 var init_throttle = __esm({
-  "node_modules/lodash-es/throttle.js"() {
+  "../node_modules/lodash-es/throttle.js"() {
     init_debounce();
     init_isObject();
     FUNC_ERROR_TEXT2 = "Expected a function";
@@ -57422,10 +57576,10 @@ var init_throttle = __esm({
   }
 });
 
-// node_modules/signal-exit/dist/mjs/signals.js
+// ../node_modules/signal-exit/dist/mjs/signals.js
 var signals;
 var init_signals = __esm({
-  "node_modules/signal-exit/dist/mjs/signals.js"() {
+  "../node_modules/signal-exit/dist/mjs/signals.js"() {
     signals = [];
     signals.push("SIGHUP", "SIGINT", "SIGTERM");
     if (process.platform !== "win32") {
@@ -57451,10 +57605,10 @@ var init_signals = __esm({
   }
 });
 
-// node_modules/signal-exit/dist/mjs/index.js
+// ../node_modules/signal-exit/dist/mjs/index.js
 var processOk, kExitEmitter, global2, ObjectDefineProperty, Emitter, SignalExitBase, signalExitWrap, SignalExitFallback, SignalExit, process3, onExit, load, unload;
 var init_mjs = __esm({
-  "node_modules/signal-exit/dist/mjs/index.js"() {
+  "../node_modules/signal-exit/dist/mjs/index.js"() {
     init_signals();
     processOk = (process4) => !!process4 && typeof process4 === "object" && typeof process4.removeListener === "function" && typeof process4.emit === "function" && typeof process4.reallyExit === "function" && typeof process4.listeners === "function" && typeof process4.kill === "function" && typeof process4.pid === "number" && typeof process4.on === "function";
     kExitEmitter = /* @__PURE__ */ Symbol.for("signal-exit emitter");
@@ -58619,10 +58773,10 @@ var init_ClockContext = __esm({
   }
 });
 
-// node_modules/convert-to-spaces/dist/index.js
+// ../node_modules/convert-to-spaces/dist/index.js
 var convertToSpaces, dist_default;
 var init_dist2 = __esm({
-  "node_modules/convert-to-spaces/dist/index.js"() {
+  "../node_modules/convert-to-spaces/dist/index.js"() {
     convertToSpaces = (input, spaces = 2) => {
       return input.replace(/^\t+/gm, ($1) => " ".repeat($1.length * spaces));
     };
@@ -58630,10 +58784,10 @@ var init_dist2 = __esm({
   }
 });
 
-// node_modules/code-excerpt/dist/index.js
+// ../node_modules/code-excerpt/dist/index.js
 var generateLineNumbers, codeExcerpt, dist_default2;
 var init_dist3 = __esm({
-  "node_modules/code-excerpt/dist/index.js"() {
+  "../node_modules/code-excerpt/dist/index.js"() {
     init_dist2();
     generateLineNumbers = (line, around) => {
       const lineNumbers = [];
@@ -58662,9 +58816,9 @@ var init_dist3 = __esm({
   }
 });
 
-// node_modules/stack-utils/node_modules/escape-string-regexp/index.js
+// ../node_modules/stack-utils/node_modules/escape-string-regexp/index.js
 var require_escape_string_regexp = __commonJS({
-  "node_modules/stack-utils/node_modules/escape-string-regexp/index.js"(exports, module) {
+  "../node_modules/stack-utils/node_modules/escape-string-regexp/index.js"(exports, module) {
     "use strict";
     var matchOperatorsRegex = /[|\\{}()[\]^$+*?.-]/g;
     module.exports = (string) => {
@@ -58676,9 +58830,9 @@ var require_escape_string_regexp = __commonJS({
   }
 });
 
-// node_modules/stack-utils/index.js
+// ../node_modules/stack-utils/index.js
 var require_stack_utils = __commonJS({
-  "node_modules/stack-utils/index.js"(exports, module) {
+  "../node_modules/stack-utils/index.js"(exports, module) {
     "use strict";
     var escapeStringRegexp = require_escape_string_regexp();
     var cwd = typeof process === "object" && process && typeof process.cwd === "function" ? process.cwd() : ".";
@@ -60332,9 +60486,9 @@ var init_optimizer = __esm({
   }
 });
 
-// node_modules/bidi-js/dist/bidi.js
+// ../node_modules/bidi-js/dist/bidi.js
 var require_bidi = __commonJS({
-  "node_modules/bidi-js/dist/bidi.js"(exports, module) {
+  "../node_modules/bidi-js/dist/bidi.js"(exports, module) {
     (function(global3, factory) {
       typeof exports === "object" && typeof module !== "undefined" ? module.exports = factory() : typeof define === "function" && define.amd ? define(factory) : (global3 = typeof globalThis !== "undefined" ? globalThis : global3 || self, global3.bidi_js = factory());
     })(exports, (function() {
@@ -63985,18 +64139,18 @@ var init_terminalModes = __esm({
   }
 });
 
-// node_modules/nanostores/clean-stores/index.js
+// ../node_modules/nanostores/clean-stores/index.js
 var clean;
 var init_clean_stores = __esm({
-  "node_modules/nanostores/clean-stores/index.js"() {
+  "../node_modules/nanostores/clean-stores/index.js"() {
     clean = /* @__PURE__ */ Symbol("clean");
   }
 });
 
-// node_modules/nanostores/atom/index.js
+// ../node_modules/nanostores/atom/index.js
 var listenerQueue, lqIndex, batchSeen, QUEUE_ITEMS_PER_LISTENER, nanostoresGlobal, drainQueue, atom;
 var init_atom = __esm({
-  "node_modules/nanostores/atom/index.js"() {
+  "../node_modules/nanostores/atom/index.js"() {
     init_clean_stores();
     listenerQueue = [];
     lqIndex = 0;
@@ -64089,10 +64243,10 @@ var init_atom = __esm({
   }
 });
 
-// node_modules/nanostores/lifecycle/index.js
+// ../node_modules/nanostores/lifecycle/index.js
 var MOUNT, UNMOUNT, REVERT_MUTATION, on, STORE_UNMOUNT_DELAY, onMount;
 var init_lifecycle = __esm({
-  "node_modules/nanostores/lifecycle/index.js"() {
+  "../node_modules/nanostores/lifecycle/index.js"() {
     init_clean_stores();
     MOUNT = 5;
     UNMOUNT = 6;
@@ -64165,7 +64319,7 @@ var init_lifecycle = __esm({
   }
 });
 
-// node_modules/nanostores/warn/index.js
+// ../node_modules/nanostores/warn/index.js
 function warn(text) {
   if (!warned2[text]) {
     warned2[text] = true;
@@ -64178,15 +64332,15 @@ function warn(text) {
 }
 var warned2;
 var init_warn2 = __esm({
-  "node_modules/nanostores/warn/index.js"() {
+  "../node_modules/nanostores/warn/index.js"() {
     warned2 = {};
   }
 });
 
-// node_modules/nanostores/computed/index.js
+// ../node_modules/nanostores/computed/index.js
 var computedStore, computed;
 var init_computed = __esm({
-  "node_modules/nanostores/computed/index.js"() {
+  "../node_modules/nanostores/computed/index.js"() {
     init_atom();
     init_clean_stores();
     init_lifecycle();
@@ -64252,7 +64406,7 @@ var init_computed = __esm({
   }
 });
 
-// node_modules/nanostores/listen-keys/index.js
+// ../node_modules/nanostores/listen-keys/index.js
 function listenKeys($store, keys, listener) {
   let keysSet = new Set(keys);
   return $store.listen((value, oldValue, changed) => {
@@ -64262,20 +64416,20 @@ function listenKeys($store, keys, listener) {
   });
 }
 var init_listen_keys = __esm({
-  "node_modules/nanostores/listen-keys/index.js"() {
+  "../node_modules/nanostores/listen-keys/index.js"() {
   }
 });
 
-// node_modules/nanostores/index.js
+// ../node_modules/nanostores/index.js
 var init_nanostores = __esm({
-  "node_modules/nanostores/index.js"() {
+  "../node_modules/nanostores/index.js"() {
     init_atom();
     init_computed();
     init_listen_keys();
   }
 });
 
-// node_modules/@nanostores/react/index.js
+// ../node_modules/@nanostores/react/index.js
 function useStore(store, { keys, deps = [store, keys], ssr } = {}) {
   let snapshotRef = (0, import_react27.useRef)();
   snapshotRef.current = store.get();
@@ -64292,7 +64446,7 @@ function useStore(store, { keys, deps = [store, keys], ssr } = {}) {
 }
 var import_react27, emit;
 var init_react = __esm({
-  "node_modules/@nanostores/react/index.js"() {
+  "../node_modules/@nanostores/react/index.js"() {
     init_nanostores();
     import_react27 = __toESM(require_react(), 1);
     emit = (snapshotRef, onChange) => (value) => {
@@ -65197,262 +65351,6 @@ var init_blockLayout = __esm({
   }
 });
 
-// src/content/verbs.ts
-var VERBS;
-var init_verbs = __esm({
-  "src/content/verbs.ts"() {
-    "use strict";
-    VERBS = [
-      "pondering",
-      "contemplating",
-      "musing",
-      "cogitating",
-      "ruminating",
-      "deliberating",
-      "mulling",
-      "reflecting",
-      "processing",
-      "reasoning",
-      "analyzing",
-      "computing",
-      "synthesizing",
-      "formulating",
-      "brainstorming"
-    ];
-  }
-});
-
-// src/lib/text.ts
-var ESC2, BEL3, ANSI_CSI_RE, ANSI_CSI_WITH_CMD_RE, ANSI_INCOMPLETE_CSI_RE, ANSI_OSC_RE, ANSI_STRING_RE, ANSI_NON_CSI_ESC_SEQ_RE, ANSI_STRAY_ESC_RE, CONTROL_RE, WS_RE, stripAnsi2, sanitizeAnsiForRender, hasAnsi, compactPreview, estimateTokensRough, edgePreview, pasteTokenLabel, THINKING_STATUS_RE, THINKING_STATUS_CHUNK_RE, cleanThinkingText, thinkingPreview, boundedLiveRenderText, boundedRenderText, countNewlines, stripTrailingPasteNewlines, toolTrailLabel, formatToolCall, buildToolTrailLine, verboseToolBlock, buildVerboseToolTrailLine, isToolTrailResultLine, parseToolTrailResultLine, splitToolDuration, isTransientTrailLine, sameToolTrailGroup, formatAbandonedClarify, flat, COMPACT_NUMBER, fmtK, pick, isPasteBackedText;
-var init_text = __esm({
-  "src/lib/text.ts"() {
-    "use strict";
-    init_limits();
-    init_verbs();
-    ESC2 = String.fromCharCode(27);
-    BEL3 = String.fromCharCode(7);
-    ANSI_CSI_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*[@-~]`, "g");
-    ANSI_CSI_WITH_CMD_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*([@-~])`, "g");
-    ANSI_INCOMPLETE_CSI_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*(?=${ESC2}|\\n|$)`, "g");
-    ANSI_OSC_RE = new RegExp(`${ESC2}\\][\\s\\S]*?(?:${BEL3}|${ESC2}\\\\)`, "g");
-    ANSI_STRING_RE = new RegExp(`${ESC2}[PX^_][\\s\\S]*?(?:${BEL3}|${ESC2}\\\\)`, "g");
-    ANSI_NON_CSI_ESC_SEQ_RE = new RegExp(`${ESC2}(?!\\[|\\]|P|X|\\^|_)[ -/]*[0-~]`, "g");
-    ANSI_STRAY_ESC_RE = new RegExp(`${ESC2}(?!\\[)[\\s\\S]?`, "g");
-    CONTROL_RE = /[\x00-\x08\x0B\x0C\x0D\x0E-\x1A\x1C-\x1F\x7F]/g;
-    WS_RE = /\s+/g;
-    stripAnsi2 = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
-    sanitizeAnsiForRender = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_WITH_CMD_RE, (seq, cmd) => cmd === "m" ? seq : "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
-    hasAnsi = (s) => s.includes(ESC2);
-    compactPreview = (s, max) => {
-      const one = s.replace(WS_RE, " ").trim();
-      return !one ? "" : one.length > max ? one.slice(0, max - 1) + "\u2026" : one;
-    };
-    estimateTokensRough = (text) => !text ? 0 : text.length + 3 >> 2;
-    edgePreview = (s, head = 16, tail = 28) => {
-      const one = s.replace(WS_RE, " ").trim().replace(/\]\]/g, "] ]");
-      return !one ? "" : one.length <= head + tail + 4 ? one : `${one.slice(0, head).trimEnd()}.. ${one.slice(-tail).trimStart()}`;
-    };
-    pasteTokenLabel = (text, lineCount) => {
-      const preview = edgePreview(text);
-      if (!preview) {
-        return `[[ [${fmtK(lineCount)} lines] ]]`;
-      }
-      const [head = preview, tail = ""] = preview.split(".. ", 2);
-      return tail ? `[[ ${head.trimEnd()}.. [${fmtK(lineCount)} lines] .. ${tail.trimStart()} ]]` : `[[ ${preview} [${fmtK(lineCount)} lines] ]]`;
-    };
-    THINKING_STATUS_RE = new RegExp(`^(?:${VERBS.join("|")})\\.{0,3}$`, "i");
-    THINKING_STATUS_CHUNK_RE = new RegExp(`[^A-Za-z
-]+\\s*(?:${VERBS.join("|")})\\.{0,3}\\s*`, "giu");
-    cleanThinkingText = (reasoning) => reasoning.split("\n").map((line) => line.replace(THINKING_STATUS_CHUNK_RE, "").trim()).filter((line) => line && !THINKING_STATUS_RE.test(line.replace(/\.\.\.$/, "").trim())).join("\n").replace(/([^\n])(?=\*\*[^*\n][^\n]*?\*\*)/g, "$1\n\n").replace(/\n{3,}/g, "\n\n").trim();
-    thinkingPreview = (reasoning, mode, max = THINKING_COT_MAX) => {
-      const raw = cleanThinkingText(reasoning);
-      return !raw || mode === "collapsed" ? "" : mode === "full" ? raw : compactPreview(raw.replace(WS_RE, " "), max);
-    };
-    boundedLiveRenderText = (text, { maxChars = LIVE_RENDER_MAX_CHARS, maxLines = LIVE_RENDER_MAX_LINES } = {}) => boundedRenderText(text, "showing live tail", { maxChars, maxLines });
-    boundedRenderText = (text, labelPrefix, { maxChars, maxLines }) => {
-      if (text.length <= maxChars && text.split("\n", maxLines + 1).length <= maxLines) {
-        return text;
-      }
-      let start = 0;
-      let idx = text.length;
-      for (let seen = 0; seen < maxLines && idx > 0; seen++) {
-        idx = text.lastIndexOf("\n", idx - 1);
-        start = idx < 0 ? 0 : idx + 1;
-        if (idx < 0) {
-          break;
-        }
-      }
-      const lineStart = start;
-      start = Math.max(lineStart, text.length - maxChars);
-      if (start > lineStart) {
-        const nextBreak = text.indexOf("\n", start);
-        if (nextBreak >= 0 && nextBreak < text.length - 1) {
-          start = nextBreak + 1;
-        }
-      }
-      const tail = text.slice(start).trimStart();
-      const omittedLines = countNewlines(text, start);
-      const omittedChars = Math.max(0, text.length - tail.length);
-      const label = omittedLines > 0 ? `[${labelPrefix}; omitted ${fmtK(omittedLines)} lines / ${fmtK(omittedChars)} chars]
-` : `[${labelPrefix}; omitted ${fmtK(omittedChars)} chars]
-`;
-      return `${label}${tail}`;
-    };
-    countNewlines = (text, end) => {
-      let count = 0;
-      for (let i = 0; i < end; i++) {
-        if (text.charCodeAt(i) === 10) {
-          count++;
-        }
-      }
-      return count;
-    };
-    stripTrailingPasteNewlines = (text) => /[^\n]/.test(text) ? text.replace(/\n+$/, "") : text;
-    toolTrailLabel = (name) => name.split("_").filter(Boolean).map((p) => p[0].toUpperCase() + p.slice(1)).join(" ") || name;
-    formatToolCall = (name, context = "") => {
-      const label = toolTrailLabel(name);
-      const preview = compactPreview(context, 64);
-      return preview ? `${label}("${preview}")` : label;
-    };
-    buildToolTrailLine = (name, context, error, note, duration) => {
-      const detail = compactPreview(note ?? "", 72);
-      const took = duration !== void 0 ? ` (${duration.toFixed(1)}s)` : "";
-      return `${formatToolCall(name, context)}${took}${detail ? ` :: ${detail}` : ""} ${error ? "\u2717" : "\u2713"}`;
-    };
-    verboseToolBlock = (label, text) => {
-      const body = (text ?? "").trim();
-      return body ? `${label}:
-${boundedLiveRenderText(body, {
-        maxChars: VERBOSE_TRAIL_MAX_CHARS,
-        maxLines: VERBOSE_TRAIL_MAX_LINES
-      })}` : "";
-    };
-    buildVerboseToolTrailLine = (name, context, error, duration, argsText, resultText) => {
-      const detail = [verboseToolBlock("Args", argsText), verboseToolBlock(error ? "Error" : "Result", resultText)].filter(Boolean).join("\n");
-      const took = duration !== void 0 ? ` (${duration.toFixed(1)}s)` : "";
-      return `${formatToolCall(name, context)}${took}${detail ? ` :: ${detail}` : ""} ${error ? "\u2717" : "\u2713"}`;
-    };
-    isToolTrailResultLine = (line) => line.endsWith(" \u2713") || line.endsWith(" \u2717");
-    parseToolTrailResultLine = (line) => {
-      if (!isToolTrailResultLine(line)) {
-        return null;
-      }
-      const mark = line.endsWith(" \u2717") ? "\u2717" : "\u2713";
-      const body = line.slice(0, -2);
-      const sep = body.indexOf(" :: ");
-      if (sep >= 0) {
-        return { call: body.slice(0, sep), detail: body.slice(sep + 4), mark };
-      }
-      const legacy = body.indexOf(": ");
-      if (legacy > 0) {
-        return { call: body.slice(0, legacy), detail: body.slice(legacy + 2), mark };
-      }
-      return { call: body, detail: "", mark };
-    };
-    splitToolDuration = (call) => {
-      const match = call.match(/^(.*?)( \(\d+(?:\.\d)?s\))$/);
-      return match ? { label: match[1], duration: match[2] } : { label: call, duration: "" };
-    };
-    isTransientTrailLine = (line) => line.startsWith("drafting ") || line === "analyzing tool output\u2026";
-    sameToolTrailGroup = (label, entry) => entry === `${label} \u2713` || entry === `${label} \u2717` || entry.startsWith(`${label}(`) || entry.startsWith(`${label} ::`) || entry.startsWith(`${label}:`);
-    formatAbandonedClarify = (question, choices, reason) => {
-      const head = `ask ${question.trim()}`;
-      const opts = (choices ?? []).map((c, i) => `  ${i + 1}. ${c}`);
-      return [head, ...opts, `  (${reason} \u2014 no selection)`].join("\n");
-    };
-    flat = (r) => Object.values(r).flat();
-    COMPACT_NUMBER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, notation: "compact" });
-    fmtK = (n) => COMPACT_NUMBER.format(n).replace(/[KMBT]$/, (s) => s.toLowerCase());
-    pick = (a) => a[Math.floor(Math.random() * a.length)];
-    isPasteBackedText = (text) => /\[\[paste:\d+(?:[^\n]*?)\]\]|\[paste #\d+ (?:attached|excerpt)(?:[^\n]*?)\]/.test(text);
-  }
-});
-
-// src/domain/messages.ts
-var introMsg, imageTokenMeta, attachedImageNotice, userDisplay, toTranscriptMessages, fmtDuration;
-var init_messages = __esm({
-  "src/domain/messages.ts"() {
-    "use strict";
-    init_limits();
-    init_text();
-    introMsg = (info) => ({ info, kind: "intro", role: "system", text: "" });
-    imageTokenMeta = (info) => {
-      const { width, height, token_estimate: t } = info ?? {};
-      return [width && height ? `${width}x${height}` : "", (t ?? 0) > 0 ? `~${fmtK(t)} tok` : ""].filter(Boolean).join(" \xB7 ");
-    };
-    attachedImageNotice = (info) => {
-      const meta = imageTokenMeta(info);
-      const label = info?.name ? `\u{1F4CE} Attached image: ${info.name}` : "\u{1F4CE} Attached image";
-      return `${label}${meta ? ` \xB7 ${meta}` : ""}`;
-    };
-    userDisplay = (text) => {
-      if (text.length <= LONG_MSG) {
-        return text;
-      }
-      const first = text.split("\n")[0]?.trim() ?? "";
-      const words = first.split(/\s+/).filter(Boolean);
-      const prefix = (words.length > 1 ? words.slice(0, 4).join(" ") : first).slice(0, 80);
-      return `${prefix || "(message)"} [long message]`;
-    };
-    toTranscriptMessages = (rows) => {
-      if (!Array.isArray(rows)) {
-        return [];
-      }
-      const out = [];
-      let pending = [];
-      for (const row of rows) {
-        if (!row || typeof row !== "object") {
-          continue;
-        }
-        const { context, display_kind, name, role, text } = row;
-        if (role === "tool") {
-          pending.push(buildToolTrailLine(name ?? "tool", context ?? ""));
-          continue;
-        }
-        if (typeof text !== "string" || !text.trim()) {
-          continue;
-        }
-        if (display_kind === "hidden") {
-          continue;
-        }
-        if (display_kind === "model_switch") {
-          out.push({ kind: "event", role: "system", text: "model changed" });
-          pending = [];
-          continue;
-        }
-        if (display_kind === "auto_continue") {
-          out.push({ kind: "event", role: "system", text: "resumed interrupted turn" });
-          pending = [];
-          continue;
-        }
-        if (display_kind === "async_delegation_complete") {
-          const meta = row.display_metadata;
-          const count = meta && typeof meta.task_count === "number" ? meta.task_count : void 0;
-          const label = count === void 0 ? "background agent work finished" : `${count} background agent${count === 1 ? "" : "s"} finished`;
-          out.push({ kind: "event", role: "system", text: label });
-          pending = [];
-          continue;
-        }
-        if (role === "assistant") {
-          out.push({ role, text, ...pending.length && { tools: pending } });
-          pending = [];
-        } else if (role === "user" || role === "system") {
-          out.push({ role, text });
-          pending = [];
-        }
-      }
-      return out;
-    };
-    fmtDuration = (ms) => {
-      const t = Math.max(0, Math.floor(ms / 1e3));
-      const h = Math.floor(t / 3600);
-      const m = Math.floor(t % 3600 / 60);
-      const s = t % 60;
-      return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
-    };
-  }
-});
-
 // src/domain/paths.ts
 var shortCwd, fmtCwdBranch, shortProject, fmtProjectCwdBranch, composeTabTitle;
 var init_paths = __esm({
@@ -65616,6 +65514,7 @@ var init_useGitBranch = __esm({
 function useVirtualHistory(scrollRef, items, columns, {
   estimate = ESTIMATE,
   estimateHeight,
+  generation = 0,
   initialHeights,
   liveTailActive = false,
   onHeightsChange,
@@ -65627,6 +65526,8 @@ function useVirtualHistory(scrollRef, items, columns, {
   const heights = (0, import_react30.useRef)(new Map(initialHeights));
   const initialHeightsRef = (0, import_react30.useRef)(initialHeights);
   const refs = (0, import_react30.useRef)(/* @__PURE__ */ new Map());
+  const measuredBottoms = (0, import_react30.useRef)(/* @__PURE__ */ new Map());
+  const unmountViewport = (0, import_react30.useRef)(null);
   const onHeightsChangeRef = (0, import_react30.useRef)(onHeightsChange);
   const offsetVersion = (0, import_react30.useRef)(0);
   const offsetsCache = (0, import_react30.useRef)({
@@ -65642,7 +65543,22 @@ function useVirtualHistory(scrollRef, items, columns, {
   const skipMeasurement = (0, import_react30.useRef)(false);
   const prevRange = (0, import_react30.useRef)(null);
   const freezeRenders = (0, import_react30.useRef)(0);
+  const generationRef = (0, import_react30.useRef)(generation);
   onHeightsChangeRef.current = onHeightsChange;
+  if (generationRef.current !== generation) {
+    generationRef.current = generation;
+    nodes.current.clear();
+    refs.current.clear();
+    measuredBottoms.current.clear();
+    unmountViewport.current = null;
+    heights.current = new Map(initialHeights);
+    initialHeightsRef.current = initialHeights;
+    prevRange.current = null;
+    freezeRenders.current = 0;
+    skipMeasurement.current = false;
+    lastScrollTopRef.current = 0;
+    offsetVersion.current++;
+  }
   if (initialHeightsRef.current !== initialHeights) {
     initialHeightsRef.current = initialHeights;
     heights.current = new Map(initialHeights);
@@ -65652,7 +65568,12 @@ function useVirtualHistory(scrollRef, items, columns, {
     const ratio = prevColumns.current / columns;
     prevColumns.current = columns;
     for (const [k, h] of heights.current) {
-      heights.current.set(k, Math.max(1, Math.round(h * ratio)));
+      const scaled = Math.round(h * ratio);
+      if (validVirtualItemHeight(scaled)) {
+        heights.current.set(k, scaled);
+      } else {
+        heights.current.delete(k);
+      }
     }
     offsetVersion.current++;
     skipMeasurement.current = true;
@@ -65678,6 +65599,7 @@ function useVirtualHistory(scrollRef, items, columns, {
         heights.current.delete(k);
         nodes.current.delete(k);
         refs.current.delete(k);
+        measuredBottoms.current.delete(k);
         dirty = true;
       }
     }
@@ -65696,10 +65618,10 @@ function useVirtualHistory(scrollRef, items, columns, {
   }
   const offsets = offsetsCache.current.arr;
   const total = offsets[n] ?? 0;
-  const top = Math.max(0, scrollRef.current?.getScrollTop() ?? 0);
-  const pendingDelta = scrollRef.current?.getPendingDelta() ?? 0;
-  const target = Math.max(0, top + pendingDelta);
-  const vp = Math.max(0, scrollRef.current?.getViewportHeight() ?? 0);
+  const top = safeUnsignedGeometry3(scrollRef.current?.getScrollTop() ?? 0);
+  const pendingDelta = safeSignedGeometry3(scrollRef.current?.getPendingDelta() ?? 0);
+  const target = safeUnsignedGeometry3(top + pendingDelta);
+  const vp = safeUnsignedGeometry3(scrollRef.current?.getViewportHeight() ?? 0);
   const sticky = scrollRef.current?.isSticky() ?? true;
   const recentManual = Date.now() - (scrollRef.current?.getLastManualScrollAt() ?? 0) < 1200;
   const frozenRangeCandidate = freezeRenders.current > 0 && prevRange.current && prevRange.current[0] < n ? [prevRange.current[0], Math.min(prevRange.current[1], n)] : null;
@@ -65799,39 +65721,77 @@ function useVirtualHistory(scrollRef, items, columns, {
       effStart = effEnd - maxMounted;
     }
   }
-  const measureRef = (0, import_react30.useCallback)((key) => {
-    let fn = refs.current.get(key);
-    if (!fn) {
-      fn = (el) => {
-        if (el) {
-          nodes.current.set(key, el);
-          return;
-        }
-        const existing = nodes.current.get(key);
-        const h = Math.ceil(existing?.yogaNode?.getComputedHeight?.() ?? 0);
-        if (h > 0 && heights.current.get(key) !== h) {
-          heights.current.set(key, h);
-          offsetVersion.current++;
-          onHeightsChangeRef.current?.(heights.current);
-        }
-        nodes.current.delete(key);
-      };
-      refs.current.set(key, fn);
-    }
-    return fn;
-  }, []);
+  const measureRef = (0, import_react30.useCallback)(
+    (key) => {
+      let fn = refs.current.get(key);
+      if (!fn) {
+        const refGeneration = generationRef.current;
+        fn = (el) => {
+          if (refGeneration !== generationRef.current) {
+            return;
+          }
+          if (el) {
+            nodes.current.set(key, el);
+            return;
+          }
+          if (skipMeasurement.current) {
+            nodes.current.delete(key);
+            measuredBottoms.current.delete(key);
+            return;
+          }
+          const existing = nodes.current.get(key);
+          const h = Math.ceil(existing?.yogaNode?.getComputedHeight?.() ?? 0);
+          const previousHeight = heights.current.get(key);
+          if (validVirtualItemHeight(h) && previousHeight !== h) {
+            const s = scrollRef.current;
+            const measuredBottom = measuredBottoms.current.get(key);
+            const viewport = unmountViewport.current ??= {
+              sticky: s?.isSticky() ?? true,
+              top: safeUnsignedGeometry3(s?.getScrollTop() ?? 0)
+            };
+            if (s && previousHeight !== void 0 && measuredBottom !== void 0 && measuredBottom <= viewport.top && !viewport.sticky) {
+              s.adjustScrollTop(h - previousHeight);
+            }
+            heights.current.set(key, h);
+            offsetVersion.current++;
+            onHeightsChangeRef.current?.(heights.current);
+          }
+          nodes.current.delete(key);
+          measuredBottoms.current.delete(key);
+        };
+        refs.current.set(key, fn);
+      }
+      return fn;
+    },
+    [scrollRef]
+  );
   (0, import_react30.useLayoutEffect)(() => {
+    unmountViewport.current = null;
     const s = scrollRef.current;
     let dirty = false;
     let heightDirty = false;
+    let anchorDelta = 0;
     if (s && shouldSetVirtualClamp({ itemCount: n, liveTailActive, sticky, viewportHeight: vp })) {
       const effTopSpacer = offsets[effStart] ?? 0;
       const effBottom = offsets[effEnd] ?? total;
       const clampMin = effStart === 0 ? 0 : effTopSpacer;
-      const clampMax = effEnd === n ? Infinity : Math.max(effTopSpacer, effBottom - vp);
-      s.setClampBounds(clampMin, clampMax);
+      const clampMax = effEnd === n ? Number.POSITIVE_INFINITY : Math.max(effTopSpacer, effBottom - vp);
+      if (safeUnsignedGeometry3(clampMin, -1) >= 0 && (clampMax === Number.POSITIVE_INFINITY || safeUnsignedGeometry3(clampMax, -1) >= clampMin)) {
+        s.setClampBounds(clampMin, clampMax);
+      } else {
+        s.setClampBounds(void 0, void 0);
+      }
     } else {
       s?.setClampBounds(void 0, void 0);
+    }
+    for (let i = effStart; i < effEnd; i++) {
+      const k = items[i]?.key;
+      if (k) {
+        const bottom = offsets[i + 1] ?? 0;
+        if (safeUnsignedGeometry3(bottom, -1) >= 0) {
+          measuredBottoms.current.set(k, bottom);
+        }
+      }
     }
     if (skipMeasurement.current) {
       skipMeasurement.current = false;
@@ -65843,18 +65803,25 @@ function useVirtualHistory(scrollRef, items, columns, {
           continue;
         }
         const h = Math.ceil(nodes.current.get(k)?.yogaNode?.getComputedHeight?.() ?? 0);
-        if (h > 0 && heights.current.get(k) !== h) {
+        const previousHeight = heights.current.get(k);
+        if (validVirtualItemHeight(h) && previousHeight !== h) {
+          if (previousHeight !== void 0 && (offsets[i + 1] ?? 0) <= top) {
+            anchorDelta += h - previousHeight;
+          }
           heights.current.set(k, h);
           dirty = true;
           heightDirty = true;
         }
       }
     }
+    if (s && anchorDelta !== 0 && !s.isSticky()) {
+      s.adjustScrollTop(anchorDelta);
+    }
     if (s) {
       const next = {
         sticky: s.isSticky(),
-        top: Math.max(0, s.getScrollTop() + s.getPendingDelta()),
-        vp: Math.max(0, s.getViewportHeight())
+        top: safeUnsignedGeometry3(s.getScrollTop() + safeSignedGeometry3(s.getPendingDelta())),
+        vp: safeUnsignedGeometry3(s.getViewportHeight())
       };
       if (next.sticky !== metrics.current.sticky || next.top !== metrics.current.top || next.vp !== metrics.current.vp) {
         metrics.current = next;
@@ -65868,7 +65835,7 @@ function useVirtualHistory(scrollRef, items, columns, {
     if (heightDirty) {
       bumpMeasuredHeightVersion((n2) => n2 + 1);
     }
-  }, [effEnd, effStart, items, liveTailActive, measuredHeightVersion, n, offsets, scrollRef, sticky, total, vp]);
+  }, [effEnd, effStart, items, liveTailActive, measuredHeightVersion, n, offsets, scrollRef, sticky, top, total, vp]);
   return {
     bottomSpacer: Math.max(0, total - (offsets[effEnd] ?? total)),
     end: effEnd,
@@ -65878,7 +65845,7 @@ function useVirtualHistory(scrollRef, items, columns, {
     topSpacer: offsets[effStart] ?? 0
   };
 }
-var import_react30, ESTIMATE, OVERSCAN, MAX_MOUNTED, COLD_START, PESSIMISTIC, QUANTUM, FREEZE_RENDERS, SLIDE_STEP, NOOP, virtualHistorySnapshotKey, upperBound, shouldSetVirtualClamp, ensureVirtualItemHeight;
+var import_react30, ESTIMATE, OVERSCAN, MAX_MOUNTED, COLD_START, PESSIMISTIC, QUANTUM, FREEZE_RENDERS, SLIDE_STEP, MAX_VIRTUAL_ITEM_HEIGHT, MAX_VIRTUAL_GEOMETRY, NOOP, validVirtualItemHeight, safeUnsignedGeometry3, safeSignedGeometry3, pruneVirtualHeightCache, virtualHistorySnapshotKey, upperBound, shouldSetVirtualClamp, ensureVirtualItemHeight;
 var init_useVirtualHistory = __esm({
   "src/hooks/useVirtualHistory.ts"() {
     "use strict";
@@ -65891,15 +65858,28 @@ var init_useVirtualHistory = __esm({
     QUANTUM = OVERSCAN >> 1;
     FREEZE_RENDERS = 2;
     SLIDE_STEP = 12;
+    MAX_VIRTUAL_ITEM_HEIGHT = 1e5;
+    MAX_VIRTUAL_GEOMETRY = 1e9;
     NOOP = () => {
+    };
+    validVirtualItemHeight = (value) => Number.isFinite(value) && value > 0 && value <= MAX_VIRTUAL_ITEM_HEIGHT;
+    safeUnsignedGeometry3 = (value, fallback = 0) => Number.isFinite(value) && value >= 0 && value <= MAX_VIRTUAL_GEOMETRY ? value : fallback;
+    safeSignedGeometry3 = (value, fallback = 0) => Number.isFinite(value) && Math.abs(value) <= MAX_VIRTUAL_GEOMETRY ? value : fallback;
+    pruneVirtualHeightCache = (cache4, items) => {
+      const active = new Set(items.map((item) => item.key));
+      for (const key of cache4.keys()) {
+        if (!active.has(key) || !validVirtualItemHeight(cache4.get(key))) {
+          cache4.delete(key);
+        }
+      }
     };
     virtualHistorySnapshotKey = (s) => {
       if (!s) {
         return "none";
       }
-      const target = s.getScrollTop() + s.getPendingDelta();
+      const target = safeUnsignedGeometry3(safeUnsignedGeometry3(s.getScrollTop()) + safeSignedGeometry3(s.getPendingDelta()));
       const bin = Math.floor(target / QUANTUM);
-      const viewportHeight = Math.max(0, s.getViewportHeight());
+      const viewportHeight = safeUnsignedGeometry3(s.getViewportHeight());
       return `${s.isSticky() ? ~bin : bin}:${viewportHeight}`;
     };
     upperBound = (arr, target, length = arr.length) => {
@@ -65919,10 +65899,15 @@ var init_useVirtualHistory = __esm({
     }) => itemCount > 0 && viewportHeight > 0 && !sticky && !liveTailActive;
     ensureVirtualItemHeight = (heights, key, index, estimate, estimateHeight) => {
       const cached = heights.get(key);
-      if (cached !== void 0) {
-        return Math.max(1, Math.floor(cached));
+      if (cached !== void 0 && validVirtualItemHeight(cached)) {
+        return Math.floor(cached);
       }
-      const seeded2 = Math.max(1, Math.floor(estimateHeight?.(index, key) ?? estimate));
+      if (cached !== void 0) {
+        heights.delete(key);
+      }
+      const fallback = validVirtualItemHeight(estimate) ? Math.floor(estimate) : estimate === 0 ? 1 : ESTIMATE;
+      const candidate = estimateHeight?.(index, key) ?? fallback;
+      const seeded2 = validVirtualItemHeight(candidate) ? Math.floor(candidate) : candidate === 0 ? 1 : fallback;
       heights.set(key, seeded2);
       return seeded2;
     };
@@ -66102,12 +66087,19 @@ var init_liveProgress = __esm({
 });
 
 // src/lib/messages.ts
-var appendTranscriptMessage;
-var init_messages2 = __esm({
+var appendTranscriptMessage, capTranscriptHistory;
+var init_messages = __esm({
   "src/lib/messages.ts"() {
     "use strict";
+    init_limits();
     init_liveProgress();
     appendTranscriptMessage = (prev, msg) => appendToolShelfMessage(prev, msg);
+    capTranscriptHistory = (items) => {
+      if (items.length <= MAX_HISTORY) {
+        return items;
+      }
+      return items[0]?.kind === "intro" ? [items[0], ...items.slice(-(MAX_HISTORY - 1))] : items.slice(-MAX_HISTORY);
+    };
   }
 });
 
@@ -66678,6 +66670,177 @@ var init_terminalParity = __esm({
   "src/lib/terminalParity.ts"() {
     "use strict";
     init_terminalSetup();
+  }
+});
+
+// src/content/verbs.ts
+var VERBS;
+var init_verbs = __esm({
+  "src/content/verbs.ts"() {
+    "use strict";
+    VERBS = [
+      "pondering",
+      "contemplating",
+      "musing",
+      "cogitating",
+      "ruminating",
+      "deliberating",
+      "mulling",
+      "reflecting",
+      "processing",
+      "reasoning",
+      "analyzing",
+      "computing",
+      "synthesizing",
+      "formulating",
+      "brainstorming"
+    ];
+  }
+});
+
+// src/lib/text.ts
+var ESC2, BEL3, ANSI_CSI_RE, ANSI_CSI_WITH_CMD_RE, ANSI_INCOMPLETE_CSI_RE, ANSI_OSC_RE, ANSI_STRING_RE, ANSI_NON_CSI_ESC_SEQ_RE, ANSI_STRAY_ESC_RE, CONTROL_RE, WS_RE, stripAnsi2, sanitizeAnsiForRender, hasAnsi, compactPreview, estimateTokensRough, edgePreview, pasteTokenLabel, THINKING_STATUS_RE, THINKING_STATUS_CHUNK_RE, cleanThinkingText, thinkingPreview, boundedLiveRenderText, boundedRenderText, countNewlines, stripTrailingPasteNewlines, toolTrailLabel, formatToolCall, buildToolTrailLine, verboseToolBlock, buildVerboseToolTrailLine, isToolTrailResultLine, parseToolTrailResultLine, splitToolDuration, isTransientTrailLine, sameToolTrailGroup, formatAbandonedClarify, flat, COMPACT_NUMBER, fmtK, pick, isPasteBackedText;
+var init_text = __esm({
+  "src/lib/text.ts"() {
+    "use strict";
+    init_limits();
+    init_verbs();
+    ESC2 = String.fromCharCode(27);
+    BEL3 = String.fromCharCode(7);
+    ANSI_CSI_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*[@-~]`, "g");
+    ANSI_CSI_WITH_CMD_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*([@-~])`, "g");
+    ANSI_INCOMPLETE_CSI_RE = new RegExp(`${ESC2}\\[[0-?]*[ -/]*(?=${ESC2}|\\n|$)`, "g");
+    ANSI_OSC_RE = new RegExp(`${ESC2}\\][\\s\\S]*?(?:${BEL3}|${ESC2}\\\\)`, "g");
+    ANSI_STRING_RE = new RegExp(`${ESC2}[PX^_][\\s\\S]*?(?:${BEL3}|${ESC2}\\\\)`, "g");
+    ANSI_NON_CSI_ESC_SEQ_RE = new RegExp(`${ESC2}(?!\\[|\\]|P|X|\\^|_)[ -/]*[0-~]`, "g");
+    ANSI_STRAY_ESC_RE = new RegExp(`${ESC2}(?!\\[)[\\s\\S]?`, "g");
+    CONTROL_RE = /[\x00-\x08\x0B\x0C\x0D\x0E-\x1A\x1C-\x1F\x7F]/g;
+    WS_RE = /\s+/g;
+    stripAnsi2 = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
+    sanitizeAnsiForRender = (s) => s.replace(ANSI_OSC_RE, "").replace(ANSI_STRING_RE, "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_CSI_WITH_CMD_RE, (seq, cmd) => cmd === "m" ? seq : "").replace(ANSI_INCOMPLETE_CSI_RE, "").replace(ANSI_NON_CSI_ESC_SEQ_RE, "").replace(ANSI_STRAY_ESC_RE, "").replace(CONTROL_RE, "");
+    hasAnsi = (s) => s.includes(ESC2);
+    compactPreview = (s, max) => {
+      const one = s.replace(WS_RE, " ").trim();
+      return !one ? "" : one.length > max ? one.slice(0, max - 1) + "\u2026" : one;
+    };
+    estimateTokensRough = (text) => !text ? 0 : text.length + 3 >> 2;
+    edgePreview = (s, head = 16, tail = 28) => {
+      const one = s.replace(WS_RE, " ").trim().replace(/\]\]/g, "] ]");
+      return !one ? "" : one.length <= head + tail + 4 ? one : `${one.slice(0, head).trimEnd()}.. ${one.slice(-tail).trimStart()}`;
+    };
+    pasteTokenLabel = (text, lineCount) => {
+      const preview = edgePreview(text);
+      if (!preview) {
+        return `[[ [${fmtK(lineCount)} lines] ]]`;
+      }
+      const [head = preview, tail = ""] = preview.split(".. ", 2);
+      return tail ? `[[ ${head.trimEnd()}.. [${fmtK(lineCount)} lines] .. ${tail.trimStart()} ]]` : `[[ ${preview} [${fmtK(lineCount)} lines] ]]`;
+    };
+    THINKING_STATUS_RE = new RegExp(`^(?:${VERBS.join("|")})\\.{0,3}$`, "i");
+    THINKING_STATUS_CHUNK_RE = new RegExp(`[^A-Za-z
+]+\\s*(?:${VERBS.join("|")})\\.{0,3}\\s*`, "giu");
+    cleanThinkingText = (reasoning) => reasoning.split("\n").map((line) => line.replace(THINKING_STATUS_CHUNK_RE, "").trim()).filter((line) => line && !THINKING_STATUS_RE.test(line.replace(/\.\.\.$/, "").trim())).join("\n").replace(/([^\n])(?=\*\*[^*\n][^\n]*?\*\*)/g, "$1\n\n").replace(/\n{3,}/g, "\n\n").trim();
+    thinkingPreview = (reasoning, mode, max = THINKING_COT_MAX) => {
+      const raw = cleanThinkingText(reasoning);
+      return !raw || mode === "collapsed" ? "" : mode === "full" ? raw : compactPreview(raw.replace(WS_RE, " "), max);
+    };
+    boundedLiveRenderText = (text, { maxChars = LIVE_RENDER_MAX_CHARS, maxLines = LIVE_RENDER_MAX_LINES } = {}) => boundedRenderText(text, "showing live tail", { maxChars, maxLines });
+    boundedRenderText = (text, labelPrefix, { maxChars, maxLines }) => {
+      if (text.length <= maxChars && text.split("\n", maxLines + 1).length <= maxLines) {
+        return text;
+      }
+      let start = 0;
+      let idx = text.length;
+      for (let seen = 0; seen < maxLines && idx > 0; seen++) {
+        idx = text.lastIndexOf("\n", idx - 1);
+        start = idx < 0 ? 0 : idx + 1;
+        if (idx < 0) {
+          break;
+        }
+      }
+      const lineStart = start;
+      start = Math.max(lineStart, text.length - maxChars);
+      if (start > lineStart) {
+        const nextBreak = text.indexOf("\n", start);
+        if (nextBreak >= 0 && nextBreak < text.length - 1) {
+          start = nextBreak + 1;
+        }
+      }
+      const tail = text.slice(start).trimStart();
+      const omittedLines = countNewlines(text, start);
+      const omittedChars = Math.max(0, text.length - tail.length);
+      const label = omittedLines > 0 ? `[${labelPrefix}; omitted ${fmtK(omittedLines)} lines / ${fmtK(omittedChars)} chars]
+` : `[${labelPrefix}; omitted ${fmtK(omittedChars)} chars]
+`;
+      return `${label}${tail}`;
+    };
+    countNewlines = (text, end) => {
+      let count = 0;
+      for (let i = 0; i < end; i++) {
+        if (text.charCodeAt(i) === 10) {
+          count++;
+        }
+      }
+      return count;
+    };
+    stripTrailingPasteNewlines = (text) => /[^\n]/.test(text) ? text.replace(/\n+$/, "") : text;
+    toolTrailLabel = (name) => name.split("_").filter(Boolean).map((p) => p[0].toUpperCase() + p.slice(1)).join(" ") || name;
+    formatToolCall = (name, context = "") => {
+      const label = toolTrailLabel(name);
+      const preview = compactPreview(context, 64);
+      return preview ? `${label}("${preview}")` : label;
+    };
+    buildToolTrailLine = (name, context, error, note, duration) => {
+      const detail = compactPreview(note ?? "", 72);
+      const took = duration !== void 0 ? ` (${duration.toFixed(1)}s)` : "";
+      return `${formatToolCall(name, context)}${took}${detail ? ` :: ${detail}` : ""} ${error ? "\u2717" : "\u2713"}`;
+    };
+    verboseToolBlock = (label, text) => {
+      const body = (text ?? "").trim();
+      return body ? `${label}:
+${boundedLiveRenderText(body, {
+        maxChars: VERBOSE_TRAIL_MAX_CHARS,
+        maxLines: VERBOSE_TRAIL_MAX_LINES
+      })}` : "";
+    };
+    buildVerboseToolTrailLine = (name, context, error, duration, argsText, resultText) => {
+      const detail = [verboseToolBlock("Args", argsText), verboseToolBlock(error ? "Error" : "Result", resultText)].filter(Boolean).join("\n");
+      const took = duration !== void 0 ? ` (${duration.toFixed(1)}s)` : "";
+      return `${formatToolCall(name, context)}${took}${detail ? ` :: ${detail}` : ""} ${error ? "\u2717" : "\u2713"}`;
+    };
+    isToolTrailResultLine = (line) => line.endsWith(" \u2713") || line.endsWith(" \u2717");
+    parseToolTrailResultLine = (line) => {
+      if (!isToolTrailResultLine(line)) {
+        return null;
+      }
+      const mark = line.endsWith(" \u2717") ? "\u2717" : "\u2713";
+      const body = line.slice(0, -2);
+      const sep = body.indexOf(" :: ");
+      if (sep >= 0) {
+        return { call: body.slice(0, sep), detail: body.slice(sep + 4), mark };
+      }
+      const legacy = body.indexOf(": ");
+      if (legacy > 0) {
+        return { call: body.slice(0, legacy), detail: body.slice(legacy + 2), mark };
+      }
+      return { call: body, detail: "", mark };
+    };
+    splitToolDuration = (call) => {
+      const match = call.match(/^(.*?)( \(\d+(?:\.\d)?s\))$/);
+      return match ? { label: match[1], duration: match[2] } : { label: call, duration: "" };
+    };
+    isTransientTrailLine = (line) => line.startsWith("drafting ") || line === "analyzing tool output\u2026";
+    sameToolTrailGroup = (label, entry) => entry === `${label} \u2713` || entry === `${label} \u2717` || entry.startsWith(`${label}(`) || entry.startsWith(`${label} ::`) || entry.startsWith(`${label}:`);
+    formatAbandonedClarify = (question, choices, reason) => {
+      const head = `ask ${question.trim()}`;
+      const opts = (choices ?? []).map((c, i) => `  ${i + 1}. ${c}`);
+      return [head, ...opts, `  (${reason} \u2014 no selection)`].join("\n");
+    };
+    flat = (r) => Object.values(r).flat();
+    COMPACT_NUMBER = new Intl.NumberFormat("en-US", { maximumFractionDigits: 1, notation: "compact" });
+    fmtK = (n) => COMPACT_NUMBER.format(n).replace(/[KMBT]$/, (s) => s.toLowerCase());
+    pick = (a) => a[Math.floor(Math.random() * a.length)];
+    isPasteBackedText = (text) => /\[\[paste:\d+(?:[^\n]*?)\]\]|\[paste #\d+ (?:attached|excerpt)(?:[^\n]*?)\]/.test(text);
   }
 });
 
@@ -67476,11 +67639,12 @@ var init_charts = __esm({
 });
 
 // src/app/overlayStore.ts
-var buildOverlayState, $overlayState, $isBlocked, getOverlayState, patchOverlayState, resetFlowOverlays;
+var buildOverlayState, $overlayState, $isBlocked, hasFloatingPanel, $isStatusRuleOccluded, getOverlayState, patchOverlayState, resetFlowOverlays;
 var init_overlayStore = __esm({
   "src/app/overlayStore.ts"() {
     "use strict";
     init_nanostores();
+    init_uiStore();
     buildOverlayState = () => ({
       agents: false,
       agentsInitialHistoryIndex: 0,
@@ -67524,6 +67688,13 @@ var init_overlayStore = __esm({
       }) => Boolean(
         agents || approval || billing || clarify || confirm || journey || modelPicker || pager || petPicker || pluginsHub || secret || sessions || skillsHub || subscription || sudo || widget
       )
+    );
+    hasFloatingPanel = (overlay) => Boolean(
+      overlay.modelPicker || overlay.pager || overlay.petPicker || overlay.pluginsHub || overlay.sessions || overlay.skillsHub
+    );
+    $isStatusRuleOccluded = computed(
+      [$overlayState, $uiState],
+      (overlay, ui) => Boolean(overlay.widget || ui.statusBar === "top" && hasFloatingPanel(overlay))
     );
     getOverlayState = () => $overlayState.get();
     patchOverlayState = (next) => $overlayState.set(typeof next === "function" ? next($overlayState.get()) : { ...$overlayState.get(), ...next });
@@ -68080,7 +68251,7 @@ function formatSummary(totals) {
     pieces.push(`${totals.totalTools} tool${totals.totalTools === 1 ? "" : "s"}`);
   }
   if (totals.totalDuration > 0) {
-    pieces.push(fmtDuration2(totals.totalDuration));
+    pieces.push(fmtDuration(totals.totalDuration));
   }
   const tokens = totals.inputTokens + totals.outputTokens;
   if (tokens > 0) {
@@ -68103,7 +68274,7 @@ function fmtTokens(n) {
   }
   return `${Math.round(n / 1e3)}k`;
 }
-function fmtDuration2(seconds) {
+function fmtDuration(seconds) {
   if (seconds < 60) {
     return `${Math.max(0, Math.round(seconds))}s`;
   }
@@ -70586,7 +70757,7 @@ var init_core = __esm({
       {
         help: "attach clipboard image",
         name: "paste",
-        run: (arg, ctx) => arg ? ctx.transcript.sys("usage: /paste") : ctx.composer.paste()
+        run: (arg, ctx) => arg ? ctx.transcript.sys("usage: /paste") : ctx.composer.attachClipboardImage()
       },
       {
         aliases: ["compose"],
@@ -70877,7 +71048,7 @@ var init_dialogTest = __esm({
   }
 });
 
-// node_modules/unicode-animations/dist/chunk-F2BWZODB.js
+// ../node_modules/unicode-animations/dist/chunk-F2BWZODB.js
 function gridToBraille(grid) {
   const rows = grid.length;
   const cols = grid[0] ? grid[0].length : 0;
@@ -71171,7 +71342,7 @@ function genDiagonalSwipe() {
 }
 var BRAILLE_DOT_MAP, spinners, braille_default;
 var init_chunk_F2BWZODB = __esm({
-  "node_modules/unicode-animations/dist/chunk-F2BWZODB.js"() {
+  "../node_modules/unicode-animations/dist/chunk-F2BWZODB.js"() {
     BRAILLE_DOT_MAP = [
       [1, 8],
       // row 0
@@ -71239,9 +71410,9 @@ var init_chunk_F2BWZODB = __esm({
   }
 });
 
-// node_modules/unicode-animations/dist/index.js
+// ../node_modules/unicode-animations/dist/index.js
 var init_dist4 = __esm({
-  "node_modules/unicode-animations/dist/index.js"() {
+  "../node_modules/unicode-animations/dist/index.js"() {
     init_chunk_F2BWZODB();
   }
 });
@@ -71271,12 +71442,88 @@ var init_faces = __esm({
   }
 });
 
+// src/domain/messages.ts
+var introMsg, userDisplay, toTranscriptMessages, fmtDuration2;
+var init_messages2 = __esm({
+  "src/domain/messages.ts"() {
+    "use strict";
+    init_limits();
+    init_text();
+    introMsg = (info) => ({ info, kind: "intro", role: "system", text: "" });
+    userDisplay = (text) => {
+      if (text.length <= LONG_MSG) {
+        return text;
+      }
+      const first = text.split("\n")[0]?.trim() ?? "";
+      const words = first.split(/\s+/).filter(Boolean);
+      const prefix = (words.length > 1 ? words.slice(0, 4).join(" ") : first).slice(0, 80);
+      return `${prefix || "(message)"} [long message]`;
+    };
+    toTranscriptMessages = (rows) => {
+      if (!Array.isArray(rows)) {
+        return [];
+      }
+      const out = [];
+      let pending = [];
+      for (const row of rows) {
+        if (!row || typeof row !== "object") {
+          continue;
+        }
+        const { context, display_kind, name, role, text } = row;
+        if (role === "tool") {
+          pending.push(buildToolTrailLine(name ?? "tool", context ?? ""));
+          continue;
+        }
+        if (typeof text !== "string" || !text.trim()) {
+          continue;
+        }
+        if (display_kind === "hidden") {
+          continue;
+        }
+        if (display_kind === "model_switch") {
+          out.push({ kind: "event", role: "system", text: "model changed" });
+          pending = [];
+          continue;
+        }
+        if (display_kind === "auto_continue") {
+          out.push({ kind: "event", role: "system", text: "resumed interrupted turn" });
+          pending = [];
+          continue;
+        }
+        if (display_kind === "async_delegation_complete") {
+          const meta = row.display_metadata;
+          const count = meta && typeof meta.task_count === "number" ? meta.task_count : void 0;
+          const label = count === void 0 ? "background agent work finished" : `${count} background agent${count === 1 ? "" : "s"} finished`;
+          out.push({ kind: "event", role: "system", text: label });
+          pending = [];
+          continue;
+        }
+        if (role === "assistant") {
+          out.push({ role, text, ...pending.length && { tools: pending } });
+          pending = [];
+        } else if (role === "user" || role === "system") {
+          out.push({ role, text });
+          pending = [];
+        }
+      }
+      return out;
+    };
+    fmtDuration2 = (ms) => {
+      const t = Math.max(0, Math.floor(ms / 1e3));
+      const h = Math.floor(t / 3600);
+      const m = Math.floor(t % 3600 / 60);
+      const s = t % 60;
+      return h > 0 ? `${h}h ${m}m` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    };
+  }
+});
+
 // src/domain/viewport.ts
 var upperBound2, stickyPromptFromViewport;
 var init_viewport = __esm({
   "src/domain/viewport.ts"() {
     "use strict";
-    init_messages();
+    init_messages2();
     upperBound2 = (offsets, target) => {
       let lo = 0;
       let hi = offsets.length;
@@ -71563,8 +71810,13 @@ function FaceTicker({ color, startedAt, style }) {
   const [tick, setTick] = (0, import_react41.useState)(() => Math.floor(Math.random() * 1e3));
   const [verbTick, setVerbTick] = (0, import_react41.useState)(() => Math.floor(Math.random() * VERBS.length));
   const [now2, setNow] = (0, import_react41.useState)(() => Date.now());
+  const isOccluded = useStore($isStatusRuleOccluded);
   const { intervalMs, showVerb } = renderIndicator(style, 0);
   (0, import_react41.useEffect)(() => {
+    if (isOccluded) {
+      return;
+    }
+    setNow(Date.now());
     const glyph = setInterval(() => setTick((n) => n + 1), intervalMs);
     const clock = setInterval(() => setNow(Date.now()), 1e3);
     const verb2 = showVerb ? setInterval(() => setVerbTick((n) => n + 1), FACE_TICK_MS) : null;
@@ -71575,11 +71827,11 @@ function FaceTicker({ color, startedAt, style }) {
         clearInterval(verb2);
       }
     };
-  }, [intervalMs, showVerb]);
+  }, [intervalMs, isOccluded, showVerb]);
   const { frame } = renderIndicator(style, tick);
   const verb = VERBS[verbTick % VERBS.length] ?? "";
   const verbSegment = showVerb ? ` ${padVerb(verb)}` : "";
-  const durationSegment = startedAt ? ` \xB7 ${fmtDuration(now2 - startedAt)}` : "";
+  const durationSegment = startedAt ? ` \xB7 ${fmtDuration2(now2 - startedAt)}` : "";
   return /* @__PURE__ */ (0, import_jsx_runtime24.jsxs)(Text, { color, children: [
     frame,
     verbSegment,
@@ -71704,21 +71956,29 @@ function SpawnHud({ t }) {
 }
 function SessionDuration({ startedAt }) {
   const [now2, setNow] = (0, import_react41.useState)(() => Date.now());
+  const isOccluded = useStore($isStatusRuleOccluded);
   (0, import_react41.useEffect)(() => {
+    if (isOccluded) {
+      return;
+    }
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1e3);
     return () => clearInterval(id);
-  }, [startedAt]);
-  return fmtDuration(now2 - startedAt);
+  }, [isOccluded, startedAt]);
+  return fmtDuration2(now2 - startedAt);
 }
 function IdleSince({ endedAt }) {
   const [now2, setNow] = (0, import_react41.useState)(() => Date.now());
+  const isOccluded = useStore($isStatusRuleOccluded);
   (0, import_react41.useEffect)(() => {
+    if (isOccluded) {
+      return;
+    }
     setNow(Date.now());
     const id = setInterval(() => setNow(Date.now()), 1e3);
     return () => clearInterval(id);
-  }, [endedAt]);
-  return `\u2713 ${fmtDuration(now2 - endedAt)}`;
+  }, [endedAt, isOccluded]);
+  return `\u2713 ${fmtDuration2(now2 - endedAt)}`;
 }
 function GoodVibesHeart({ tick, t }) {
   const [active, setActive] = (0, import_react41.useState)(false);
@@ -71985,11 +72245,12 @@ var init_appChrome = __esm({
     import_react41 = __toESM(require_react(), 1);
     init_dist4();
     init_delegationStore();
+    init_overlayStore();
     init_turnStore();
     init_env();
     init_faces();
     init_verbs();
-    init_messages();
+    init_messages2();
     init_viewport();
     init_subagentTree();
     init_text();
@@ -72036,9 +72297,9 @@ var init_appChrome = __esm({
       return 1;
     };
     MAX_DURATION_WIDTH = Math.max(
-      stringWidth(fmtDuration(59 * 6e4 + 59e3)),
+      stringWidth(fmtDuration2(59 * 6e4 + 59e3)),
       // "59m 59s"
-      stringWidth(fmtDuration(99 * 36e5 + 59 * 6e4))
+      stringWidth(fmtDuration2(99 * 36e5 + 59 * 6e4))
       // "99h 59m"
     );
     busyIndicatorWidth = (style, hasDuration) => {
@@ -73575,7 +73836,7 @@ var init_session = __esm({
   "src/app/slash/commands/session.ts"() {
     "use strict";
     init_overlayPrimitives();
-    init_messages();
+    init_messages2();
     init_slash();
     init_platform();
     init_text();
@@ -73708,16 +73969,7 @@ var init_session = __esm({
       {
         help: "attach an image",
         name: "image",
-        run: (arg, ctx) => {
-          ctx.gateway.rpc("image.attach", { path: arg, session_id: ctx.sid }).then(
-            ctx.guarded((r) => {
-              ctx.transcript.sys(attachedImageNotice(r));
-              if (r.remainder) {
-                ctx.composer.setInput(r.remainder);
-              }
-            })
-          );
-        }
+        run: (arg, ctx) => ctx.composer.attachImagePath(arg)
       },
       {
         help: "switch personality for this session",
@@ -74278,7 +74530,7 @@ var init_subscription = __esm({
   }
 });
 
-// node_modules/@hermes/shared/src/billing-policy.ts
+// ../apps/shared/src/billing-policy.ts
 function refusalPolicy(code) {
   if (Object.hasOwn(BILLING_REFUSAL_POLICY, code)) {
     return BILLING_REFUSAL_POLICY[code];
@@ -74287,7 +74539,8 @@ function refusalPolicy(code) {
 }
 var BILLING_REFUSAL_POLICY;
 var init_billing_policy = __esm({
-  "node_modules/@hermes/shared/src/billing-policy.ts"() {
+  "../apps/shared/src/billing-policy.ts"() {
+    "use strict";
     BILLING_REFUSAL_POLICY = {
       auto_top_up_disabled_failures: { recovery: "portal" },
       cli_billing_disabled: { recovery: "portal" },
@@ -74318,7 +74571,7 @@ var init_billing_policy = __esm({
   }
 });
 
-// node_modules/@hermes/shared/src/charge-settlement.ts
+// ../apps/shared/src/charge-settlement.ts
 async function driveChargeSettlement(deps) {
   const start = deps.now();
   const timedOut = () => deps.now() - start >= SETTLEMENT_POLL_CAP_MS;
@@ -74369,7 +74622,8 @@ async function driveChargeSettlement(deps) {
 }
 var SETTLEMENT_POLL_INTERVAL_MS, SETTLEMENT_POLL_CAP_MS, SETTLEMENT_MAX_RETRY_AFTER_MS;
 var init_charge_settlement = __esm({
-  "node_modules/@hermes/shared/src/charge-settlement.ts"() {
+  "../apps/shared/src/charge-settlement.ts"() {
+    "use strict";
     init_billing_policy();
     SETTLEMENT_POLL_INTERVAL_MS = 2e3;
     SETTLEMENT_POLL_CAP_MS = 5 * 60 * 1e3;
@@ -74947,7 +75201,7 @@ function scrollWithSelectionBy(delta, { scrollRef, selection }) {
     }
     shift(-actual, top, bottom);
   }
-  s.scrollBy(actual);
+  s.scrollTo(cur + actual);
 }
 var init_scroll = __esm({
   "src/app/scroll.ts"() {
@@ -75007,6 +75261,44 @@ var init_useBatteryPoll = __esm({
   }
 });
 
+// src/protocol/paste.ts
+var PASTE_SNIPPET_RE;
+var init_paste = __esm({
+  "src/protocol/paste.ts"() {
+    "use strict";
+    PASTE_SNIPPET_RE = /\[\[[^\n]*?\]\]/g;
+  }
+});
+
+// src/domain/attachments.ts
+var imageToken, nextImageIndex, droppedTokens, expandTokens;
+var init_attachments = __esm({
+  "src/domain/attachments.ts"() {
+    "use strict";
+    init_paste();
+    imageToken = (index) => `[[ Image ${index} ]]`;
+    nextImageIndex = (tokens) => tokens.reduce((max, t) => t.kind === "image" ? Math.max(max, t.index) : max, 0) + 1;
+    droppedTokens = (tokens, value) => {
+      const live = new Set(value.match(PASTE_SNIPPET_RE) ?? []);
+      return tokens.filter((t) => !live.has(t.label));
+    };
+    expandTokens = (tokens) => {
+      const byLabel = /* @__PURE__ */ new Map();
+      for (const token of tokens) {
+        const hit = byLabel.get(token.label);
+        hit ? hit.push(token) : byLabel.set(token.label, [token]);
+      }
+      return (value) => value.replace(new RegExp(`[ \\t]?(?:${PASTE_SNIPPET_RE.source})`, "g"), (match) => {
+        const token = byLabel.get(match.trimStart())?.shift();
+        if (!token) {
+          return match;
+        }
+        return token.kind === "paste" ? match.slice(0, match.length - token.label.length) + token.text : "";
+      }).trim();
+    };
+  }
+});
+
 // src/hooks/useCompletion.ts
 function mergeWidgetAppItems(input, items) {
   if (input.includes(" ")) {
@@ -75021,9 +75313,6 @@ function completionRequestForInput(input) {
   if (isSlashCommand && /^\/model(?:\s|$)/.test(input)) {
     return null;
   }
-  if (isSlashCommand) {
-    return { method: "complete.slash", params: { text: input }, replaceFrom: 1 };
-  }
   const inline = inlineSlashTrigger(input);
   if (inline) {
     return {
@@ -75032,6 +75321,9 @@ function completionRequestForInput(input) {
       replaceFrom: inline.start + 1,
       skillsOnly: true
     };
+  }
+  if (isSlashCommand) {
+    return { method: "complete.slash", params: { text: input }, replaceFrom: 1 };
   }
   if (!pathWord) {
     return null;
@@ -75200,70 +75492,86 @@ var init_useInputHistory = __esm({
 });
 
 // src/hooks/useQueue.ts
-function removeAtInPlace(arr, i) {
-  if (i < 0 || i >= arr.length) {
-    return arr;
+function prependQueueItem(queue, item) {
+  queue.unshift(item);
+}
+function takeQueueItem(queue, index, editedDisplay) {
+  if (index < 0 || index >= queue.length) {
+    return void 0;
   }
-  arr.splice(i, 1);
-  return arr;
+  const [item] = queue.splice(index, 1);
+  if (!item || editedDisplay === void 0) {
+    return item;
+  }
+  return {
+    display: editedDisplay,
+    text: editedDisplay.includes(item.display) ? editedDisplay.replace(item.display, item.text) : editedDisplay
+  };
 }
 function useQueue() {
   const queueRef = (0, import_react48.useRef)([]);
   const [queuedDisplay, setQueuedDisplay] = (0, import_react48.useState)([]);
   const queueEditRef = (0, import_react48.useRef)(null);
   const [queueEditIdx, setQueueEditIdx] = (0, import_react48.useState)(null);
-  const syncQueue = (0, import_react48.useCallback)(() => setQueuedDisplay([...queueRef.current]), []);
+  const syncQueue = (0, import_react48.useCallback)(() => setQueuedDisplay(queueRef.current.map((item) => item.display)), []);
   const setQueueEdit = (0, import_react48.useCallback)((idx) => {
     queueEditRef.current = idx;
     setQueueEditIdx(idx);
   }, []);
   const enqueue = (0, import_react48.useCallback)(
-    (text) => {
-      queueRef.current.push(text);
+    (text, display = text) => {
+      queueRef.current.push(queueItem(text, display));
+      syncQueue();
+    },
+    [syncQueue]
+  );
+  const prependQ = (0, import_react48.useCallback)(
+    (item) => {
+      prependQueueItem(queueRef.current, item);
       syncQueue();
     },
     [syncQueue]
   );
   const dequeue = (0, import_react48.useCallback)(() => {
-    const head = queueRef.current.shift();
+    const head = queueRef.current.shift()?.text;
     syncQueue();
     return head;
   }, [syncQueue]);
-  const replaceQ = (0, import_react48.useCallback)(
-    (i, text) => {
-      queueRef.current[i] = text;
-      syncQueue();
+  const takeQ = (0, import_react48.useCallback)(
+    (i, editedDisplay) => {
+      const item = takeQueueItem(queueRef.current, i, editedDisplay);
+      if (item) {
+        syncQueue();
+      }
+      return item;
     },
     [syncQueue]
   );
   const removeQ = (0, import_react48.useCallback)(
     (i) => {
-      const before = queueRef.current.length;
-      removeAtInPlace(queueRef.current, i);
-      if (queueRef.current.length !== before) {
-        syncQueue();
-      }
+      takeQ(i);
     },
-    [syncQueue]
+    [takeQ]
   );
   return {
     dequeue,
     enqueue,
+    prependQ,
     queueEditIdx,
     queueEditRef,
     queueRef,
     queuedDisplay,
     removeQ,
-    replaceQ,
     setQueueEdit,
-    syncQueue
+    takeQ
   };
 }
-var import_react48;
+var import_react48, queueItem;
 var init_useQueue = __esm({
   "src/hooks/useQueue.ts"() {
     "use strict";
     import_react48 = __toESM(require_react(), 1);
+    queueItem = (text, display = text) => ({ display, text });
   }
 });
 
@@ -75344,15 +75652,20 @@ function looksLikeDroppedPath(text) {
   }
   return false;
 }
-function useComposerState({
-  gw: gw2,
-  onClipboardPaste,
-  onImageAttached,
-  submitRef
-}) {
-  const [input, setInput] = (0, import_react50.useState)("");
+function useComposerState({ gw: gw2, submitRef, sys }) {
+  const [input, setInputState] = (0, import_react50.useState)("");
   const [inputBuf, setInputBuf] = (0, import_react50.useState)([]);
-  const [pasteSnips, setPasteSnips] = (0, import_react50.useState)([]);
+  const [tokens, setTokens] = (0, import_react50.useState)([]);
+  const inputRef = (0, import_react50.useRef)("");
+  const tokensRef = (0, import_react50.useRef)([]);
+  const setInput = (0, import_react50.useCallback)((next) => {
+    inputRef.current = typeof next === "function" ? next(inputRef.current) : next;
+    setInputState(inputRef.current);
+  }, []);
+  const setComposerTokens = (0, import_react50.useCallback)((next) => {
+    tokensRef.current = typeof next === "function" ? next(tokensRef.current) : next;
+    setTokens(tokensRef.current);
+  }, []);
   const isBlocked = useStore($isBlocked);
   const { querier } = use_stdin_default();
   const {
@@ -75362,34 +75675,70 @@ function useComposerState({
     queueEditIdx,
     enqueue,
     dequeue,
+    prependQ,
     removeQ,
-    replaceQ,
     setQueueEdit,
-    syncQueue
+    takeQ
   } = useQueue();
   const { historyRef, historyIdx, setHistoryIdx, historyDraftRef, pushHistory } = useInputHistory();
   const { completions, compIdx, setCompIdx, compReplace } = useCompletion(input, isBlocked, gw2);
   const clearIn = (0, import_react50.useCallback)(() => {
     setInput("");
     setInputBuf([]);
-    setPasteSnips([]);
+    setComposerTokens([]);
     setQueueEdit(null);
     setHistoryIdx(null);
     historyDraftRef.current = "";
-  }, [historyDraftRef, setQueueEdit, setHistoryIdx]);
+  }, [historyDraftRef, setComposerTokens, setHistoryIdx, setInput, setQueueEdit]);
+  const syncTokens = (0, import_react50.useCallback)(
+    (value) => {
+      const gone = droppedTokens(tokensRef.current, value);
+      if (!gone.length) {
+        return;
+      }
+      for (const token of gone) {
+        if (token.kind === "image") {
+          void gw2.request("image.detach", { path: token.path, session_id: getUiState().sid }).catch(() => {
+          });
+        }
+      }
+      setComposerTokens((prev) => prev.filter((token) => !gone.includes(token)));
+    },
+    [gw2, setComposerTokens]
+  );
+  const attachImageToken = (0, import_react50.useCallback)(
+    (attached, value, cursor) => {
+      const index = nextImageIndex(tokensRef.current);
+      const label = imageToken(index);
+      setComposerTokens((prev) => trimTokens([...prev, { index, kind: "image", label, path: attached.path ?? "" }]));
+      const withToken = insertAtCursor(value, cursor, label);
+      const remainder = attached.remainder?.trim() ?? "";
+      return remainder ? insertAtCursor(withToken.value, withToken.cursor, remainder) : withToken;
+    },
+    [setComposerTokens]
+  );
+  const pasteClipboardImage = (0, import_react50.useCallback)(
+    async (value, cursor, quiet) => {
+      const sid = getUiState().sid;
+      if (!sid) {
+        return null;
+      }
+      const r = await gw2.request("clipboard.paste", { session_id: sid }).catch(() => null);
+      if (r?.attached) {
+        return attachImageToken(r, value, cursor);
+      }
+      if (!quiet) {
+        sys(r?.message || "No image found in clipboard");
+      }
+      return null;
+    },
+    [attachImageToken, gw2, sys]
+  );
   const handleResolvedPaste = (0, import_react50.useCallback)(
-    async ({
-      bracketed,
-      cursor,
-      text,
-      value
-    }) => {
+    async ({ bracketed, cursor, text, value }) => {
       const cleanedText = stripTrailingPasteNewlines(text);
       if (!cleanedText || !/[^\n]/.test(cleanedText)) {
-        if (bracketed) {
-          void onClipboardPaste(true);
-        }
-        return null;
+        return bracketed ? pasteClipboardImage(value, cursor, true) : null;
       }
       const sid = getUiState().sid;
       if (sid && looksLikeDroppedPath(cleanedText)) {
@@ -75399,12 +75748,7 @@ function useComposerState({
             session_id: sid
           });
           if (attached?.name) {
-            onImageAttached?.(attached);
-            const remainder = attached.remainder?.trim() ?? "";
-            if (!remainder) {
-              return { cursor, value };
-            }
-            return insertAtCursor(value, cursor, remainder);
+            return attachImageToken(attached, value, cursor);
           }
         } catch {
         }
@@ -75432,27 +75776,21 @@ function useComposerState({
       }
       const label = pasteTokenLabel(cleanedText, lineCount);
       const inserted = insertAtCursor(value, cursor, label);
-      setPasteSnips((prev) => trimSnips([...prev, { label, text: cleanedText }]));
+      setComposerTokens((prev) => trimTokens([...prev, { kind: "paste", label, text: cleanedText }]));
       void gw2.request("paste.collapse", { text: cleanedText }).then((r) => {
         const path = r?.path;
         if (!path) {
           return;
         }
-        setPasteSnips((prev) => prev.map((s) => s.label === label ? { ...s, path } : s));
+        setComposerTokens((prev) => prev.map((t) => t.label === label ? { ...t, path } : t));
       }).catch(() => {
       });
       return inserted;
     },
-    [gw2, onClipboardPaste, onImageAttached]
+    [attachImageToken, gw2, pasteClipboardImage, setComposerTokens]
   );
   const handleTextPaste = (0, import_react50.useCallback)(
-    ({
-      bracketed,
-      cursor,
-      hotkey,
-      text,
-      value
-    }) => {
+    ({ bracketed, cursor, hotkey, text, value }) => {
       if (hotkey) {
         const preferOsc52 = isRemoteShellSession(process.env);
         const readPreferredText = preferOsc52 ? readOsc52Clipboard(querier).then(async (osc52Text) => {
@@ -75470,13 +75808,41 @@ function useComposerState({
           if (isUsableClipboardText(preferredText)) {
             return handleResolvedPaste({ bracketed: false, cursor, text: preferredText, value });
           }
-          void onClipboardPaste(false);
-          return null;
+          return pasteClipboardImage(value, cursor, false);
         });
       }
       return handleResolvedPaste({ bracketed: !!bracketed, cursor, text, value });
     },
-    [handleResolvedPaste, onClipboardPaste, querier]
+    [handleResolvedPaste, pasteClipboardImage, querier]
+  );
+  const appendAttachment = (0, import_react50.useCallback)(
+    (attach) => {
+      const current = inputRef.current;
+      void attach(current, current.length).then((next) => {
+        if (next) {
+          setInput(next.value);
+        }
+      });
+    },
+    [setInput]
+  );
+  const attachClipboardImage = (0, import_react50.useCallback)(
+    () => appendAttachment((value, cursor) => pasteClipboardImage(value, cursor, false)),
+    [appendAttachment, pasteClipboardImage]
+  );
+  const attachImagePath = (0, import_react50.useCallback)(
+    (path) => appendAttachment(async (value, cursor) => {
+      const sid = getUiState().sid;
+      if (!sid || !path.trim()) {
+        return null;
+      }
+      const attached = await gw2.request("image.attach", { path, session_id: sid }).catch((e) => {
+        sys(`error: ${e.message}`);
+        return null;
+      });
+      return attached?.name ? attachImageToken(attached, value, cursor) : null;
+    }),
+    [appendAttachment, attachImageToken, gw2, sys]
   );
   const openEditor = (0, import_react50.useCallback)(async () => {
     const dir2 = mkdtempSync2(join8(tmpdir3(), "hermes-"));
@@ -75501,38 +75867,46 @@ function useComposerState({
     } finally {
       rmSync2(dir2, { force: true, recursive: true });
     }
-  }, [input, inputBuf, submitRef]);
+  }, [input, inputBuf, setInput, submitRef]);
   const actions = (0, import_react50.useMemo)(
     () => ({
+      attachClipboardImage,
+      attachImagePath,
       clearIn,
       dequeue,
       enqueue,
       handleTextPaste,
       openEditor,
+      prependQueue: prependQ,
       pushHistory,
       removeQueue: removeQ,
-      replaceQueue: replaceQ,
       setCompIdx,
+      setComposerTokens,
       setHistoryIdx,
       setInput,
       setInputBuf,
-      setPasteSnips,
       setQueueEdit,
-      syncQueue
+      takeQueue: takeQ,
+      syncTokens
     }),
     [
+      attachClipboardImage,
+      attachImagePath,
       clearIn,
       dequeue,
       enqueue,
       handleTextPaste,
       openEditor,
+      prependQ,
       pushHistory,
       removeQ,
-      replaceQ,
       setCompIdx,
+      setComposerTokens,
       setHistoryIdx,
+      setInput,
       setQueueEdit,
-      syncQueue
+      takeQ,
+      syncTokens
     ]
   );
   const refs = (0, import_react50.useMemo)(
@@ -75541,7 +75915,8 @@ function useComposerState({
       historyRef,
       queueEditRef,
       queueRef,
-      submitRef
+      submitRef,
+      tokensRef
     }),
     [historyDraftRef, historyRef, queueEditRef, queueRef, submitRef]
   );
@@ -75553,11 +75928,11 @@ function useComposerState({
       historyIdx,
       input,
       inputBuf,
-      pasteSnips,
       queueEditIdx,
-      queuedDisplay
+      queuedDisplay,
+      tokens
     }),
-    [compIdx, compReplace, completions, historyIdx, input, inputBuf, pasteSnips, queueEditIdx, queuedDisplay]
+    [compIdx, compReplace, completions, historyIdx, input, inputBuf, queueEditIdx, queuedDisplay, tokens]
   );
   return {
     actions,
@@ -75565,13 +75940,14 @@ function useComposerState({
     state
   };
 }
-var import_react50, PASTE_SNIP_MAX_COUNT, PASTE_SNIP_MAX_TOTAL_BYTES, trimSnips;
+var import_react50, TOKEN_MAX_COUNT, TOKEN_MAX_TOTAL_BYTES, trimTokens;
 var init_useComposerState = __esm({
   "src/app/useComposerState.ts"() {
     "use strict";
     init_entry_exports();
     init_react();
     import_react50 = __toESM(require_react(), 1);
+    init_attachments();
     init_useCompletion();
     init_useInputHistory();
     init_useQueue();
@@ -75582,21 +75958,21 @@ var init_useComposerState = __esm({
     init_text();
     init_overlayStore();
     init_uiStore();
-    PASTE_SNIP_MAX_COUNT = 32;
-    PASTE_SNIP_MAX_TOTAL_BYTES = 4 * 1024 * 1024;
-    trimSnips = (snips) => {
+    TOKEN_MAX_COUNT = 32;
+    TOKEN_MAX_TOTAL_BYTES = 4 * 1024 * 1024;
+    trimTokens = (tokens) => {
       let total = 0;
       const out = [];
-      for (let i = snips.length - 1; i >= 0; i--) {
-        const snip = snips[i];
-        const size = snip.text.length;
-        if (out.length >= PASTE_SNIP_MAX_COUNT || total + size > PASTE_SNIP_MAX_TOTAL_BYTES) {
+      for (let i = tokens.length - 1; i >= 0; i--) {
+        const token = tokens[i];
+        const size = token.text?.length ?? 0;
+        if (out.length >= TOKEN_MAX_COUNT || total + size > TOKEN_MAX_TOTAL_BYTES) {
           break;
         }
         total += size;
-        out.unshift(snip);
+        out.unshift(token);
       }
-      return out.length === snips.length ? snips : out;
+      return out.length === tokens.length ? tokens : out;
     };
   }
 });
@@ -76086,7 +76462,7 @@ function useInputHandlers(ctx) {
     const index = cState.queueEditIdx === null ? dir2 > 0 ? 0 : len - 1 : (cState.queueEditIdx + dir2 + len) % len;
     cActions.setQueueEdit(index);
     cActions.setHistoryIdx(null);
-    cActions.setInput(cRefs.queueRef.current[index] ?? "");
+    cActions.setInput(cRefs.queueRef.current[index]?.display ?? "");
     return true;
   };
   const cycleHistory = (dir2) => {
@@ -76144,7 +76520,7 @@ function useInputHandlers(ctx) {
       const isDouble = now2 - lastEscRef.current <= DOUBLE_ESC_MS;
       lastEscRef.current = isDouble ? 0 : now2;
       if (isDouble && (cState.input || cState.inputBuf.length)) {
-        const draft = expandSnips(cState.pasteSnips)([...cState.inputBuf, cState.input].join("\n"));
+        const draft = expandTokens(cState.tokens)([...cState.inputBuf, cState.input].join("\n"));
         if (draft.trim()) {
           cActions.pushHistory(draft);
         }
@@ -76493,7 +76869,7 @@ function useSessionLifecycle(opts) {
     setHistoryItems([]);
     setLastUserMsg("");
     setStickyPrompt("");
-    composerActions.setPasteSnips([]);
+    composerActions.setComposerTokens([]);
     evictInkCaches("half");
   }, [composerActions, setHistoryItems, setLastUserMsg, setStickyPrompt, setVoiceProcessing, setVoiceRecording]);
   (0, import_react55.useEffect)(
@@ -76512,7 +76888,7 @@ function useSessionLifecycle(opts) {
       setHistoryItems(info ? [introMsg(info)] : []);
       setStickyPrompt("");
       setLastUserMsg("");
-      composerActions.setPasteSnips([]);
+      composerActions.setComposerTokens([]);
       patchTurnState({ activity: [] });
       patchUiState({ info, usage: usageFrom(info) });
     },
@@ -76682,17 +77058,30 @@ function useSessionLifecycle(opts) {
     },
     [sys]
   );
-  return {
-    activateLiveSession,
-    closeSession,
-    guardBusySessionSwitch,
-    newLiveSession,
-    newSession,
-    resetSession,
-    resetVisibleHistory,
-    resumeById,
-    trimLastExchange: trimTail
-  };
+  return (0, import_react55.useMemo)(
+    () => ({
+      activateLiveSession,
+      closeSession,
+      guardBusySessionSwitch,
+      newLiveSession,
+      newSession,
+      resetSession,
+      resetVisibleHistory,
+      resumeById,
+      trimLastExchange: trimTail
+    }),
+    [
+      activateLiveSession,
+      closeSession,
+      guardBusySessionSwitch,
+      newLiveSession,
+      newSession,
+      resetSession,
+      resetVisibleHistory,
+      resumeById,
+      trimTail
+    ]
+  );
 }
 var import_react55, usageFrom, statusFromLiveSession, writeActiveSessionFile, liveSessionInflightMessages, hydrateLiveSessionInflight, signalFreshSessionBoundary, scheduleResumeScrollToBottom, trimTail;
 var init_useSessionLifecycle = __esm({
@@ -76701,7 +77090,7 @@ var init_useSessionLifecycle = __esm({
     init_entry_exports();
     import_react55 = __toESM(require_react(), 1);
     init_setup();
-    init_messages();
+    init_messages2();
     init_usage();
     init_rpc();
     init_overlayStore();
@@ -76788,15 +77177,6 @@ var init_interpolation = __esm({
   }
 });
 
-// src/protocol/paste.ts
-var PASTE_SNIPPET_RE;
-var init_paste = __esm({
-  "src/protocol/paste.ts"() {
-    "use strict";
-    PASTE_SNIPPET_RE = /\[\[[^\n]*?\]\]/g;
-  }
-});
-
 // src/app/submissionCore.ts
 function markSubmitting() {
   patchUiState({ busy: true, status: "running\u2026" });
@@ -76838,11 +77218,6 @@ function submitPrompt(text, deps, showUserMessage = true, displayOverride) {
     if (!r?.matched) {
       return startSubmit(text, deps.expand(text), showUserMessage);
     }
-    if (r.is_image) {
-      turnController.pushActivity(attachedImageNotice(r));
-    } else {
-      turnController.pushActivity(`detected file: ${r.name}`);
-    }
     startSubmit(r.text || text, deps.expand(r.text || text), showUserMessage);
   }).catch(() => startSubmit(text, deps.expand(text), showUserMessage));
 }
@@ -76850,7 +77225,6 @@ var SESSION_BUSY_RE, isSessionBusyError;
 var init_submissionCore = __esm({
   "src/app/submissionCore.ts"() {
     "use strict";
-    init_messages();
     init_turnController();
     init_uiStore();
     SESSION_BUSY_RE = /session busy|waiting for model response/i;
@@ -76887,8 +77261,8 @@ function useSubmission(opts) {
     };
   }, [composerState.input, composerState.inputBuf]);
   const send = (0, import_react56.useCallback)(
-    (text, showUserMessage = true, displayText) => {
-      const expand = expandSnips(composerState.pasteSnips);
+    (text, showUserMessage = true, displayText, expandOverride) => {
+      const expand = expandOverride ?? expandTokens(composerRefs.tokensRef.current);
       submitPrompt(
         text,
         {
@@ -76903,7 +77277,7 @@ function useSubmission(opts) {
         displayText
       );
     },
-    [appendMessage, composerActions, composerState.pasteSnips, gw2, setLastUserMsg, sys]
+    [appendMessage, composerActions, composerRefs, gw2, setLastUserMsg, sys]
   );
   const shellExec = (0, import_react56.useCallback)(
     (cmd) => {
@@ -76954,15 +77328,14 @@ function useSubmission(opts) {
     [interpolate, send, shellExec]
   );
   const handleBusyInput = (0, import_react56.useCallback)(
-    (full, opts2 = {}) => {
+    (item, opts2 = {}) => {
       const live = getUiState();
       const mode = live.busyInputMode;
       const enqueueText = () => {
         if (opts2.fallbackToFront) {
-          composerRefs.queueRef.current.unshift(full);
-          composerActions.syncQueue();
+          composerActions.prependQueue(item);
         } else {
-          composerActions.enqueue(full);
+          composerActions.enqueue(item.text, item.display);
         }
       };
       const fallback = (note) => {
@@ -76970,10 +77343,10 @@ function useSubmission(opts) {
         sys(note);
       };
       if (mode === "queue") {
-        return composerActions.enqueue(full);
+        return enqueueText();
       }
       if (mode === "steer" && live.sid) {
-        gw2.request("session.steer", { session_id: live.sid, text: full }).then((raw) => {
+        gw2.request("session.steer", { session_id: live.sid, text: item.text }).then((raw) => {
           const r = asRpcResult(raw);
           if (r?.status !== "queued") {
             fallback("steer rejected \u2014 message queued for next turn");
@@ -76981,20 +77354,30 @@ function useSubmission(opts) {
         }).catch(() => fallback("steer failed \u2014 message queued for next turn"));
         return;
       }
-      send(full);
+      send(item.text);
     },
-    [composerActions, composerRefs, gw2, send, sys]
+    [composerActions, gw2, send, sys]
   );
   const dispatchSubmission = (0, import_react56.useCallback)(
     (full) => {
       if (!full.trim()) {
         return;
       }
-      const toHistory = expandSnips(composerState.pasteSnips)(full);
+      const submissionTokens = [...composerRefs.tokensRef.current];
+      const submission = prepareSubmission(full, submissionTokens);
+      const toHistory = submission.text;
+      const queuePayload = expandPasteTokens(submissionTokens)(full);
       if (looksLikeSlashCommand(full)) {
         appendMessage({ kind: "slash", role: "system", text: full });
         composerActions.pushHistory(toHistory);
-        slashRef.current(full);
+        const parsed = parseSlashCommand(full);
+        const queued = parsed.name === "queue" || parsed.name === "q" ? queueItemFromSlash(full, queuePayload) : void 0;
+        if (queued) {
+          composerActions.enqueue(queued.text, queued.display);
+          sys(`queued: "${queued.display.slice(0, 50)}${queued.display.length > 50 ? "\u2026" : ""}"`);
+        } else {
+          slashRef.current(full);
+        }
         composerActions.clearIn();
         return;
       }
@@ -77012,43 +77395,43 @@ function useSubmission(opts) {
       const editIdx = composerRefs.queueEditRef.current;
       composerActions.clearIn();
       if (editIdx !== null) {
-        composerActions.replaceQueue(editIdx, full);
-        const picked = composerRefs.queueRef.current.splice(editIdx, 1)[0];
-        composerActions.syncQueue();
+        const picked = composerActions.takeQueue(editIdx, full);
         composerActions.setQueueEdit(null);
         if (!picked || !live.sid) {
           return;
         }
         if (getUiState().busy) {
           if (getUiState().busyInputMode === "queue") {
-            composerRefs.queueRef.current.unshift(picked);
-            return composerActions.syncQueue();
+            return composerActions.prependQueue(picked);
           }
           return handleBusyInput(picked, { fallbackToFront: true });
         }
-        return sendQueued(picked);
+        return sendQueued(picked.text);
       }
       composerActions.pushHistory(toHistory);
       if (getUiState().busy) {
-        return handleBusyInput(full);
+        return handleBusyInput(queueItem(full));
       }
-      if (hasInterpolation(full)) {
+      if (shouldInterpolateSubmission(full)) {
         patchUiState({ busy: true });
-        return interpolate(full, send);
+        return interpolate(
+          full,
+          (text) => send(prepareSubmission(text, submissionTokens).text, true, text, (value) => value)
+        );
       }
-      send(full);
+      send(submission.text, true, submission.display, (value) => value);
     },
     [
       appendMessage,
       composerActions,
       composerRefs,
-      composerState.pasteSnips,
       handleBusyInput,
       interpolate,
       send,
       sendQueued,
       shellExec,
-      slashRef
+      slashRef,
+      sys
     ]
   );
   const submit = (0, import_react56.useCallback)(
@@ -77071,7 +77454,6 @@ function useSubmission(opts) {
         }
         if (doubleTap && live.sid && composerRefs.queueRef.current.length) {
           const next = composerActions.dequeue();
-          composerActions.syncQueue();
           if (next) {
             composerActions.setQueueEdit(null);
             dispatchSubmission(next);
@@ -77091,29 +77473,36 @@ function useSubmission(opts) {
   submitRef.current = submit;
   return { dispatchSubmission, send, sendQueued, submit };
 }
-var import_react56, DOUBLE_ENTER_MS, expandSnips, spliceMatches;
+var import_react56, DOUBLE_ENTER_MS, spliceMatches, expandPasteTokens, slashArgument, queueItemFromSlash, prepareSubmission, shouldInterpolateSubmission;
 var init_useSubmission = __esm({
   "src/app/useSubmission.ts"() {
     "use strict";
     import_react56 = __toESM(require_react(), 1);
     init_timing();
+    init_attachments();
     init_slash();
+    init_useQueue();
     init_rpc();
     init_interpolation();
-    init_paste();
     init_submissionCore();
     init_turnController();
     init_uiStore();
     DOUBLE_ENTER_MS = 450;
-    expandSnips = (snips) => {
-      const byLabel = /* @__PURE__ */ new Map();
-      for (const { label, text } of snips) {
-        const hit = byLabel.get(label);
-        hit ? hit.push(text) : byLabel.set(label, [text]);
-      }
-      return (value) => value.replace(PASTE_SNIPPET_RE, (tok) => byLabel.get(tok)?.shift() ?? tok);
-    };
     spliceMatches = (text, matches, results) => matches.reduceRight((acc, m, i) => acc.slice(0, m.index) + results[i] + acc.slice(m.index + m[0].length), text);
+    expandPasteTokens = (tokens) => expandTokens(tokens.filter((token) => token.kind === "paste"));
+    slashArgument = (command) => /^\/\S+\s+([\s\S]+)$/.exec(command)?.[1] ?? "";
+    queueItemFromSlash = (displayCommand, expandedCommand) => {
+      const display = slashArgument(displayCommand);
+      if (!display.trim()) {
+        return void 0;
+      }
+      return queueItem(slashArgument(expandedCommand), display);
+    };
+    prepareSubmission = (display, tokens) => ({
+      display,
+      text: expandTokens(tokens)(display)
+    });
+    shouldInterpolateSubmission = (display) => hasInterpolation(display);
   }
 });
 
@@ -77173,7 +77562,14 @@ function useMainApp(gw2) {
       }
     };
   }, [stdout]);
-  const [historyItems, setHistoryItems] = (0, import_react58.useState)(() => [{ kind: "intro", role: "system", text: "" }]);
+  const [historyItems, setHistoryItemsState] = (0, import_react58.useState)(() => [{ kind: "intro", role: "system", text: "" }]);
+  const [historyGeneration, setHistoryGeneration] = (0, import_react58.useState)(0);
+  const setHistoryItems = (0, import_react58.useCallback)((value) => {
+    if (typeof value !== "function") {
+      setHistoryGeneration((generation) => generation + 1);
+    }
+    setHistoryItemsState((previous) => capTranscriptHistory(typeof value === "function" ? value(previous) : value));
+  }, []);
   const [lastUserMsg, setLastUserMsg] = (0, import_react58.useState)("");
   const [stickyPrompt, setStickyPrompt] = (0, import_react58.useState)("");
   const [catalog, setCatalog] = (0, import_react58.useState)(null);
@@ -77201,7 +77597,7 @@ function useMainApp(gw2) {
   const scrollRef = (0, import_react58.useRef)(null);
   const onEventRef = (0, import_react58.useRef)(() => {
   });
-  const clipboardPasteRef = (0, import_react58.useRef)(() => {
+  const sysRef = (0, import_react58.useRef)(() => {
   });
   const submitRef = (0, import_react58.useRef)(() => {
   });
@@ -77251,11 +77647,8 @@ function useMainApp(gw2) {
   }, [selection]);
   const composer = useComposerState({
     gw: gw2,
-    onClipboardPaste: (quiet) => clipboardPasteRef.current(quiet),
-    onImageAttached: (info) => {
-      sys(attachedImageNotice(info));
-    },
-    submitRef
+    submitRef,
+    sys: (text) => sysRef.current(text)
   });
   const { actions: composerActions, refs: composerRefs, state: composerState } = composer;
   const empty = !historyItems.some((msg) => msg.kind !== "intro");
@@ -77295,17 +77688,15 @@ function useMainApp(gw2) {
   const detailsVisible = thinkingDetailsVisible || toolsDetailsVisible;
   const userPromptWidth = composerPromptWidth(ui.theme.brand.prompt);
   const heightCacheKey = `${ui.sid ?? "draft"}:${cols}:${userPromptWidth}:${ui.compact ? "1" : "0"}:${detailsLayoutKey}`;
-  const heightCache = (0, import_react58.useMemo)(() => {
-    let cache4 = heightCachesRef.current.get(heightCacheKey);
-    if (!cache4) {
-      cache4 = /* @__PURE__ */ new Map();
-      heightCachesRef.current.set(heightCacheKey, cache4);
-      if (heightCachesRef.current.size > MAX_HEIGHT_CACHE_BUCKETS) {
-        heightCachesRef.current.delete(heightCachesRef.current.keys().next().value);
-      }
+  const activeHeightCache = (0, import_react58.useMemo)(() => new Map(heightCachesRef.current.get(heightCacheKey)), [heightCacheKey]);
+  (0, import_react58.useEffect)(() => {
+    pruneVirtualHeightCache(activeHeightCache, virtualRows);
+    heightCachesRef.current.delete(heightCacheKey);
+    heightCachesRef.current.set(heightCacheKey, activeHeightCache);
+    while (heightCachesRef.current.size > MAX_HEIGHT_CACHE_BUCKETS) {
+      heightCachesRef.current.delete(heightCachesRef.current.keys().next().value);
     }
-    return cache4;
-  }, [heightCacheKey]);
+  }, [activeHeightCache, heightCacheKey, historyGeneration, virtualRows]);
   const firstUserIdx = (0, import_react58.useMemo)(() => virtualRows.findIndex((r) => r.msg.role === "user"), [virtualRows]);
   const estimateRowHeight = (0, import_react58.useCallback)(
     (index) => estimatedMsgHeight(virtualRows[index].msg, cols, {
@@ -77343,15 +77734,16 @@ function useMainApp(gw2) {
       for (const row of virtualRows) {
         const h = heights.get(row.key);
         if (h) {
-          heightCache.set(row.key, h);
+          activeHeightCache.set(row.key, h);
         }
       }
     },
-    [heightCache, virtualRows]
+    [activeHeightCache, virtualRows]
   );
   const virtualHistory = useVirtualHistory(scrollRef, virtualRows, cols, {
     estimateHeight: estimateRowHeight,
-    initialHeights: heightCache,
+    generation: historyGeneration,
+    initialHeights: activeHeightCache,
     liveTailActive: turnLiveTailActive,
     onHeightsChange: syncHeightCache
   });
@@ -77360,8 +77752,8 @@ function useMainApp(gw2) {
     [selection]
   );
   const appendMessage = (0, import_react58.useCallback)(
-    (msg) => setHistoryItems((prev) => capHistory(appendTranscriptMessage(prev, msg))),
-    []
+    (msg) => setHistoryItems((prev) => appendTranscriptMessage(prev, msg)),
+    [setHistoryItems]
   );
   const sys = (0, import_react58.useCallback)((text) => appendMessage({ role: "system", text }), [appendMessage]);
   (0, import_react58.useEffect)(
@@ -77547,22 +77939,7 @@ function useMainApp(gw2) {
     },
     [appendMessage, overlay.clarify, rpc]
   );
-  const paste2 = (0, import_react58.useCallback)(
-    (quiet = false) => rpc("clipboard.paste", { session_id: getUiState().sid }).then((r) => {
-      if (!r) {
-        return;
-      }
-      if (r.attached) {
-        const meta = imageTokenMeta(r);
-        return sys(`\u{1F4CE} Image #${r.count} attached from clipboard${meta ? ` \xB7 ${meta}` : ""}`);
-      }
-      if (!quiet) {
-        sys(r.message || "No image found in clipboard");
-      }
-    }),
-    [rpc, sys]
-  );
-  clipboardPasteRef.current = paste2;
+  sysRef.current = sys;
   const { dispatchSubmission, send, sendQueued, submit } = useSubmission({
     appendMessage,
     composerActions,
@@ -77640,6 +78017,7 @@ function useMainApp(gw2) {
       session.newSession,
       session.resetSession,
       session.resumeById,
+      setHistoryItems,
       setVoiceEnabled,
       setVoiceProcessing,
       setVoiceRecording,
@@ -77679,10 +78057,11 @@ function useMainApp(gw2) {
   const slash = (0, import_react58.useMemo)(
     () => createSlashHandler({
       composer: {
+        attachClipboardImage: composerActions.attachClipboardImage,
+        attachImagePath: composerActions.attachImagePath,
         enqueue: composerActions.enqueue,
         hasSelection: hasSelection2,
         openEditor: composerActions.openEditor,
-        paste: paste2,
         queueRef: composerRefs.queueRef,
         selection,
         setInput: composerActions.setInput
@@ -77721,10 +78100,10 @@ function useMainApp(gw2) {
       maybeWarn,
       page,
       panel,
-      paste2,
       selection,
       send,
       session,
+      setHistoryItems,
       sys
     ]
   );
@@ -77867,6 +78246,16 @@ function useMainApp(gw2) {
       session
     ]
   );
+  const updateInput = (0, import_react58.useCallback)(
+    (next) => {
+      composerActions.setInput((prev) => {
+        const value = typeof next === "function" ? next(prev) : next;
+        composerActions.syncTokens(value);
+        return value;
+      });
+    },
+    [composerActions]
+  );
   const appComposer = (0, import_react58.useMemo)(
     () => ({
       cols,
@@ -77880,10 +78269,10 @@ function useMainApp(gw2) {
       queueEditIdx: composerState.queueEditIdx,
       queuedDisplay: composerState.queuedDisplay,
       submit,
-      updateInput: composerActions.setInput,
+      updateInput,
       voiceRecordKey
     }),
-    [cols, composerActions, composerState, empty, pagerPageSize, submit, voiceRecordKey]
+    [cols, composerActions, composerState, empty, pagerPageSize, submit, updateInput, voiceRecordKey]
   );
   const appProgress = (0, import_react58.useMemo)(() => ({ showProgressArea }), [showProgressArea]);
   const cwd = ui.info?.cwd || process.env.HERMES_CWD || process.cwd();
@@ -77926,7 +78315,7 @@ function useMainApp(gw2) {
   );
   return { appActions, appComposer, appProgress, appStatus, appTranscript, gateway };
 }
-var import_react58, BRACKET_PASTE_ON, BRACKET_PASTE_OFF, MAX_HEIGHT_CACHE_BUCKETS, capHistory, statusColorOf;
+var import_react58, BRACKET_PASTE_ON, BRACKET_PASTE_OFF, MAX_HEIGHT_CACHE_BUCKETS, statusColorOf;
 var init_useMainApp = __esm({
   "src/app/useMainApp.ts"() {
     "use strict";
@@ -77938,13 +78327,12 @@ var init_useMainApp = __esm({
     init_timing();
     init_blockLayout();
     init_details();
-    init_messages();
     init_paths();
     init_slash();
     init_useGitBranch();
     init_useVirtualHistory();
     init_inputMetrics();
-    init_messages2();
+    init_messages();
     init_platform();
     init_resizeCoalescer();
     init_rpc();
@@ -77972,12 +78360,6 @@ var init_useMainApp = __esm({
     BRACKET_PASTE_ON = "\x1B[?2004h";
     BRACKET_PASTE_OFF = "\x1B[?2004l";
     MAX_HEIGHT_CACHE_BUCKETS = 12;
-    capHistory = (items) => {
-      if (items.length <= MAX_HISTORY) {
-        return items;
-      }
-      return items[0]?.kind === "intro" ? [items[0], ...items.slice(-(MAX_HISTORY - 1))] : items.slice(-MAX_HISTORY);
-    };
     statusColorOf = (status, t) => {
       if (status === "ready") {
         return t.ok;
@@ -78979,8 +79361,8 @@ var init_agentsOverlay = __esm({
       error: { color: (t) => t.color.error, glyph: "\u26A0" }
     };
     heatPalette = (t) => [t.color.border, t.color.accent, t.color.primary, t.color.warn, t.color.error];
-    fmtDur = (seconds) => seconds == null || seconds <= 0 ? "" : fmtDuration2(seconds);
-    fmtElapsedLabel = (seconds) => seconds < 0 ? "" : fmtDuration2(seconds);
+    fmtDur = (seconds) => seconds == null || seconds <= 0 ? "" : fmtDuration(seconds);
+    fmtElapsedLabel = (seconds) => seconds < 0 ? "" : fmtDuration(seconds);
     displayElapsedSeconds = (item, nowMs) => {
       if (item.durationSeconds != null) {
         return item.durationSeconds;
@@ -83314,7 +83696,7 @@ function FloatingOverlays({
   const overlay = useStore($overlayState);
   const sid = useStore($uiSessionId);
   const theme = useStore($uiTheme);
-  const hasAny = overlay.modelPicker || overlay.pager || overlay.petPicker || overlay.sessions || overlay.skillsHub || overlay.pluginsHub || completions.length;
+  const hasAny = hasFloatingPanel(overlay) || completions.length;
   if (!hasAny) {
     return null;
   }
@@ -87355,7 +87737,7 @@ var init_messageLine = __esm({
     init_limits();
     init_blockLayout();
     init_details();
-    init_messages();
+    init_messages2();
     init_roles();
     init_slash();
     init_inputMetrics();

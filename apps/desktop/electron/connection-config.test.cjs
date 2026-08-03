@@ -165,6 +165,13 @@ test('normalizeRemoteBaseUrl strips trailing slashes, hash, and query', () => {
   assert.equal(normalizeRemoteBaseUrl('https://gw.example.com/hermes?x=1#frag'), 'https://gw.example.com/hermes')
 })
 
+test('normalizeRemoteBaseUrl accepts scheme-less remote hosts', () => {
+  assert.equal(normalizeRemoteBaseUrl('100.64.0.1:9119'), 'http://100.64.0.1:9119')
+  assert.equal(normalizeRemoteBaseUrl('host.example:9119'), 'http://host.example:9119')
+  assert.equal(normalizeRemoteBaseUrl('localhost:9119'), 'http://localhost:9119')
+  assert.throws(() => normalizeRemoteBaseUrl('ws://host:9119'), /http:\/\/ or https:\/\//)
+})
+
 test('normalizeRemoteBaseUrl preserves a path prefix', () => {
   assert.equal(normalizeRemoteBaseUrl('https://host/hermes'), 'https://host/hermes')
 })
