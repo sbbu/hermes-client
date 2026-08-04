@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import spinners, { type BrailleSpinnerName as SpinnerName } from 'unicode-animations'
 
 import { cn } from '@/lib/utils'
@@ -42,22 +42,62 @@ interface GlyphSpinnerProps {
  */
 export function GlyphSpinner({ ariaLabel = 'Loading', className, spinner = 'braille' }: GlyphSpinnerProps) {
   const spin = FRAMES_BY_NAME[spinner] ?? FRAMES_BY_NAME.braille!
-  const [frame, setFrame] = useState(0)
+  const glyphRef = useRef<HTMLSpanElement>(null)
 
   useEffect(() => {
-    setFrame(0)
-    const id = window.setInterval(() => setFrame(f => (f + 1) % spin.frames.length), spin.interval)
+    const glyph = glyphRef.current
 
-    return () => window.clearInterval(id)
+    if (!glyph) {
+      return
+    }
+
+    let frame = 0
+    let timer: number | undefined
+    glyph.textContent = spin.frames[frame]
+
+    const stop = () => {
+      if (timer !== undefined) {
+        window.clearInterval(timer)
+        timer = undefined
+      }
+    }
+
+    const sync = () => {
+      if (document.hidden || !document.hasFocus()) {
+        stop()
+
+        return
+      }
+
+      if (timer === undefined) {
+        timer = window.setInterval(() => {
+          frame = (frame + 1) % spin.frames.length
+          glyph.textContent = spin.frames[frame]
+        }, spin.interval)
+      }
+    }
+
+    window.addEventListener('focus', sync)
+    window.addEventListener('blur', stop)
+    document.addEventListener('visibilitychange', sync)
+    sync()
+
+    return () => {
+      window.removeEventListener('focus', sync)
+      window.removeEventListener('blur', stop)
+      document.removeEventListener('visibilitychange', sync)
+      stop()
+    }
   }, [spin])
 
   return (
     <span
       aria-label={ariaLabel}
       className={cn('inline-flex items-center justify-center font-mono leading-none tabular-nums', className)}
+      ref={glyphRef}
       role="status"
     >
-      {spin.frames[frame]}
+      {spin.frames[0]}
     </span>
   )
 }

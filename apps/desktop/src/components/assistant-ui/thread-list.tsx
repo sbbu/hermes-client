@@ -14,6 +14,7 @@ import {
 import { useStickToBottom } from 'use-stick-to-bottom'
 
 import { useI18n } from '@/i18n'
+import { messageRenderWeight } from '@/lib/render-weight'
 import { cn } from '@/lib/utils'
 import {
   onScrollToBottomRequest,
@@ -25,6 +26,7 @@ import {
 import { isSecondaryWindow } from '@/store/windows'
 
 import { MessageRenderBoundary } from './message-render-boundary'
+import { resolveShowEarlierAction, useTranscriptWindow } from './transcript-window'
 
 type ThreadMessageComponents = ComponentProps<typeof ThreadPrimitive.MessageByIndex>['components']
 
@@ -99,11 +101,12 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
 }) => {
   const messageSignature = useAuiState(s =>
     s.thread.messages
-      .map((message, index) => `${index}:${message.id}:${message.role}:${message.content?.length ?? 1}`)
+      .map((message, index) => `${index}:${message.id}:${message.role}:${messageRenderWeight(message.content)}`)
       .join('\n')
   )
 
   const { t } = useI18n()
+  const { olderAvailable, expandWindow } = useTranscriptWindow()
   const groups = buildGroups(messageSignature)
   const renderEmpty = groups.length === 0 && Boolean(emptyPlaceholder)
 
@@ -234,15 +237,24 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
     }
   }, [scrollRef, scrollToBottom, sessionKey, stopScroll])
 
-  // Prepend an older page while preserving the on-screen position. The user is
-  // scrolled up (reading history) so the stick-to-bottom lock is escaped and
-  // won't fight this manual restore.
+  // Spend already-materialized DOM pages before widening the runtime window.
   const showEarlier = useCallback(() => {
+    const action = resolveShowEarlierAction(hiddenCount, olderAvailable)
+
+    if (!action) {
+      return
+    }
+
     const el = scrollRef.current
 
     restoreFromBottomRef.current = el ? el.scrollHeight - el.scrollTop : null
-    setRenderBudget(budget => budget + RENDER_BUDGET)
-  }, [scrollRef])
+
+    if (action === 'dom') {
+      setRenderBudget(budget => budget + RENDER_BUDGET)
+    } else {
+      expandWindow()
+    }
+  }, [expandWindow, hiddenCount, olderAvailable, scrollRef])
 
   useLayoutEffect(() => {
     const el = scrollRef.current
@@ -251,7 +263,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
       el.scrollTop = el.scrollHeight - restoreFromBottomRef.current
       restoreFromBottomRef.current = null
     }
-  }, [scrollRef, renderBudget])
+  }, [scrollRef, renderBudget, groups.length])
 
   return (
     <div
@@ -293,7 +305,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
             data-slot="aui_thread-content"
             ref={contentRef as React.RefCallback<HTMLDivElement>}
           >
-            {hiddenCount > 0 && (
+            {(hiddenCount > 0 || olderAvailable) && (
               <button
                 className="mx-auto mb-(--conversation-turn-gap) rounded-full border border-border/65 bg-(--composer-fill) px-3 py-1 text-xs text-muted-foreground hover:text-foreground"
                 onClick={showEarlier}

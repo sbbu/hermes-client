@@ -7,10 +7,11 @@ import {
 import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
 import type * as React from 'react'
-import { Suspense, useCallback, useMemo, useRef } from 'react'
+import { Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { Thread } from '@/components/assistant-ui/thread'
+import { TranscriptWindowProvider } from '@/components/assistant-ui/transcript-window'
 import { Backdrop } from '@/components/Backdrop'
 import { PromptOverlays } from '@/components/prompt-overlays'
 import { Button } from '@/components/ui/button'
@@ -68,6 +69,7 @@ import { useFileDropZone } from './hooks/use-file-drop-zone'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { SessionActionsMenu } from './sidebar/session-actions-menu'
 import { threadLoadingState } from './thread-loading'
+import { selectTranscriptWindow, visibleOutsideWindowIds } from './transcript-window'
 
 interface ChatViewProps extends Omit<React.ComponentProps<'div'>, 'onSubmit'> {
   gateway: HermesGateway | null
@@ -178,6 +180,7 @@ interface ChatRuntimeBoundaryProps {
   onEdit: (message: AppendMessage) => Promise<void>
   onReload: (parentId: string | null) => Promise<void>
   onThreadMessagesChange: (messages: readonly ThreadMessage[]) => void
+  sessionKey: string
   /** Route points at an unloaded session — render empty until resume swaps in
    *  the new transcript, so the previous session's messages don't linger. */
   suppressMessages: boolean
@@ -202,10 +205,24 @@ function ChatRuntimeBoundary({
   onEdit,
   onReload,
   onThreadMessagesChange,
+  sessionKey,
   suppressMessages
 }: ChatRuntimeBoundaryProps) {
   const storeMessages = useStore($messages)
   const messages = suppressMessages ? NO_MESSAGES : storeMessages
+  const [windowPages, setWindowPages] = useState(1)
+  const [windowSessionKey, setWindowSessionKey] = useState(sessionKey)
+
+  if (windowSessionKey !== sessionKey) {
+    setWindowSessionKey(sessionKey)
+    setWindowPages(1)
+  }
+
+  const { messages: windowedMessages, windowed } = useMemo(
+    () => selectTranscriptWindow(messages, windowPages),
+    [messages, windowPages]
+  )
+
   const runtimeMessageCacheRef = useRef(new WeakMap<ChatMessage, ThreadMessage>())
   const toolMergeCacheRef = useRef(createToolMergeCache())
 
@@ -215,7 +232,7 @@ function ChatRuntimeBoundary({
     let visibleParentId: string | null = null
     let headId: string | null = null
 
-    for (const message of coalesceToolOnlyAssistants(messages, toolMergeCacheRef.current)) {
+    for (const message of coalesceToolOnlyAssistants(windowedMessages, toolMergeCacheRef.current)) {
       let parentId = visibleParentId
 
       if (message.role === 'assistant' && message.branchGroupId) {
@@ -242,12 +259,32 @@ function ChatRuntimeBoundary({
     }
 
     return ExportedMessageRepository.fromBranchableArray(items, { headId })
-  }, [messages])
+  }, [windowedMessages])
+
+  // Branch visibility updates from assistant-ui contain only the materialized
+  // window. Preserve older branch states by carrying their currently-visible
+  // ids into the callback instead of treating every omitted id as hidden.
+  const handleWindowedMessagesChange = useCallback(
+    (nextMessages: readonly ThreadMessage[]) => {
+      if (!windowed) {
+        onThreadMessagesChange(nextMessages)
+
+        return
+      }
+
+      const visibleOutside = visibleOutsideWindowIds(messages, windowedMessages.length).map(
+        id => ({ id }) as ThreadMessage
+      )
+
+      onThreadMessagesChange([...visibleOutside, ...nextMessages])
+    },
+    [messages, onThreadMessagesChange, windowed, windowedMessages.length]
+  )
 
   const runtime = useIncrementalExternalStoreRuntime<ThreadMessage>({
     messageRepository: runtimeMessageRepository,
     isRunning: busy,
-    setMessages: onThreadMessagesChange,
+    setMessages: handleWindowedMessagesChange,
     onNew: async () => {
       // Submission is handled explicitly by ChatBar.
       // Keeping this no-op avoids duplicate prompt.submit calls.
@@ -257,7 +294,14 @@ function ChatRuntimeBoundary({
     onReload
   })
 
-  return <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
+  const expandWindow = useCallback(() => setWindowPages(pages => pages + 1), [])
+  const transcriptWindow = useMemo(() => ({ olderAvailable: windowed, expandWindow }), [expandWindow, windowed])
+
+  return (
+    <TranscriptWindowProvider value={transcriptWindow}>
+      <AssistantRuntimeProvider runtime={runtime}>{children}</AssistantRuntimeProvider>
+    </TranscriptWindowProvider>
+  )
 }
 
 export function ChatView({
@@ -455,6 +499,7 @@ export function ChatView({
         onEdit={onEdit}
         onReload={onReload}
         onThreadMessagesChange={onThreadMessagesChange}
+        sessionKey={threadKey}
         suppressMessages={routeSessionMismatch}
       >
         <div
