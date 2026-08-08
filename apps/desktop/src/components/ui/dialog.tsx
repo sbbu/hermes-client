@@ -37,10 +37,12 @@ function DialogOverlay({ className, ...props }: React.ComponentProps<typeof Dial
 
 function DialogContent({
   className,
+  bodyClassName,
   children,
   showCloseButton = true,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
+  bodyClassName?: string
   showCloseButton?: boolean
 }) {
   const { t } = useI18n()
@@ -50,16 +52,15 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Content
         className={cn(
-          // Cap height at 85vh and let long content scroll inside the dialog
-          // instead of overflowing off-screen (long cron titles, tool detail
-          // dumps, etc.). Individual dialogs can still override via className.
-          'fixed left-1/2 top-1/2 z-[130] pointer-events-auto grid max-h-[85vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 gap-3 overflow-y-auto rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) p-4 text-[length:var(--conversation-text-font-size)] text-foreground shadow-nous duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
+          // Keep overflow off the shell: popovers portal into this node and a
+          // clipping ancestor would crop them. The inner body owns scrolling.
+          'fixed left-1/2 top-1/2 z-[130] pointer-events-auto flex max-h-[85vh] w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) text-[length:var(--conversation-text-font-size)] text-foreground shadow-nous duration-200 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95',
           className
         )}
         data-slot="dialog-content"
         {...props}
       >
-        {children}
+        <div className={cn('grid min-h-0 gap-3 overflow-y-auto rounded-[inherit] p-4', bodyClassName)}>{children}</div>
         {showCloseButton && (
           <DialogPrimitive.Close asChild data-slot="dialog-close-button">
             <Button

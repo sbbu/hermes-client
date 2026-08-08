@@ -24,9 +24,11 @@ export interface PreviewTarget {
   language?: string
   mimeType?: string
   path?: string
-  previewKind?: 'binary' | 'html' | 'image' | 'text'
+  previewKind?: 'binary' | 'html' | 'image' | 'pdf' | 'text'
   renderMode?: 'preview' | 'source'
   source: string
+  /** Runtime-only target whose inline bytes cannot survive persistence. */
+  transient?: boolean
   url: string
 }
 
@@ -232,10 +234,19 @@ function persistSessionPreviewRegistry(registry: SessionPreviewRegistry) {
   }
 
   try {
-    // Drop the inline image bytes before persisting — a screenshot data URL is
-    // megabytes and would blow the localStorage quota. On reload the record
-    // falls back to reading its `path`/`url`.
-    const lean = JSON.stringify(pruneRegistry(registry), (key, value) => (key === 'dataUrl' ? undefined : value))
+    // Inline bytes are not restorable. Drop remote HTML records whose renderer
+    // payload would be stripped; reopening the source will normalize it afresh.
+    const restorable = Object.fromEntries(
+      Object.entries(pruneRegistry(registry)).map(([sessionId, records]) => [
+        sessionId,
+        records.filter(
+          record =>
+            !record.normalized.transient && !(record.normalized.previewKind === 'html' && record.normalized.dataUrl)
+        )
+      ])
+    )
+
+    const lean = JSON.stringify(restorable, (key, value) => (key === 'dataUrl' ? undefined : value))
     window.localStorage.setItem(REGISTRY_STORAGE_KEY, lean)
   } catch {
     // Session previews are a desktop convenience; storage failures are nonfatal.

@@ -1484,6 +1484,8 @@ export const zh: Translations = {
     stopDictation: '停止听写',
     transcribingDictation: '正在转写听写',
     voiceDictation: '语音听写',
+    wakeWordListening: phrase => `唤醒词:"${phrase}" — 正在监听`,
+    wakeWordOff: phrase => `唤醒词:"${phrase}" — 已关闭`,
     lookupLoading: '查找中…',
     lookupNoMatches: '没有匹配项。',
     lookupTry: '试试',

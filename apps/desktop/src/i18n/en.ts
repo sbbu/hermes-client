@@ -1299,6 +1299,8 @@ export const en: Translations = {
     stopDictation: 'Stop dictation',
     transcribingDictation: 'Transcribing dictation',
     voiceDictation: 'Voice dictation',
+    wakeWordListening: phrase => `Wake word: "${phrase}" — listening`,
+    wakeWordOff: phrase => `Wake word: "${phrase}" — off`,
     lookupLoading: 'Looking up…',
     lookupNoMatches: 'No matches.',
     lookupTry: 'Try',

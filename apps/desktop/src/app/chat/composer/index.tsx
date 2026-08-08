@@ -28,11 +28,13 @@ import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import {
   $composerAttachments,
+  $voiceConversationStartRequest,
   clearComposerAttachments,
   clearSessionDraft,
   type ComposerAttachment,
   stashSessionDraft,
-  takeSessionDraft
+  takeSessionDraft,
+  takeVoiceConversationStart
 } from '@/store/composer'
 import {
   browseBackward,
@@ -61,10 +63,12 @@ import {
   updateQueuedPrompt
 } from '@/store/composer-queue'
 import { $statusItemsBySession } from '@/store/composer-status'
+import { $gateway } from '@/store/gateway'
 import { notify } from '@/store/notifications'
 import { $previewStatusBySession } from '@/store/preview-status'
 import { $gatewayState, $messages, setSessionPickerOpen } from '@/store/session'
 import { $threadScrolledUp } from '@/store/thread-scroll'
+import { resumeWakeAfterVoice } from '@/store/wake-word'
 import { isSecondaryWindow } from '@/store/windows'
 import { useTheme } from '@/themes'
 
@@ -232,6 +236,7 @@ export function ChatBar({
   const statusItemsBySession = useStore($statusItemsBySession)
   const previewStatusBySession = useStore($previewStatusBySession)
   const scrolledUp = useStore($threadScrolledUp)
+  const voiceConversationStartRequest = useStore($voiceConversationStartRequest)
   // Pop-out is a shared, persisted state — but secondary windows (the Ctrl+Shift+N
   // tiny window, subagent watch windows) always start docked and can't pop out:
   // a floating composer makes no sense in a single-session side window, and it
@@ -1860,7 +1865,23 @@ export function ChatBar({
     await onSubmit(text)
   }
 
+  const wakePausedForVoiceRef = useRef(false)
+  const wakePauseBarrierRef = useRef<Promise<void> | null>(null)
+
+  const startVoiceConversation = useCallback(() => {
+    wakePausedForVoiceRef.current = true
+    wakePauseBarrierRef.current = (async () => {
+      try {
+        await $gateway.get()?.request('wake.pause', {})
+      } catch {
+        // Older backend or no armed listener: nothing held the mic.
+      }
+    })()
+    setVoiceConversationActive(true)
+  }, [])
+
   const conversation = useVoiceConversation({
+    beforeMicOpen: () => wakePauseBarrierRef.current ?? undefined,
     busy,
     consumePendingResponse,
     enabled: voiceConversationActive,
@@ -1869,6 +1890,30 @@ export function ChatBar({
     onTranscribeAudio,
     pendingResponse
   })
+
+  useEffect(() => {
+    if (!voiceConversationActive && wakePausedForVoiceRef.current) {
+      wakePausedForVoiceRef.current = false
+      wakePauseBarrierRef.current = null
+      void resumeWakeAfterVoice()
+    }
+  }, [voiceConversationActive])
+
+  useEffect(() => {
+    if (takeVoiceConversationStart(voiceConversationStartRequest) && !voiceConversationActive) {
+      startVoiceConversation()
+    }
+  }, [startVoiceConversation, voiceConversationActive, voiceConversationStartRequest])
+
+  useEffect(
+    () => () => {
+      if (wakePausedForVoiceRef.current) {
+        wakePausedForVoiceRef.current = false
+        void resumeWakeAfterVoice()
+      }
+    },
+    []
+  )
 
   const contextMenu = (
     <ContextMenu
@@ -1900,7 +1945,7 @@ export function ChatBar({
           setVoiceConversationActive(false)
           void conversation.end()
         },
-        onStart: () => setVoiceConversationActive(true),
+        onStart: startVoiceConversation,
         onStopTurn: conversation.stopTurn,
         onToggleMute: conversation.toggleMute,
         status: conversation.status

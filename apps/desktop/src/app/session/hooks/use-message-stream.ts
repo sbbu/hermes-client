@@ -1,6 +1,7 @@
 import type { QueryClient } from '@tanstack/react-query'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 
+import { readActivePreview } from '@/app/chat/right-rail/preview-reader'
 import { readActiveTerminal } from '@/app/right-sidebar/terminal/buffer'
 import { translateNow } from '@/i18n'
 import {
@@ -1285,6 +1286,20 @@ export function useMessageStream({
             request_id: requestId,
             text: result ? JSON.stringify(result) : ''
           })
+        }
+      } else if (event.type === 'preview.read.request') {
+        const requestId = typeof payload?.request_id === 'string' ? payload.request_id : ''
+
+        if (requestId) {
+          const start = typeof payload?.start === 'number' ? payload.start : undefined
+          const count = typeof payload?.count === 'number' ? payload.count : undefined
+
+          void readActivePreview({ start, count }).then(result =>
+            $gateway.get()?.request('preview.read.respond', {
+              request_id: requestId,
+              text: result ? JSON.stringify(result) : ''
+            })
+          )
         }
       } else if (event.type === 'status.update') {
         if (sessionId && payload?.kind === 'compacting') {

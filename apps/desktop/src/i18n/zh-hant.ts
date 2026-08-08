@@ -1379,6 +1379,8 @@ export const zhHant = defineLocale({
     stopDictation: '停止聽寫',
     transcribingDictation: '正在轉寫聽寫',
     voiceDictation: '語音聽寫',
+    wakeWordListening: phrase => `喚醒詞:「${phrase}」— 正在聆聽`,
+    wakeWordOff: phrase => `喚醒詞:「${phrase}」— 已關閉`,
     lookupLoading: '查詢中…',
     lookupNoMatches: '沒有相符項目。',
     lookupTry: '試試',

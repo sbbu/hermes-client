@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 import type {
   ComponentProps,
@@ -16,10 +17,10 @@ import { HERMES_PATHS_MIME } from '@/app/chat/hooks/use-composer-actions'
 import { isAddSelectionShortcut } from '@/app/right-sidebar/terminal/selection'
 import { PageLoader } from '@/components/page-loader'
 import { translateNow, useI18n } from '@/i18n'
-import { readDesktopFileDataUrl, readDesktopFileText } from '@/lib/desktop-fs'
+import { desktopFsCacheKey, readDesktopFileDataUrl, readDesktopFileText } from '@/lib/desktop-fs'
 import { cn } from '@/lib/utils'
 import type { PreviewTarget } from '@/store/preview'
-import { $currentCwd } from '@/store/session'
+import { $connection, $currentCwd } from '@/store/session'
 
 const SHIKI_THEME = { dark: 'github-dark-default', light: 'github-light-default' } as const
 const TEXT_PREVIEW_MAX_BYTES = 512 * 1024
@@ -182,6 +183,22 @@ function looksBinaryBytes(bytes: Uint8Array) {
   }
 
   return suspicious / Math.min(bytes.length, 4096) > 0.12
+}
+
+function dataUrlToPdfBlob(dataUrl: string) {
+  const match = /^data:application\/pdf;base64,(.*)$/i.exec(dataUrl)
+
+  if (!match?.[1]) {
+    throw new Error('Invalid PDF data URL')
+  }
+
+  const binary = atob(decodeURIComponent(match[1]))
+
+  if (!binary.startsWith('%PDF-')) {
+    throw new Error('Invalid PDF file header')
+  }
+
+  return new Blob([Uint8Array.from(binary, ch => ch.charCodeAt(0))], { type: 'application/pdf' })
 }
 
 async function readTextPreview(filePath: string) {
@@ -453,16 +470,21 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
   const { t } = useI18n()
   const [state, setState] = useState<LocalPreviewState>({ loading: true })
   const [forcePreview, setForcePreview] = useState(false)
+  const [pdfError, setPdfError] = useState<string>()
+  const [pdfUrl, setPdfUrl] = useState<string>()
   const [renderMarkdownAsSource, setRenderMarkdownAsSource] = useState(false)
+  const connection = useStore($connection)
+  const fsCacheKey = desktopFsCacheKey(connection)
   const filePath = filePathForTarget(target)
   const isImage = target.previewKind === 'image'
+  const isPdf = target.previewKind === 'pdf'
 
   // HTML files are rendered as source code, not in a webview - so they take
   // the same path as plain text files. `previewKind === 'binary'` arrives
   // when the file is forcibly previewed past the binary refusal screen.
   const isText = target.previewKind === 'text' || target.previewKind === 'binary' || target.previewKind === 'html'
 
-  const blockedByTarget = !isImage && !forcePreview && (target.binary || target.large)
+  const blockedByTarget = !isImage && !isPdf && !forcePreview && (target.binary || target.large)
 
   useEffect(() => {
     let active = true
@@ -474,7 +496,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
         return
       }
 
-      if (!isImage && !isText) {
+      if (!isImage && !isPdf && !isText) {
         setState({ loading: false })
 
         return
@@ -483,7 +505,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
       setState({ loading: true })
 
       try {
-        if (isImage) {
+        if (isImage || isPdf) {
           // Prefer bytes the caller already handed us (a pasted/dropped
           // screenshot) over re-reading a path that may be transient/unreadable.
           const dataUrl = target.dataUrl || (await readDesktopFileDataUrl(filePath))
@@ -524,7 +546,42 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     return () => {
       active = false
     }
-  }, [blockedByTarget, filePath, forcePreview, isImage, isText, reloadKey, target.dataUrl, target.language])
+  }, [
+    blockedByTarget,
+    filePath,
+    forcePreview,
+    fsCacheKey,
+    isImage,
+    isPdf,
+    isText,
+    reloadKey,
+    target.dataUrl,
+    target.language
+  ])
+
+  useEffect(() => {
+    setPdfUrl(undefined)
+    setPdfError(undefined)
+
+    if (!isPdf || !state.dataUrl) {
+      return
+    }
+
+    if (typeof URL.createObjectURL !== 'function') {
+      setPdfError('PDF preview requires object URL support')
+
+      return
+    }
+
+    try {
+      const objectUrl = URL.createObjectURL(dataUrlToPdfBlob(state.dataUrl))
+      setPdfUrl(objectUrl)
+
+      return () => URL.revokeObjectURL(objectUrl)
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : String(error))
+    }
+  }, [isPdf, state.dataUrl])
 
   if (state.loading) {
     return <PageLoader label={t.preview.loading} />
@@ -534,8 +591,13 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     return <PreviewEmptyState body={state.error} title={t.preview.unavailable} />
   }
 
+  if (pdfError) {
+    return <PreviewEmptyState body={pdfError} title={t.preview.unavailable} />
+  }
+
   if (
     !isImage &&
+    !isPdf &&
     !forcePreview &&
     (target.binary || target.large || state.binary || (state.byteSize ?? 0) > TEXT_PREVIEW_MAX_BYTES)
   ) {
@@ -544,11 +606,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
 
     return (
       <PreviewEmptyState
-        body={
-          binary
-            ? t.preview.binaryBody(target.label)
-            : t.preview.largeBody(target.label, formatBytes(size))
-        }
+        body={binary ? t.preview.binaryBody(target.label) : t.preview.largeBody(target.label, formatBytes(size))}
         primaryAction={{ label: t.preview.previewAnyway, onClick: () => setForcePreview(true) }}
         title={binary ? t.preview.binaryTitle : t.preview.largeTitle}
         tone="warning"
@@ -567,6 +625,16 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
         />
       </div>
     )
+  }
+
+  if (isPdf && state.dataUrl && pdfUrl) {
+    return (
+      <iframe aria-label={target.label} className="h-full w-full border-0 bg-white" src={pdfUrl} title={target.label} />
+    )
+  }
+
+  if (isPdf && state.dataUrl) {
+    return <PageLoader label={t.preview.loading} />
   }
 
   if (isText && state.text !== undefined) {
@@ -590,10 +658,5 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     )
   }
 
-  return (
-    <PreviewEmptyState
-      body={t.preview.noInlineBody(target.mimeType || '')}
-      title={t.preview.noInlineTitle}
-    />
-  )
+  return <PreviewEmptyState body={t.preview.noInlineBody(target.mimeType || '')} title={t.preview.noInlineTitle} />
 }

@@ -23,6 +23,8 @@ def test_packaged_tui_double_escape_preserves_complete_expanded_draft():
 def test_packaged_tui_has_client_branding_and_updater():
     bundle = packaged_tui_entry().read_text()
     assert 'name: "Hermes Client"' in bundle
+    stock_org = "Nous " + "Research"
+    assert stock_org not in bundle
     assert 'TAG_FULL = "Hermes Client"' in bundle
     assert 'info.update_command || "hermes-client update"' in bundle
     stock_tagline = "Messenger of the " + "Digital Gods"

@@ -1426,6 +1426,8 @@ export const ja = defineLocale({
     stopDictation: '口述を停止',
     transcribingDictation: '口述を文字起こし中',
     voiceDictation: '音声口述',
+    wakeWordListening: phrase => `ウェイクワード:「${phrase}」— 待機中`,
+    wakeWordOff: phrase => `ウェイクワード:「${phrase}」— オフ`,
     lookupLoading: '検索中…',
     lookupNoMatches: '一致なし。',
     lookupTry: '試す',

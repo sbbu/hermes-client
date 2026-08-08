@@ -30,6 +30,7 @@ import {
   normalizeSessionSource
 } from '../lib/session-source'
 import { latestSessionTodos } from '../lib/todos'
+import { requestVoiceConversationStart } from '../store/composer'
 import { setCronFocusJobId, setCronJobs } from '../store/cron'
 import {
   $panesFlipped,
@@ -97,6 +98,7 @@ import {
 import { onSessionsChanged } from '../store/session-sync'
 import { clearSessionTodos, setSessionTodos, todoListActive } from '../store/todos'
 import { openUpdatesWindow, startUpdatePoller, stopUpdatePoller } from '../store/updates'
+import { armWakeWord, stopClientCapture } from '../store/wake-word'
 import { isSecondaryWindow } from '../store/windows'
 
 import { ChatView } from './chat'
@@ -952,8 +954,28 @@ export function DesktopController() {
     return $attentionSessionIds.listen(sync)
   }, [])
 
+  const handleGatewayEventWithWake = useCallback(
+    (event: Parameters<typeof handleDesktopGatewayEvent>[0]) => {
+      if (event.type === 'wake.detected') {
+        const payload = event.payload as { start_new_session?: boolean } | undefined
+        stopClientCapture()
+
+        if (payload?.start_new_session !== false) {
+          startFreshSessionDraft()
+        }
+
+        requestVoiceConversationStart()
+
+        return
+      }
+
+      handleDesktopGatewayEvent(event)
+    },
+    [handleDesktopGatewayEvent, startFreshSessionDraft]
+  )
+
   useGatewayBoot({
-    handleGatewayEvent: handleDesktopGatewayEvent,
+    handleGatewayEvent: handleGatewayEventWithWake,
     onConnectionReady: c => {
       connectionRef.current = c
     },
@@ -966,11 +988,12 @@ export function DesktopController() {
 
   useEffect(() => {
     if (gatewayState === 'open') {
+      void armWakeWord(requestGateway)
       void refreshCurrentModel()
       void refreshActiveProfile()
       void refreshSessions().catch(() => undefined)
     }
-  }, [gatewayState, refreshCurrentModel, refreshSessions])
+  }, [gatewayState, refreshCurrentModel, refreshSessions, requestGateway])
 
   // Keep the cron jobs section live without a user action: the scheduler ticks
   // in the background (advancing next-run/state and creating runs), so poll the

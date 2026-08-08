@@ -15,6 +15,7 @@ interface PendingVoiceResponse {
 }
 
 interface VoiceConversationOptions {
+  beforeMicOpen?: () => Promise<void> | void
   busy: boolean
   enabled: boolean
   onFatalError?: () => void
@@ -25,6 +26,7 @@ interface VoiceConversationOptions {
 }
 
 export function useVoiceConversation({
+  beforeMicOpen,
   busy,
   enabled,
   onFatalError,
@@ -198,6 +200,7 @@ export function useVoiceConversation({
     }
 
     try {
+      await beforeMicOpen?.()
       // VAD tuning mirrors `tools.voice_mode` defaults so the browser loop matches the CLI.
       await handle.start({
         silenceLevel: 0.075,
@@ -218,24 +221,27 @@ export function useVoiceConversation({
       setStatus('idle')
       onFatalError?.()
     }
-  }, [handle, handleTurn, onFatalError, voiceCopy.couldNotStartSession, voiceCopy.microphoneFailed])
+  }, [beforeMicOpen, handle, handleTurn, onFatalError, voiceCopy.couldNotStartSession, voiceCopy.microphoneFailed])
 
-  const speak = useCallback(async (text: string) => {
-    setStatus('speaking')
+  const speak = useCallback(
+    async (text: string) => {
+      setStatus('speaking')
 
-    try {
-      await playSpeechText(text, { source: 'voice-conversation' })
-    } catch (error) {
-      notifyError(error, voiceCopy.playbackFailed)
-    } finally {
-      if (enabledRef.current) {
-        pendingStartRef.current = true
-        setStatus('idle')
-      } else {
-        setStatus('idle')
+      try {
+        await playSpeechText(text, { source: 'voice-conversation' })
+      } catch (error) {
+        notifyError(error, voiceCopy.playbackFailed)
+      } finally {
+        if (enabledRef.current) {
+          pendingStartRef.current = true
+          setStatus('idle')
+        } else {
+          setStatus('idle')
+        }
       }
-    }
-  }, [voiceCopy.playbackFailed])
+    },
+    [voiceCopy.playbackFailed]
+  )
 
   const start = useCallback(async () => {
     if (!onTranscribeAudio) {
@@ -255,7 +261,14 @@ export function useVoiceConversation({
     consumePendingResponse()
     pendingStartRef.current = true
     await startListening()
-  }, [consumePendingResponse, onFatalError, onTranscribeAudio, startListening, voiceCopy.configureSpeechToText, voiceCopy.unavailable])
+  }, [
+    consumePendingResponse,
+    onFatalError,
+    onTranscribeAudio,
+    startListening,
+    voiceCopy.configureSpeechToText,
+    voiceCopy.unavailable
+  ])
 
   const end = useCallback(async () => {
     pendingStartRef.current = false

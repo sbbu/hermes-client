@@ -89753,7 +89753,7 @@ function ConfirmScreen({
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: payLine }),
     s.card && !s.card.resolved_via && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "Your card saved on the portal will be charged." }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Nous Research to charge your card." }),
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow your provider to charge your card." }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 0, color: t.color.ok, label: `Pay $${amount} now`, t }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 1, label: "Cancel", t }),
@@ -90047,7 +90047,7 @@ function AutoReloadScreen({ ctx, onClose, onPatch, s, t }) {
     fieldBox("Reload balance to:", reloadTo, setReloadTo, row === 1, "reloadTo"),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(Text, { color: t.color.muted, children: [
-      "By confirming, you authorize Nous Research to charge ",
+      "By confirming, you authorize your provider to charge ",
       chargeCardName,
       " whenever your balance falls below the threshold. Turn off any time here or on the portal."
     ] }),
@@ -92018,7 +92018,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, children: [
       info.model.split("/").pop(),
-      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
     sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { children: [
@@ -92037,7 +92037,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
         /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
           info.model.split("/").pop(),
-          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Nous Research" })
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
         sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { wrap: "truncate-end", children: [

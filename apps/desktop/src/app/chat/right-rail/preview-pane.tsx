@@ -1,12 +1,13 @@
 import { useStore } from '@nanostores/react'
 import type { PointerEvent as ReactPointerEvent } from 'react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import type { SetTitlebarToolGroup, TitlebarTool } from '@/app/shell/titlebar-controls'
 import { Tip } from '@/components/ui/tooltip'
 import { type Translations, useI18n } from '@/i18n'
 import { isDesktopFsRemoteMode } from '@/lib/desktop-fs'
 import { Bug } from '@/lib/icons'
+import { openPreviewTargetInBrowser, remoteHtmlPreviewDocument } from '@/lib/local-preview'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $previewServerRestart, failPreviewServerRestart, type PreviewTarget } from '@/store/preview'
@@ -21,9 +22,12 @@ import {
 } from './preview-console'
 import { type ConsoleEntry, createPreviewConsoleState } from './preview-console-state'
 import { LocalFilePreview, PreviewEmptyState } from './preview-file'
+import { registerPreviewPageReader } from './preview-reader'
 
 type PreviewWebview = HTMLElement & {
   closeDevTools?: () => void
+  executeJavaScript?: (code: string) => Promise<unknown>
+  getTitle?: () => string
   getURL?: () => string
   isDevToolsOpened?: () => boolean
   openDevTools?: () => void
@@ -146,6 +150,17 @@ export function PreviewPane({
   const [loadError, setLoadError] = useState<PreviewLoadErrorState | null>(null)
   const [localReloadKey, setLocalReloadKey] = useState(0)
   const isWebPreview = target.kind === 'url' || (target.previewKind === 'html' && target.renderMode !== 'source')
+
+  const isRemoteHtmlTarget =
+    target.kind === 'file' && target.previewKind === 'html' && Boolean(target.dataUrl || target.transient)
+
+  const isRemoteHtml = isRemoteHtmlTarget && target.renderMode !== 'source' && Boolean(target.dataUrl)
+
+  const remoteHtmlDocument = useMemo(
+    () => (isRemoteHtml ? remoteHtmlPreviewDocument(target.dataUrl!) : null),
+    [isRemoteHtml, target.dataUrl]
+  )
+
   const currentLabel = compactUrl(currentUrl)
 
   const previewLabel =
@@ -283,12 +298,34 @@ export function PreviewPane({
   }, [])
 
   useEffect(() => {
+    if (!isWebPreview || isRemoteHtml) {
+      return
+    }
+
+    return registerPreviewPageReader(async () => {
+      const webview = webviewRef.current
+
+      if (!webview?.executeJavaScript) {
+        throw new Error('preview webview is not ready')
+      }
+
+      const text = await webview.executeJavaScript('document.body ? document.body.innerText : ""')
+
+      return {
+        text: typeof text === 'string' ? text : '',
+        title: webview.getTitle?.() ?? '',
+        url: webview.getURL?.() ?? ''
+      }
+    })
+  }, [isRemoteHtml, isWebPreview, target.url])
+
+  useEffect(() => {
     if (!setTitlebarToolGroup) {
       return
     }
 
     const tools: TitlebarTool[] = [
-      ...(isWebPreview
+      ...(isWebPreview && !isRemoteHtml
         ? [
             {
               active: consoleOpen,
@@ -311,7 +348,7 @@ export function PreviewPane({
     setTitlebarToolGroup(TITLEBAR_GROUP_ID, tools)
 
     return () => setTitlebarToolGroup(TITLEBAR_GROUP_ID, [])
-  }, [consoleOpen, consoleState, copy, devtoolsOpen, isWebPreview, setTitlebarToolGroup, toggleDevTools])
+  }, [consoleOpen, consoleState, copy, devtoolsOpen, isRemoteHtml, isWebPreview, setTitlebarToolGroup, toggleDevTools])
 
   useEffect(() => {
     if (!consoleOpen) {
@@ -507,7 +544,7 @@ export function PreviewPane({
     consoleState.reset()
     setLoading(true)
 
-    if (!isWebPreview) {
+    if (!isWebPreview || isRemoteHtml) {
       setLoading(false)
 
       return
@@ -600,7 +637,7 @@ export function PreviewPane({
       webview.removeEventListener('did-stop-loading', onStop)
       webview.remove()
     }
-  }, [appendConsoleEntry, consoleState, copy, isWebPreview, target.url])
+  }, [appendConsoleEntry, consoleState, copy, isRemoteHtml, isWebPreview, target.url])
 
   return (
     <aside className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-transparent text-muted-foreground">
@@ -611,9 +648,15 @@ export function PreviewPane({
               <Tip label={copy.openTarget(currentUrl)}>
                 <a
                   className="pointer-events-auto inline max-w-full truncate text-left text-xs font-medium text-foreground underline-offset-4 decoration-current/20 transition-colors hover:text-primary hover:underline"
-                  href={currentUrl}
+                  href={isRemoteHtmlTarget ? undefined : currentUrl}
+                  onClick={event => {
+                    if (isRemoteHtmlTarget) {
+                      event.preventDefault()
+                      void openPreviewTargetInBrowser(target).catch(error => notifyError(error, t.preview.unavailable))
+                    }
+                  }}
                   rel="noreferrer"
-                  target="_blank"
+                  target={isRemoteHtmlTarget ? undefined : '_blank'}
                 >
                   {previewLabel || copy.fallbackTitle}
                 </a>
@@ -629,10 +672,19 @@ export function PreviewPane({
           <div
             className={cn(
               'absolute inset-0 flex bg-transparent',
-              (!isWebPreview || loadError) && 'pointer-events-none opacity-0'
+              (isRemoteHtml || !isWebPreview || loadError) && 'pointer-events-none opacity-0'
             )}
             ref={hostRef}
           />
+          {isRemoteHtml && (
+            <iframe
+              className="absolute inset-0 size-full border-0 bg-white"
+              referrerPolicy="no-referrer"
+              sandbox=""
+              srcDoc={remoteHtmlDocument || ''}
+              title={target.label || copy.fallbackTitle}
+            />
+          )}
           {!isWebPreview && <LocalFilePreview reloadKey={localReloadKey} target={target} />}
           {loadError && (
             <PreviewLoadError
@@ -644,7 +696,7 @@ export function PreviewPane({
             />
           )}
 
-          {isWebPreview && consoleOpen && (
+          {isWebPreview && !isRemoteHtml && consoleOpen && (
             <PreviewConsolePanel
               consoleBodyRef={consoleBodyRef}
               consoleShouldStickRef={consoleShouldStickRef}

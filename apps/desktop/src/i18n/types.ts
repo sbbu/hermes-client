@@ -1007,6 +1007,8 @@ export interface Translations {
     stopDictation: string
     transcribingDictation: string
     voiceDictation: string
+    wakeWordListening: (phrase: string) => string
+    wakeWordOff: (phrase: string) => string
     lookupLoading: string
     lookupNoMatches: string
     lookupTry: string

@@ -1,12 +1,15 @@
+import { useStore } from '@nanostores/react'
+
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { AudioLines, Layers3, Loader2, Square, SteeringWheel } from '@/lib/icons'
+import { AudioLines, Ear, EarOff, Layers3, Loader2, Square, SteeringWheel } from '@/lib/icons'
 import { formatCombo } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
+import { $wakeWord, toggleWakeWord } from '@/store/wake-word'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
@@ -86,6 +89,7 @@ export function ComposerControls({
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+      <WakeWordButton disabled={disabled} />
       {/* While the agent runs and the user is typing, steer takes over the mic's
           slot rather than crowding the row with an extra button. */}
       {canSteer ? (
@@ -142,6 +146,38 @@ export function ComposerControls({
         </Tip>
       )}
     </div>
+  )
+}
+
+function WakeWordButton({ disabled }: { disabled: boolean }) {
+  const { t } = useI18n()
+  const wake = useStore($wakeWord)
+  const phrase = wake.phrase || 'hey hermes'
+  const label = wake.listening ? t.composer.wakeWordListening(phrase) : t.composer.wakeWordOff(phrase)
+  const tooltip = wake.notice ? `${label} — ${wake.notice}` : label
+
+  return (
+    <Tip label={tooltip}>
+      <Button
+        aria-label={label}
+        aria-pressed={wake.listening}
+        className={cn(
+          GHOST_ICON_BTN,
+          'p-0',
+          wake.listening && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+        )}
+        disabled={disabled || wake.pending}
+        onClick={() => {
+          triggerHaptic(wake.listening ? 'close' : 'open')
+          void toggleWakeWord()
+        }}
+        size="icon"
+        type="button"
+        variant="ghost"
+      >
+        {wake.listening ? <Ear size={14} /> : <EarOff size={14} />}
+      </Button>
+    </Tip>
   )
 }
 

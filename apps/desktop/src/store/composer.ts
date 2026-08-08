@@ -21,6 +21,24 @@ export const $composerDraft = atom('')
 export const $composerAttachments = atom<ComposerAttachment[]>([])
 export const $composerTerminalSelections = atom<Record<string, string>>({})
 
+// Latched so wake.detected can request voice before a fresh main composer has
+// finished mounting. Secondary composers never consume this request.
+export const $voiceConversationStartRequest = atom(0)
+let nextVoiceStartRequest = 0
+let handledVoiceStartRequest = 0
+
+export const requestVoiceConversationStart = (): void => $voiceConversationStartRequest.set(++nextVoiceStartRequest)
+
+export const takeVoiceConversationStart = (current: number): boolean => {
+  if (current <= handledVoiceStartRequest) {
+    return false
+  }
+
+  handledVoiceStartRequest = current
+
+  return true
+}
+
 // Per-thread draft stash for the decoupled composer. Session lifecycle never
 // touches this — only ChatBar's scope swap reads/writes it. Text mirrors to
 // localStorage; attachments are memory-only (blobs, upload state).
