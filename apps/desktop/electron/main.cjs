@@ -37,6 +37,7 @@ const {
 const { canImportHermesCli, verifyHermesCli } = require('./backend-probes.cjs')
 const { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } = require('./link-title-window.cjs')
 const { ensureMainWindow } = require('./main-window-lifecycle.cjs')
+const { createWindowRevealController } = require('./window-reveal.cjs')
 const { probeGatewayWebSocket } = require('./gateway-ws-probe.cjs')
 const { adoptServedDashboardToken } = require('./dashboard-token.cjs')
 const { waitForDashboardPort } = require('./backend-ready.cjs')
@@ -5394,6 +5395,27 @@ function focusWindow(win) {
   win.focus()
 }
 
+// Electron can miss `ready-to-show` on remote displays and VMs, leaving a
+// fully-loaded window hidden forever. Prefer the themed reveal event, then use
+// a bounded fallback after renderer load. Caller-specific reveal actions (such
+// as showInactive for the pet overlay) are preserved.
+function wireWindowReveal(win, { show, onRevealed } = {}) {
+  const controller = createWindowRevealController(
+    {
+      isDestroyed: () => win.isDestroyed(),
+      isVisible: () => win.isVisible(),
+      show: show ?? (() => win.show())
+    },
+    { onRevealed }
+  )
+
+  win.once('ready-to-show', controller.reveal)
+  win.webContents.once('did-finish-load', controller.scheduleFallback)
+  win.on('closed', controller.dispose)
+
+  return controller
+}
+
 function spawnSecondaryWindow({ sessionId, watch, newSession } = {}) {
   const icon = getAppIconPath()
   const win = new BrowserWindow({
@@ -5423,9 +5445,7 @@ function spawnSecondaryWindow({ sessionId, watch, newSession } = {}) {
     win.setWindowButtonPosition?.(WINDOW_BUTTON_POSITION)
   }
 
-  win.once('ready-to-show', () => {
-    if (!win.isDestroyed()) win.show()
-  })
+  wireWindowReveal(win)
 
   win.on('will-enter-full-screen', () => sendWindowStateChanged(true))
   win.on('enter-full-screen', () => sendWindowStateChanged(true))
@@ -5543,9 +5563,7 @@ function spawnPetOverlayWindow(bounds) {
 
   wireCommonWindowHandlers(win, { zoom: false })
 
-  win.once('ready-to-show', () => {
-    if (!win.isDestroyed()) win.showInactive()
-  })
+  wireWindowReveal(win, { show: () => win.showInactive() })
 
   win.on('closed', () => {
     if (petOverlayWindow === win) {
@@ -5644,9 +5662,7 @@ function createWindow() {
 
   if (savedWindowState?.isMaximized) mainWindow.maximize()
 
-  mainWindow.once('ready-to-show', () => {
-    if (mainWindow && !mainWindow.isDestroyed()) mainWindow.show()
-  })
+  wireWindowReveal(mainWindow)
 
   mainWindow.on('will-enter-full-screen', () => sendWindowStateChanged(true))
   mainWindow.on('enter-full-screen', () => sendWindowStateChanged(true))

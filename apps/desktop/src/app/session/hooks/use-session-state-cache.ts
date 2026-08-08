@@ -128,17 +128,28 @@ export function useSessionStateCache({
           const previousStoredSessionId = existing.storedSessionId
           existing.storedSessionId = storedSessionId
 
+          const previousStatusId = previousStoredSessionId ?? sessionId
+          const nextStatusId = storedSessionId ?? sessionId
+
           if (storedSessionId) {
             runtimeIdByStoredSessionIdRef.current.set(storedSessionId, sessionId)
+          }
 
-            if (existing.busy) {
-              setSessionWorking(storedSessionId, true)
-            }
+          if (existing.busy) {
+            setSessionWorking(nextStatusId, true)
+          }
+
+          if (existing.needsInput) {
+            setSessionAttention(nextStatusId, true)
+          }
+
+          if (previousStatusId !== nextStatusId) {
+            setSessionWorking(previousStatusId, false)
+            setSessionAttention(previousStatusId, false)
           }
 
           if (previousStoredSessionId) {
             runtimeIdByStoredSessionIdRef.current.delete(previousStoredSessionId)
-            setSessionWorking(previousStoredSessionId, false)
 
             if (storedSessionId) {
               storedSessionIdRedirectsRef.current.set(previousStoredSessionId, resolveStoredSessionId(storedSessionId))
@@ -306,23 +317,30 @@ export function useSessionStateCache({
       const next = updater({ ...previous, messages: previous.messages })
       sessionStateByRuntimeIdRef.current.set(sessionId, next)
 
-      if (previous.storedSessionId !== next.storedSessionId || !next.busy) {
-        setSessionWorking(previous.storedSessionId, false)
+      // A fresh conversation has no persisted id yet. Its runtime id is the id
+      // every renderer surface uses until the backend returns a stored id, so
+      // keep the running/attention projections alive under that fallback and
+      // migrate them when persistence assigns the durable id.
+      const previousStatusId = previous.storedSessionId ?? sessionId
+      const nextStatusId = next.storedSessionId ?? sessionId
+
+      if (previousStatusId !== nextStatusId || !next.busy) {
+        setSessionWorking(previousStatusId, false)
       }
 
-      if (previous.storedSessionId !== next.storedSessionId || !next.needsInput) {
-        setSessionAttention(previous.storedSessionId, false)
+      if (previousStatusId !== nextStatusId || !next.needsInput) {
+        setSessionAttention(previousStatusId, false)
       }
 
-      setSessionWorking(next.storedSessionId, next.busy)
-      setSessionAttention(next.storedSessionId, next.needsInput)
+      setSessionWorking(nextStatusId, next.busy)
+      setSessionAttention(nextStatusId, next.needsInput)
 
       // Every state update is effectively a "still alive" heartbeat for
       // streaming events. The session-store watchdog uses this to keep the
       // working flag alive during long-running turns and to clear it once
       // the stream goes silent.
       if (next.busy) {
-        noteSessionActivity(next.storedSessionId)
+        noteSessionActivity(nextStatusId)
       }
 
       syncSessionStateToView(sessionId, next)

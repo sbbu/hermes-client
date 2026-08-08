@@ -7,6 +7,7 @@ import { $activeGatewayProfile } from '@/store/profile'
 import {
   $activeSessionId,
   $activeSessionStoredIdRotation,
+  $attentionSessionIds,
   $currentFastMode,
   $currentModel,
   $currentProvider,
@@ -14,6 +15,7 @@ import {
   $currentServiceTier,
   $messages,
   $turnStartedAt,
+  $workingSessionIds,
   setActiveSessionStoredIdRotation,
   setCurrentFastMode,
   setCurrentModel,
@@ -76,6 +78,8 @@ describe('useSessionStateCache — per-session turn timer', () => {
     setCurrentReasoningEffort('')
     setCurrentServiceTier('')
     setCurrentFastMode(false)
+    $attentionSessionIds.set([])
+    $workingSessionIds.set([])
   })
 
   afterEach(() => {
@@ -91,6 +95,8 @@ describe('useSessionStateCache — per-session turn timer', () => {
     setCurrentReasoningEffort('')
     setCurrentServiceTier('')
     setCurrentFastMode(false)
+    $attentionSessionIds.set([])
+    $workingSessionIds.set([])
   })
 
   it("keeps a background session's running turn clock and never mirrors it to the view", () => {
@@ -143,6 +149,25 @@ describe('useSessionStateCache — per-session turn timer', () => {
       cache.updateSessionState('fg-runtime', state => ({ ...state, busy: false, turnStartedAt: null }))
     })
     expect($turnStartedAt.get()).toBeNull()
+  })
+
+  it('projects a fresh turn under its runtime id until persistence assigns a stored id', () => {
+    let cache!: Cache
+    render(<Harness activeSessionId="fresh-runtime" onReady={c => (cache = c)} selectedStoredSessionId={null} />)
+
+    act(() => {
+      cache.updateSessionState('fresh-runtime', state => ({ ...state, busy: true, needsInput: true }))
+    })
+
+    expect($workingSessionIds.get()).toContain('fresh-runtime')
+    expect($attentionSessionIds.get()).toContain('fresh-runtime')
+
+    act(() => {
+      cache.ensureSessionState('fresh-runtime', 'stored-one')
+    })
+
+    expect($workingSessionIds.get()).toEqual(['stored-one'])
+    expect($attentionSessionIds.get()).toEqual(['stored-one'])
   })
 
   it("signals an active session's stored-id rotation after compression", () => {

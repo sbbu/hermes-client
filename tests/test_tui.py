@@ -31,6 +31,14 @@ def test_packaged_tui_has_client_branding_and_updater():
     assert stock_tagline not in bundle
 
 
+def test_packaged_tui_has_current_search_and_windows_clipboard_fixes():
+    bundle = packaged_tui_entry().read_text()
+    assert "function scoreSlashMenuItem" in bundle
+    assert "function rankSlashItems" in bundle
+    assert "ToBase64String([System.Text.Encoding]::UTF8.GetBytes((Get-Clipboard -Raw)))" in bundle
+    assert 'Buffer.from(result.stdout.trim(), "base64").toString("utf8")' in bundle
+
+
 def test_run_tui_overrides_inherited_local_agent_env(tmp_path, monkeypatch):
     app_dir = tmp_path / "client-config"
     monkeypatch.chdir(tmp_path)
