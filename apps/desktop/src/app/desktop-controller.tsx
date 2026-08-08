@@ -16,7 +16,7 @@ import { formatRefValue } from '../components/assistant-ui/directive-text'
 import {
   getCronJobs,
   getCronJobsForProfiles,
-  getSessionMessages,
+  getLatestSessionMessages,
   listAllProfileSessions,
   type SessionInfo,
   triggerCronJob
@@ -665,7 +665,7 @@ export function DesktopController() {
 
       for (let index = 0; index < Math.max(1, attempts); index += 1) {
         try {
-          const latest = await getSessionMessages(storedSessionId, storedProfile)
+          const latest = await getLatestSessionMessages(storedSessionId, storedProfile)
           const messages = toChatMessages(latest.messages)
           updateSessionState(
             runtimeSessionId,

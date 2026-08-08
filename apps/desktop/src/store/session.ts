@@ -348,6 +348,8 @@ export const setCurrentCwd = (next: Updater<string>) => {
   persistString(workspaceCwdKey(), $currentCwd.get().trim() || null)
 }
 
+export const setCurrentCwdTransient = (next: Updater<string>) => updateAtom($currentCwd, next)
+
 export const workspaceCwdForNewSession = (): string => {
   if ($connection.get()?.mode === 'remote') {
     return getRememberedWorkspaceCwd()

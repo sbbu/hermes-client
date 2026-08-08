@@ -14,7 +14,7 @@ import {
 import { useStickToBottom } from 'use-stick-to-bottom'
 
 import { useI18n } from '@/i18n'
-import { messageRenderWeight } from '@/lib/render-weight'
+import { messagePaintWeight } from '@/lib/render-weight'
 import { cn } from '@/lib/utils'
 import {
   onScrollToBottomRequest,
@@ -101,7 +101,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
 }) => {
   const messageSignature = useAuiState(s =>
     s.thread.messages
-      .map((message, index) => `${index}:${message.id}:${message.role}:${messageRenderWeight(message.content)}`)
+      .map((message, index) => `${index}:${message.id}:${message.role}:${messagePaintWeight(message.content)}`)
       .join('\n')
   )
 

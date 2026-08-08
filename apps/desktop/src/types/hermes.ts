@@ -337,6 +337,7 @@ export interface SessionInfo {
   message_count: number
   model: null | string
   output_tokens: number
+  pinned?: boolean
   preview: null | string
   source: null | string
   started_at: number
@@ -388,6 +389,12 @@ export interface SessionMessage {
 
 export interface SessionMessagesResponse {
   messages: SessionMessage[]
+  pagination?: {
+    limit: number
+    offset: number
+    order: 'latest' | 'oldest'
+    returned: number
+  }
   session_id: string
 }
 

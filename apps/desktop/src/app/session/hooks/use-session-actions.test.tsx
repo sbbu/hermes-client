@@ -3,7 +3,7 @@ import type { MutableRefObject } from 'react'
 import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getSessionMessages } from '@/hermes'
+import { getLatestSessionMessages } from '@/hermes'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
 import {
@@ -32,7 +32,7 @@ import { useSessionActions } from './use-session-actions'
 vi.mock('@/hermes', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   deleteSession: vi.fn(),
-  getSessionMessages: vi.fn(),
+  getLatestSessionMessages: vi.fn(),
   listAllProfileSessions: vi.fn(),
   setApiRequestProfile: vi.fn(),
   setSessionArchived: vi.fn()
@@ -436,7 +436,7 @@ describe('resumeSession failure recovery', () => {
     vi.mocked(ensureGatewayProfile).mockImplementationOnce(
       () => new Promise<void>(resolve => (releaseProfile = resolve))
     )
-    vi.mocked(getSessionMessages).mockResolvedValue({ messages: [] } as never)
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({ messages: [] } as never)
     setCurrentModelSource('manual')
 
     const requestGateway = vi.fn(async (method: string) => {
@@ -487,7 +487,7 @@ describe('resumeSession failure recovery', () => {
     })
 
     // ...and the REST transcript fallback also rejects (backend unreachable).
-    vi.mocked(getSessionMessages).mockRejectedValue(new Error('network down'))
+    vi.mocked(getLatestSessionMessages).mockRejectedValue(new Error('network down'))
 
     await runResume(requestGateway)
 
@@ -507,7 +507,7 @@ describe('resumeSession failure recovery', () => {
       return {} as never
     })
 
-    vi.mocked(getSessionMessages).mockResolvedValue({
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({
       messages: [
         { content: 'hello', role: 'user', timestamp: 1 },
         { content: 'hi there', role: 'assistant', timestamp: 2 }
@@ -534,7 +534,7 @@ describe('resumeSession failure recovery', () => {
       return {} as never
     })
 
-    vi.mocked(getSessionMessages).mockRejectedValue(new Error('network down'))
+    vi.mocked(getLatestSessionMessages).mockRejectedValue(new Error('network down'))
 
     // resumeSession must resolve (swallow the fallback failure), not reject.
     await expect(runResume(requestGateway)).resolves.toBeUndefined()
@@ -555,7 +555,7 @@ describe('resumeSession failure recovery', () => {
       return {} as never
     })
 
-    vi.mocked(getSessionMessages).mockResolvedValue({ messages: [] } as never)
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({ messages: [] } as never)
 
     await runResume(requestGateway)
 

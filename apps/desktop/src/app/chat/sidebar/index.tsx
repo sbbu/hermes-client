@@ -224,14 +224,19 @@ function orderByIds<T>(items: T[], getId: (item: T) => string, orderIds: string[
     }
   }
 
-  // Items missing from the persisted order are new since it was last
-  // reconciled. Callers pass recency-sorted lists (newest first), so surface
-  // these at the TOP instead of burying them beneath the saved order —
-  // otherwise a brand-new session sinks to the bottom of the sidebar and reads
-  // as "my latest session never showed up".
-  const fresh = items.filter(item => !seen.has(getId(item)))
+  const firstOrdered = items.findIndex(item => seen.has(getId(item)))
+  const newer: T[] = []
+  const older: T[] = []
 
-  return fresh.length ? [...fresh, ...ordered] : ordered
+  items.forEach((item, index) => {
+    if (seen.has(getId(item))) {
+      return
+    }
+
+    ;(firstOrdered >= 0 && index < firstOrdered ? newer : older).push(item)
+  })
+
+  return [...newer, ...ordered, ...older]
 }
 
 function reconcileOrderIds(currentIds: string[], orderIds: string[]): string[] {
@@ -246,13 +251,17 @@ function reconcileOrderIds(currentIds: string[], orderIds: string[]): string[] {
   const current = new Set(currentIds)
   const retained = orderIds.filter(id => current.has(id))
   const retainedSet = new Set(retained)
+  const firstRetained = currentIds.findIndex(id => retainedSet.has(id))
+  const newer: string[] = []
+  const older: string[] = []
 
-  // New ids (absent from the saved order) are the newest sessions/groups; keep
-  // them ahead of the persisted order so fresh activity surfaces at the top of
-  // the sidebar rather than being appended to the bottom.
-  const fresh = currentIds.filter(id => !retainedSet.has(id))
+  currentIds.forEach((id, index) => {
+    if (!retainedSet.has(id)) {
+      ;(firstRetained >= 0 && index < firstRetained ? newer : older).push(id)
+    }
+  })
 
-  return [...fresh, ...retained]
+  return [...newer, ...retained, ...older]
 }
 
 function sameIds(left: string[], right: string[]) {
@@ -470,7 +479,19 @@ export function ChatSidebar({
     return out
   }, [pinnedSessionIds, sessionByAnyId])
 
-  const pinnedRealIdSet = useMemo(() => new Set(pinnedSessions.map(s => s.id)), [pinnedSessions])
+  const pinnedIdentitySet = useMemo(() => {
+    const ids = new Set(pinnedSessionIds)
+
+    for (const session of pinnedSessions) {
+      ids.add(session.id)
+
+      if (session._lineage_root_id) {
+        ids.add(session._lineage_root_id)
+      }
+    }
+
+    return ids
+  }, [pinnedSessionIds, pinnedSessions])
 
   const searchResults = useMemo(() => {
     if (!trimmedQuery) {
@@ -506,8 +527,13 @@ export function ChatSidebar({
   }, [trimmedQuery, sortedSessions, serverMatches])
 
   const unpinnedAgentSessions = useMemo(
-    () => sortedSessions.filter(s => !pinnedRealIdSet.has(s.id)),
-    [sortedSessions, pinnedRealIdSet]
+    () =>
+      sortedSessions.filter(
+        session =>
+          !pinnedIdentitySet.has(session.id) &&
+          !(session._lineage_root_id && pinnedIdentitySet.has(session._lineage_root_id))
+      ),
+    [sortedSessions, pinnedIdentitySet]
   )
 
   useEffect(() => {
@@ -912,7 +938,7 @@ export function ChatSidebar({
             {!trimmedQuery && (
               <SidebarSessionsSection
                 activeSessionId={activeSidebarSessionId}
-                contentClassName={cn('flex max-h-44 flex-col gap-px rounded-lg pb-2 pt-1', GROUP_BODY)}
+                contentClassName="flex flex-col gap-px rounded-lg pb-2 pt-1"
                 dndSensors={dndSensors}
                 emptyState={<SidebarPinnedEmptyState />}
                 label={s.pinned}
@@ -1251,7 +1277,8 @@ function SidebarSessionsSection({
   // Sessions inside repos/worktrees are date-ordered and static.
   const renderRows = (items: SessionInfo[]) => items.map(session => renderRow(session, false))
 
-  const flatVirtualized = !showEmptyState && !groups?.length && !tree?.length && sessions.length >= VIRTUALIZE_THRESHOLD
+  const flatVirtualized =
+    !pinned && !showEmptyState && !groups?.length && !tree?.length && sessions.length >= VIRTUALIZE_THRESHOLD
 
   let inner: React.ReactNode
 

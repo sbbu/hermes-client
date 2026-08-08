@@ -11,7 +11,15 @@ export function resolveManualSessionOrderIds(currentIds: string[], orderIds: str
   }
 
   const retainedSet = new Set(retained)
-  const fresh = currentIds.filter(id => !retainedSet.has(id))
+  const firstRetained = currentIds.findIndex(id => retainedSet.has(id))
+  const newer: string[] = []
+  const older: string[] = []
 
-  return [...fresh, ...retained]
+  currentIds.forEach((id, index) => {
+    if (!retainedSet.has(id)) {
+      ;(firstRetained >= 0 && index < firstRetained ? newer : older).push(id)
+    }
+  })
+
+  return [...newer, ...retained, ...older]
 }

@@ -221,9 +221,23 @@ export function unpinSession(sessionId: string) {
 export function setPinnedSessionOrder(ids: string[]) {
   const prev = $pinnedSessionIds.get()
   const pinned = new Set(prev)
-  const next = ids.filter(id => pinned.has(id))
+  const moving = ids.filter(id => pinned.has(id))
 
-  if (next.length === prev.length && !arraysEqual(prev, next)) {
+  if (!moving.length) {
+    return
+  }
+
+  const movingSet = new Set(moving)
+  const next = [...prev]
+  let cursor = 0
+
+  prev.forEach((id, index) => {
+    if (movingSet.has(id)) {
+      next[index] = moving[cursor++]
+    }
+  })
+
+  if (!arraysEqual(prev, next)) {
     $pinnedSessionIds.set(next)
   }
 }

@@ -763,9 +763,33 @@ export function usePromptActions({
       }
 
       try {
-        const syncedAttachments = await syncAttachmentsForSubmit(sessionId, attachments, {
-          updateComposerAttachments: usingComposerAttachments
-        })
+        let syncedAttachments: ComposerAttachment[]
+
+        try {
+          syncedAttachments = await syncAttachmentsForSubmit(sessionId, attachments, {
+            updateComposerAttachments: usingComposerAttachments
+          })
+        } catch (firstErr) {
+          if (!isSessionNotFoundError(firstErr) || !startingStoredSessionId) {
+            throw firstErr
+          }
+
+          const resumed = await requestGateway<{ session_id: string }>('session.resume', {
+            session_id: startingStoredSessionId,
+            source: 'desktop',
+            omit_messages: true
+          })
+
+          if (!resumed?.session_id || sessionContextDrifted()) {
+            throw firstErr
+          }
+
+          sessionId = resumed.session_id
+          activeSessionIdRef.current = sessionId
+          syncedAttachments = await syncAttachmentsForSubmit(sessionId, attachments, {
+            updateComposerAttachments: usingComposerAttachments
+          })
+        }
 
         if (sessionContextDrifted()) {
           return abortForSessionSwitch(sessionId)

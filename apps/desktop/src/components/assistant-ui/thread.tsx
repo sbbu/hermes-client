@@ -97,6 +97,7 @@ import { LinkifiedText } from '@/lib/external-link'
 import { triggerHaptic } from '@/lib/haptics'
 import { GitBranchIcon, Loader2Icon, Volume2Icon, VolumeXIcon, XIcon } from '@/lib/icons'
 import { extractPreviewTargets } from '@/lib/preview-targets'
+import { separateGluedReasoningBlocks } from '@/lib/reasoning-blocks'
 import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 import { playSpeechText, stopVoicePlayback } from '@/lib/voice-playback'
@@ -608,7 +609,7 @@ const ReasoningTextPart: FC = () => {
   const part = useMessagePartReasoning() as { text?: string; status?: { type?: string } }
   const messageRunning = useAuiState(s => s.message.status?.type === 'running')
   const isRunning = part.status?.type === 'running' || messageRunning
-  const displayText = (part.text ?? '').trimStart()
+  const displayText = separateGluedReasoningBlocks((part.text ?? '').trimStart())
 
   return (
     <MarkdownTextContent

@@ -1,5 +1,5 @@
 import type { ChatMessage } from '@/lib/chat-messages'
-import { messageRenderWeight } from '@/lib/render-weight'
+import { messageStoreWeight } from '@/lib/render-weight'
 
 export const TRANSCRIPT_WINDOW_BUDGET = 1200
 export const TRANSCRIPT_WINDOW_MIN_MESSAGES = 30
@@ -48,7 +48,7 @@ export function selectTranscriptWindow(messages: readonly ChatMessage[], pages =
   let minimumWeight = 0
 
   for (let i = minimumStart; i < messages.length; i++) {
-    minimumWeight += messageRenderWeight(messages[i].parts)
+    minimumWeight += messageStoreWeight(messages[i].parts)
   }
 
   // The first page is whichever is larger: one normal budget or the mandatory
@@ -58,7 +58,7 @@ export function selectTranscriptWindow(messages: readonly ChatMessage[], pages =
   let weight = 0
 
   for (let i = messages.length - 1; i >= 0; i--) {
-    weight += messageRenderWeight(messages[i].parts)
+    weight += messageStoreWeight(messages[i].parts)
     start = i
 
     if (weight >= firstBudget && i <= minimumStart) {
@@ -76,7 +76,7 @@ export function selectTranscriptWindow(messages: readonly ChatMessage[], pages =
     let nextStart = start
 
     for (let i = start - 1; i >= 0; i--) {
-      pageWeight += messageRenderWeight(messages[i].parts)
+      pageWeight += messageStoreWeight(messages[i].parts)
       nextStart = i
 
       if (pageWeight >= TRANSCRIPT_WINDOW_BUDGET) {

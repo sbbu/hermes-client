@@ -3,7 +3,7 @@ import type { MutableRefObject } from 'react'
 import { useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 
-import { deleteSession, getSession, getSessionMessages, setSessionArchived } from '@/hermes'
+import { deleteSession, getLatestSessionMessages, getSession, setSessionArchived } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { normalizePersonalityValue } from '@/lib/chat-runtime'
@@ -39,6 +39,7 @@ import {
   setBusy,
   setCurrentBranch,
   setCurrentCwd,
+  setCurrentCwdTransient,
   setCurrentFastMode,
   setCurrentModel,
   setCurrentModelSource,
@@ -312,8 +313,13 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
     sessionState.provider = info.provider
   }
 
-  if (info.cwd) {
-    setCurrentCwd(info.cwd)
+  if (typeof info.cwd === 'string') {
+    if (info.cwd) {
+      setCurrentCwd(info.cwd)
+    } else {
+      setCurrentCwdTransient('')
+    }
+
     sessionState.cwd = info.cwd
   }
 
@@ -353,7 +359,7 @@ function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeS
 }
 
 function applyStoredSessionPreviewRuntimeInfo(
-  stored: { model?: null | string } | undefined,
+  stored: { cwd?: null | string; model?: null | string } | undefined,
   preserveComposerIntent = false
 ) {
   if (!preserveComposerIntent) {
@@ -366,6 +372,16 @@ function applyStoredSessionPreviewRuntimeInfo(
 
   setYoloActive(false)
   setCurrentPersonality('')
+
+  const storedCwd = stored?.cwd?.trim() || ''
+
+  if (storedCwd) {
+    setCurrentCwd(storedCwd)
+  } else {
+    setCurrentCwdTransient('')
+  }
+
+  setCurrentBranch('')
 }
 
 export function useSessionActions({
@@ -776,7 +792,7 @@ export function useSessionActions({
         // max(prefetch, resume) instead of their sum. The prefetch paints the
         // transcript as soon as it lands; the RPC binds the runtime id.
         // Watch windows skip the prefetch — lazy resume attaches the live mirror.
-        const prefetchPromise = watchWindow ? null : getSessionMessages(storedSessionId, sessionProfile)
+        const prefetchPromise = watchWindow ? null : getLatestSessionMessages(storedSessionId, sessionProfile)
 
         const resumePromise = requestGateway<SessionResumeResponse>('session.resume', {
           session_id: storedSessionId,
@@ -866,7 +882,7 @@ export function useSessionActions({
         // forever (messagesEmpty && !activeSessionId) with no recovery path —
         // the "open in new window stays stuck loading, even after a nap" bug.
         try {
-          const fallback = await getSessionMessages(storedSessionId, sessionProfile)
+          const fallback = await getLatestSessionMessages(storedSessionId, sessionProfile)
 
           if (!isCurrentResume()) {
             return

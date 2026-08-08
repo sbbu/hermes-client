@@ -7,9 +7,11 @@ import {
   AUDIO_TRANSCRIBE_MIN_REQUEST_TIMEOUT_MS,
   audioSpeakRequestTimeoutMs,
   audioTranscribeRequestTimeoutMs,
+  getAllSessionMessages,
   getCronJobs,
   getCronJobsForProfiles,
   getGlobalModelOptions,
+  getLatestSessionMessages,
   getSessionMessages,
   listAllProfileSessions,
   listSessions,
@@ -116,6 +118,46 @@ describe('Hermes REST session helpers', () => {
     expect(api).toHaveBeenCalledWith({
       path: '/api/sessions/session-1/messages?profile=xiaoxuxu',
       profile: 'xiaoxuxu'
+    })
+  })
+
+  it('passes bounded transcript pagination through to the backend', async () => {
+    api.mockResolvedValue({ messages: [], session_id: 'session-1' })
+
+    await getSessionMessages('session-1', 'xiaoxuxu', { limit: 500, offset: 1000, order: 'latest' })
+
+    expect(api).toHaveBeenCalledWith({
+      path: '/api/sessions/session-1/messages?profile=xiaoxuxu&limit=500&offset=1000&order=latest',
+      profile: 'xiaoxuxu'
+    })
+  })
+
+  it('requests only the latest bounded transcript for interactive resume', async () => {
+    api.mockResolvedValue({ messages: [], session_id: 'session-1' })
+
+    await getLatestSessionMessages('session-1')
+
+    expect(api).toHaveBeenCalledWith({ path: '/api/sessions/session-1/messages?limit=500&order=latest' })
+  })
+
+  it('loads complete transcripts through bounded oldest-first pages', async () => {
+    api
+      .mockResolvedValueOnce({
+        messages: Array.from({ length: 500 }, (_, id) => ({ id })),
+        session_id: 'session-1',
+        pagination: { limit: 500, offset: 0, order: 'oldest', returned: 500 }
+      })
+      .mockResolvedValueOnce({
+        messages: [{ id: 500 }],
+        session_id: 'session-1',
+        pagination: { limit: 500, offset: 500, order: 'oldest', returned: 1 }
+      })
+
+    const result = await getAllSessionMessages('session-1')
+
+    expect(result.messages).toHaveLength(501)
+    expect(api).toHaveBeenNthCalledWith(2, {
+      path: '/api/sessions/session-1/messages?limit=500&offset=500&order=oldest'
     })
   })
 

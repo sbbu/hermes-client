@@ -17,6 +17,16 @@ export interface ArtifactRecord {
   timestamp: number
 }
 
+export interface ArtifactLoadFailure {
+  error: unknown
+  session: SessionInfo
+}
+
+export interface ArtifactLoadResult {
+  artifacts: ArtifactRecord[]
+  failures: ArtifactLoadFailure[]
+}
+
 const MARKDOWN_IMAGE_RE = /!\[([^\]]*)\]\(([^)\s]+)\)/g
 const MARKDOWN_LINK_RE = /\[([^\]]+)\]\(([^)\s]+)\)/g
 const URL_RE = /https?:\/\/[^\s<>"')]+/g
@@ -279,4 +289,23 @@ export function collectArtifactsForSession(session: SessionInfo, messages: Sessi
   }
 
   return Array.from(found.values())
+}
+
+export async function loadArtifactsForSessions(
+  sessions: SessionInfo[],
+  loadMessages: (session: SessionInfo) => Promise<SessionMessage[]>
+): Promise<ArtifactLoadResult> {
+  const artifacts: ArtifactRecord[] = []
+  const failures: ArtifactLoadFailure[] = []
+
+  for (const session of sessions) {
+    try {
+      const messages = await loadMessages(session)
+      artifacts.push(...collectArtifactsForSession(session, messages))
+    } catch (error) {
+      failures.push({ error, session })
+    }
+  }
+
+  return { artifacts, failures }
 }

@@ -931,6 +931,63 @@ describe('usePromptActions sleep/wake session recovery', () => {
     vi.restoreAllMocks()
   })
 
+  it('resumes and retries attachment sync when file.attach reports a stale runtime session', async () => {
+    $connection.set({ mode: 'remote' } as never)
+    Object.defineProperty(window, 'hermesDesktop', {
+      configurable: true,
+      value: { readFileDataUrl: vi.fn(async () => 'data:text/plain;base64,aGVsbG8=') }
+    })
+
+    const calls: { method: string; params?: Record<string, unknown> }[] = []
+    let attachAttempts = 0
+
+    const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
+      calls.push({ method, params })
+
+      if (method === 'file.attach') {
+        attachAttempts += 1
+
+        if (attachAttempts === 1) {
+          throw new Error('session not found')
+        }
+
+        return { attached: true, ref_text: '@file:data/report.txt', uploaded: true } as never
+      }
+
+      if (method === 'session.resume') {
+        return { session_id: RECOVERED_SESSION_ID } as never
+      }
+
+      return {} as never
+    })
+
+    let handle: HarnessHandle | null = null
+    render(
+      <Harness
+        onReady={h => (handle = h)}
+        refreshSessions={async () => undefined}
+        requestGateway={requestGateway}
+        storedSessionId={STORED_SESSION_ID}
+      />
+    )
+
+    const ok = await handle!.submitText('read this', {
+      attachments: [
+        {
+          id: 'file:report.txt',
+          kind: 'file',
+          label: 'report.txt',
+          path: '/Users/example/Downloads/report.txt'
+        }
+      ]
+    })
+
+    expect(ok).toBe(true)
+    expect(calls.map(call => call.method)).toEqual(['file.attach', 'session.resume', 'file.attach', 'prompt.submit'])
+    expect(calls[2]?.params?.session_id).toBe(RECOVERED_SESSION_ID)
+    expect(calls[3]?.params).toMatchObject({ session_id: RECOVERED_SESSION_ID })
+  })
+
   it('resumes the stored session and retries once when prompt.submit reports "session not found"', async () => {
     // After sleep/wake the gateway's in-memory session table is cleared, so the
     // first prompt.submit with the stale runtime id fails. The hook resumes the
