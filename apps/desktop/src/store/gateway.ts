@@ -26,8 +26,10 @@ const isOpen = (gateway: HermesGateway | null): boolean => gateway?.connectionSt
 // the instance threaded down through props.
 export const $gateway = atom<HermesGateway | null>(null)
 
+type ProfiledGatewayEvent = GatewayEvent & { profile?: string }
+
 interface RegistryConfig {
-  onEvent: (event: GatewayEvent) => void
+  onEvent: (event: ProfiledGatewayEvent) => void
 }
 
 let config: RegistryConfig | null = null
@@ -164,7 +166,10 @@ function createSecondary(profile: string): Secondary {
     wantOpen: true
   }
 
-  entry.offEvent = gateway.onEvent(event => config?.onEvent(event))
+  // Preserve socket ownership on pooled-profile events. Compression can rotate
+  // stored ids after the foreground switches profiles; consumers need this
+  // identity to reject stale route-lineage updates.
+  entry.offEvent = gateway.onEvent(event => config?.onEvent({ ...event, profile }))
   entry.offState = gateway.onState(state => {
     reportGatewayState(profile, state)
 

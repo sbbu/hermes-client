@@ -13,6 +13,27 @@ import {
 } from './chat-messages'
 
 describe('toChatMessages', () => {
+  it('rebuilds the full command from a gateway tool row carrying args', () => {
+    const longCommand = `echo ${'x'.repeat(200)}`
+
+    const messages = toChatMessages([
+      { role: 'user', content: 'run it', timestamp: 1 },
+      {
+        role: 'tool',
+        name: 'terminal',
+        content: '',
+        context: `${longCommand.slice(0, 79)}…`,
+        args: { command: longCommand },
+        timestamp: 2
+      }
+    ])
+
+    const toolPart = messages.flatMap(message => message.parts).find(part => part.type === 'tool-call')
+
+    expect(toolPart).toBeDefined()
+    expect((toolPart as { args: { command?: string } }).args.command).toBe(longCommand)
+  })
+
   it('keeps a turn with interleaved tool-only rows in a single bubble', () => {
     const messages = toChatMessages([
       { role: 'assistant', content: 'Planning.', timestamp: 1 },

@@ -309,6 +309,7 @@ export interface PaginatedSessions {
 
 export interface RpcEvent<T = unknown> {
   payload?: T
+  profile?: string
   session_id?: string
   type: string
 }
@@ -370,6 +371,8 @@ export type TimelineDisplayMetadata =
     }
 
 export interface SessionMessage {
+  /** Full arguments for a projected tool row; `context` remains its short preview. */
+  args?: unknown
   codex_reasoning_items?: unknown
   content: unknown
   context?: unknown

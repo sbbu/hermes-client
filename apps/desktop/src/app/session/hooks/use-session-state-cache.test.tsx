@@ -221,6 +221,23 @@ describe('useSessionStateCache — per-session turn timer', () => {
     expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-A')
   })
 
+  it('rejects a late stored-id rotation from a background profile', () => {
+    let cache!: Cache
+    $activeGatewayProfile.set('profile-a')
+    render(<Harness activeSessionId="runtime-A" onReady={c => (cache = c)} selectedStoredSessionId="stored-A" />)
+
+    act(() => {
+      cache.ensureSessionState('runtime-A', 'stored-A', 'profile-a')
+      cache.ensureSessionState('runtime-A', 'stored-B', 'profile-a')
+      setActiveSessionStoredIdRotation(null)
+      $activeGatewayProfile.set('profile-b')
+      cache.ensureSessionState('runtime-A', 'stored-C', 'profile-a')
+    })
+
+    expect(cache.resolveStoredSessionId('stored-B')).toBe('stored-B')
+    expect($activeSessionStoredIdRotation.get()).toBeNull()
+  })
+
   it('mirrors the focused session model metadata when switching from a cached session', () => {
     let cache!: Cache
 

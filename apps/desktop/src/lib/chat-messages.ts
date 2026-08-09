@@ -685,7 +685,11 @@ function applyStoredToolResultToParts(parts: ChatMessagePart[], toolMessage: Ses
 function storedToolMessagePart(toolMessage: SessionMessage, fallbackIndex: number): ChatMessagePart {
   const name = toolMessage.tool_name || toolMessage.name || 'tool'
   const context = textFromUnknown(toolMessage.context || toolMessage.text || toolMessage.content || '')
-  const args = context ? { context } : {}
+  // `context` is only an 80-character display preview. Prefer the full
+  // gateway-projected arguments so expanding a stored tool row can recover the
+  // complete command, while retaining the preview for the collapsed title.
+  const storedArgs = parseMaybeJsonObject(toolMessage.args)
+  const args = { ...storedArgs, ...(context ? { context } : {}) }
 
   return {
     type: 'tool-call',

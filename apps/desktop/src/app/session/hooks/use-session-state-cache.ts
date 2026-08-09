@@ -5,7 +5,7 @@ import type { ChatMessage } from '@/lib/chat-messages'
 import { preserveLocalAssistantErrors } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { setMutableRef } from '@/lib/mutable-ref'
-import { $activeGatewayProfile } from '@/store/profile'
+import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import {
   $activeSessionId,
   $busy,
@@ -69,7 +69,7 @@ export function useSessionStateCache({
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
   const storedSessionIdRedirectsRef = useRef(new Map<string, string>())
-  const redirectsProfileRef = useRef(activeGatewayProfile)
+  const redirectsProfileRef = useRef(normalizeProfileKey(activeGatewayProfile))
   const pendingViewStateRef = useRef<{ sessionId: string; state: ClientSessionState } | null>(null)
   const viewSyncRafRef = useRef<number | null>(null)
   // Runtime id whose transcript currently occupies `$messages` — lets the
@@ -88,39 +88,55 @@ export function useSessionStateCache({
     selectedStoredSessionIdRef.current = selectedStoredSessionId
   }, [selectedStoredSessionId])
 
-  useEffect(() => {
-    if (redirectsProfileRef.current !== activeGatewayProfile) {
+  const syncRedirectProfile = useCallback(() => {
+    const currentProfile = normalizeProfileKey($activeGatewayProfile.get())
+
+    if (redirectsProfileRef.current !== currentProfile) {
       storedSessionIdRedirectsRef.current.clear()
-      redirectsProfileRef.current = activeGatewayProfile
+      redirectsProfileRef.current = currentProfile
     }
-  }, [activeGatewayProfile])
-
-  const resolveStoredSessionId = useCallback((storedSessionId: string): string => {
-    const visited: string[] = []
-    let current = storedSessionId
-
-    while (!visited.includes(current)) {
-      visited.push(current)
-      const next = storedSessionIdRedirectsRef.current.get(current)
-
-      if (!next || next === current) {
-        break
-      }
-
-      current = next
-    }
-
-    for (const alias of visited) {
-      if (alias !== current) {
-        storedSessionIdRedirectsRef.current.set(alias, current)
-      }
-    }
-
-    return current
   }, [])
 
+  useEffect(syncRedirectProfile, [activeGatewayProfile, syncRedirectProfile])
+
+  const resolveStoredSessionId = useCallback(
+    (storedSessionId: string): string => {
+      // Effects run after render. Fence profile identity synchronously so an old
+      // profile's aliases cannot redirect a route during the switch commit.
+      syncRedirectProfile()
+      const visited: string[] = []
+      const seen = new Set<string>()
+      let current = storedSessionId
+
+      while (true) {
+        if (seen.has(current)) {
+          return storedSessionId
+        }
+
+        seen.add(current)
+        visited.push(current)
+        const next = storedSessionIdRedirectsRef.current.get(current)
+
+        if (!next || next === current) {
+          break
+        }
+
+        current = next
+      }
+
+      for (const alias of visited) {
+        if (alias !== current) {
+          storedSessionIdRedirectsRef.current.set(alias, current)
+        }
+      }
+
+      return current
+    },
+    [syncRedirectProfile]
+  )
+
   const ensureSessionState = useCallback(
-    (sessionId: string, storedSessionId?: string | null) => {
+    (sessionId: string, storedSessionId?: string | null, sourceProfile?: string | null) => {
       const existing = sessionStateByRuntimeIdRef.current.get(sessionId)
 
       if (existing) {
@@ -152,9 +168,19 @@ export function useSessionStateCache({
             runtimeIdByStoredSessionIdRef.current.delete(previousStoredSessionId)
 
             if (storedSessionId) {
-              storedSessionIdRedirectsRef.current.set(previousStoredSessionId, resolveStoredSessionId(storedSessionId))
+              syncRedirectProfile()
 
-              if (sessionId === $activeSessionId.get()) {
+              const rotationBelongsToActiveProfile =
+                !sourceProfile || normalizeProfileKey(sourceProfile) === redirectsProfileRef.current
+
+              if (rotationBelongsToActiveProfile) {
+                storedSessionIdRedirectsRef.current.set(
+                  previousStoredSessionId,
+                  resolveStoredSessionId(storedSessionId)
+                )
+              }
+
+              if (rotationBelongsToActiveProfile && sessionId === $activeSessionId.get()) {
                 setActiveSessionStoredIdRotation({
                   nextStoredSessionId: storedSessionId,
                   previousStoredSessionId,
@@ -177,7 +203,7 @@ export function useSessionStateCache({
 
       return created
     },
-    [resolveStoredSessionId]
+    [resolveStoredSessionId, syncRedirectProfile]
   )
 
   const resetViewSync = useCallback(() => {
@@ -311,9 +337,10 @@ export function useSessionStateCache({
     (
       sessionId: string,
       updater: (state: ClientSessionState) => ClientSessionState,
-      storedSessionId?: string | null
+      storedSessionId?: string | null,
+      sourceProfile?: string | null
     ) => {
-      const previous = ensureSessionState(sessionId, storedSessionId)
+      const previous = ensureSessionState(sessionId, storedSessionId, sourceProfile)
       const next = updater({ ...previous, messages: previous.messages })
       sessionStateByRuntimeIdRef.current.set(sessionId, next)
 

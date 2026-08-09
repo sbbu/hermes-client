@@ -82,7 +82,8 @@ interface MessageStreamOptions {
   updateSessionState: (
     sessionId: string,
     updater: (state: ClientSessionState) => ClientSessionState,
-    storedSessionId?: string | null
+    storedSessionId?: string | null,
+    sourceProfile?: string | null
   ) => ClientSessionState
 }
 
@@ -920,7 +921,8 @@ export function useMessageStream({
               branch: statePatch.branch ?? state.branch,
               cwd: statePatch.cwd ?? state.cwd
             }),
-            payload?.stored_session_id || undefined
+            payload?.stored_session_id || undefined,
+            event.profile
           )
         }
 
@@ -964,7 +966,8 @@ export function useMessageStream({
                 turnStartedAt: null
               }
             },
-            payload?.stored_session_id || undefined
+            payload?.stored_session_id || undefined,
+            event.profile
           )
         }
 

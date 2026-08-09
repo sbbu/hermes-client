@@ -41,6 +41,10 @@ import {
 } from '@/store/session'
 import type { RpcEvent } from '@/types/hermes'
 
+// A dropped remote gateway must eventually expose the recoverable boot-error
+// surface instead of retrying forever behind the fullscreen connecting state.
+const RECONNECT_ESCALATE_AFTER_MS = 45_000
+
 interface GatewayBootOptions {
   handleGatewayEvent: (event: RpcEvent) => void
   onConnectionReady: (
@@ -102,10 +106,12 @@ export function useGatewayBoot({
     let reconnecting = false
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let reconnectAttempt = 0
+    let reconnectFailingSince: number | null = null
     // Surface "sign in again" once per disconnect episode, not on every backoff
     // tick — a stale OAuth ticket fails every attempt and would otherwise stack
     // identical error toasts (and their haptics). Reset on the next clean open.
     let reauthNotified = false
+    let escalated = false
 
     // Wrap the live getter in a call so TS control-flow analysis doesn't narrow
     // `connectionState` to a constant across the early-return guards (the state
@@ -156,6 +162,7 @@ export function useGatewayBoot({
         }
 
         reconnectAttempt = 0
+        reconnectFailingSince = null
         // Resync state that may have moved on the backend while we were asleep.
         await Promise.all([
           callbacksRef.current.refreshHermesConfig().catch(() => undefined),
@@ -174,6 +181,15 @@ export function useGatewayBoot({
         reconnecting = false
 
         if (!cancelled && !gatewayOpen()) {
+          if (reconnectFailingSince === null) {
+            reconnectFailingSince = Date.now()
+          }
+
+          if (Date.now() - reconnectFailingSince >= RECONNECT_ESCALATE_AFTER_MS && !escalated) {
+            escalated = true
+            failDesktopBoot(translateNow('boot.errors.gatewayConnectionLost'))
+          }
+
           scheduleReconnect()
         }
       }
@@ -199,6 +215,8 @@ export function useGatewayBoot({
 
       clearReconnectTimer()
       reconnectAttempt = 0
+      reconnectFailingSince = null
+      escalated = false
       reconnectSecondaryGateways()
 
       if (!gatewayOpen()) {
@@ -231,7 +249,9 @@ export function useGatewayBoot({
 
       if (st === 'open') {
         reconnectAttempt = 0
+        reconnectFailingSince = null
         reauthNotified = false
+        escalated = false
         clearReconnectTimer()
 
         // A revalidate-driven reconnect can rebuild the backend in place when the
@@ -249,7 +269,11 @@ export function useGatewayBoot({
       }
     })
 
-    const offEvent = gateway.onEvent(event => callbacksRef.current.handleGatewayEvent(event))
+    const sourceProfile = normalizeProfileKey($activeGatewayProfile.get())
+
+    const offEvent = gateway.onEvent(event =>
+      callbacksRef.current.handleGatewayEvent({ ...event, profile: sourceProfile })
+    )
 
     // Wake signals: power resume (macOS/Windows), network coming back, and the
     // window regaining focus/visibility. Each nudges an immediate reconnect.
