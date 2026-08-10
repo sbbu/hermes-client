@@ -91,3 +91,50 @@ export function selectTranscriptWindow(messages: readonly ChatMessage[], pages =
     ? { messages: messages as ChatMessage[], windowed: false }
     : { messages: messages.slice(start), windowed: true }
 }
+
+/** How far a sticky transcript cut may grow before it is recalculated. */
+export const TRANSCRIPT_WINDOW_SLACK = TRANSCRIPT_WINDOW_BUDGET / 2
+
+export interface TranscriptWindowState {
+  anchorId: null | string
+  pages: number
+  window: TranscriptWindow
+}
+
+/**
+ * Keep the transcript's leading cut stable while the active message streams.
+ * Re-cutting on every token shifts every row and turns an O(1) tail update into
+ * an O(window) repository rebuild.
+ */
+export function advanceTranscriptWindow(
+  previous: null | TranscriptWindowState,
+  messages: readonly ChatMessage[],
+  pages = 1
+): TranscriptWindowState {
+  const pageCount = Math.max(1, Math.floor(pages))
+
+  if (previous && previous.pages === pageCount && messages.length > 0) {
+    const start = previous.anchorId === null ? 0 : messages.findIndex(message => message.id === previous.anchorId)
+
+    if (start !== -1) {
+      let weight = 0
+
+      for (let i = messages.length - 1; i >= start; i--) {
+        weight += messageStoreWeight(messages[i].parts)
+      }
+
+      if (weight <= TRANSCRIPT_WINDOW_BUDGET * pageCount + TRANSCRIPT_WINDOW_SLACK) {
+        const window: TranscriptWindow =
+          start === 0
+            ? { messages: messages as ChatMessage[], windowed: previous.anchorId !== null }
+            : { messages: messages.slice(start), windowed: true }
+
+        return { anchorId: previous.anchorId, pages: pageCount, window }
+      }
+    }
+  }
+
+  const window = selectTranscriptWindow(messages, pageCount)
+
+  return { anchorId: window.windowed ? window.messages[0].id : null, pages: pageCount, window }
+}

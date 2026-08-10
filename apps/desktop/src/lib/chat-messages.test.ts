@@ -198,15 +198,29 @@ describe('toChatMessages', () => {
         display_kind: 'async_delegation_complete',
         display_metadata: { delegation_id: 'delegation-1', task_count: 3 },
         timestamp: 5
+      },
+      {
+        role: 'user',
+        content: 'opaque continuation payload',
+        display_kind: 'auto_continue',
+        timestamp: 6
+      },
+      {
+        role: 'user',
+        content: 'opaque personality payload',
+        display_kind: 'personality_switch',
+        timestamp: 7
       }
     ])
 
-    expect(messages.map(message => message.role)).toEqual(['user', 'assistant', 'system', 'system'])
+    expect(messages.map(message => message.role)).toEqual(['user', 'assistant', 'system', 'system', 'system', 'system'])
     expect(messages.map(chatMessageText)).toEqual([
       'real user turn',
       'real assistant reply',
       'model changed',
-      '3 background agents finished'
+      '3 background agents finished',
+      'resumed interrupted turn',
+      'personality changed'
     ])
   })
 })

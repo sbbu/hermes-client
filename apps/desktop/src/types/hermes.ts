@@ -376,7 +376,13 @@ export interface SessionMessage {
   codex_reasoning_items?: unknown
   content: unknown
   context?: unknown
-  display_kind?: 'async_delegation_complete' | 'hidden' | 'model_switch' | string
+  display_kind?:
+    | 'async_delegation_complete'
+    | 'auto_continue'
+    | 'hidden'
+    | 'model_switch'
+    | 'personality_switch'
+    | string
   display_metadata?: TimelineDisplayMetadata
   name?: string
   reasoning?: null | string

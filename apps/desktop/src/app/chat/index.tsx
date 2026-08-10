@@ -69,7 +69,7 @@ import { useFileDropZone } from './hooks/use-file-drop-zone'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { SessionActionsMenu } from './sidebar/session-actions-menu'
 import { threadLoadingState } from './thread-loading'
-import { selectTranscriptWindow, visibleOutsideWindowIds } from './transcript-window'
+import { advanceTranscriptWindow, type TranscriptWindowState, visibleOutsideWindowIds } from './transcript-window'
 
 interface ChatViewProps extends Omit<React.ComponentProps<'div'>, 'onSubmit'> {
   gateway: HermesGateway | null
@@ -212,16 +212,21 @@ function ChatRuntimeBoundary({
   const messages = suppressMessages ? NO_MESSAGES : storeMessages
   const [windowPages, setWindowPages] = useState(1)
   const [windowSessionKey, setWindowSessionKey] = useState(sessionKey)
+  const windowStateRef = useRef<null | TranscriptWindowState>(null)
 
   if (windowSessionKey !== sessionKey) {
     setWindowSessionKey(sessionKey)
     setWindowPages(1)
+    windowStateRef.current = null
   }
 
-  const { messages: windowedMessages, windowed } = useMemo(
-    () => selectTranscriptWindow(messages, windowPages),
-    [messages, windowPages]
-  )
+  const { messages: windowedMessages, windowed } = useMemo(() => {
+    const next = advanceTranscriptWindow(windowStateRef.current, messages, windowPages)
+
+    windowStateRef.current = next
+
+    return next.window
+  }, [messages, windowPages])
 
   const runtimeMessageCacheRef = useRef(new WeakMap<ChatMessage, ThreadMessage>())
   const toolMergeCacheRef = useRef(createToolMergeCache())

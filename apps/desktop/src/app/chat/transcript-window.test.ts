@@ -4,10 +4,12 @@ import type { ChatMessage } from '@/lib/chat-messages'
 import { RENDER_WEIGHT_CHARS } from '@/lib/render-weight'
 
 import {
+  advanceTranscriptWindow,
   alignToBranchGroup,
   selectTranscriptWindow,
   TRANSCRIPT_WINDOW_BUDGET,
   TRANSCRIPT_WINDOW_MIN_MESSAGES,
+  TRANSCRIPT_WINDOW_SLACK,
   visibleOutsideWindowIds
 } from './transcript-window'
 
@@ -20,6 +22,50 @@ const message = (id: string, chars: number, branchGroupId?: string): ChatMessage
 
 const transcript = (count: number, chars: number): ChatMessage[] =>
   Array.from({ length: count }, (_, i) => message(`m-${i}`, chars))
+
+describe('advanceTranscriptWindow', () => {
+  const heavyChars = RENDER_WEIGHT_CHARS * 40
+
+  it('holds the cut while a streaming tail grows within slack', () => {
+    const messages = transcript(400, heavyChars)
+    const state = advanceTranscriptWindow(null, messages)
+    const grown = [...messages.slice(0, -1), message('m-399', heavyChars * 2)]
+    const next = advanceTranscriptWindow(state, grown)
+
+    expect(next.anchorId).toBe(state.anchorId)
+    expect(next.window.messages[0].id).toBe(state.window.messages[0].id)
+    expect(next.window.messages.length).toBe(state.window.messages.length)
+  })
+
+  it('re-cuts only after the tail outgrows the slack', () => {
+    const appended = transcript(400, heavyChars)
+    let state = advanceTranscriptWindow(null, appended)
+    let recuts = 0
+
+    for (let i = 0; i < TRANSCRIPT_WINDOW_SLACK + 1; i++) {
+      appended.push(message(`new-${i}`, RENDER_WEIGHT_CHARS))
+      const previous = state
+
+      state = advanceTranscriptWindow(state, appended)
+
+      if (state.anchorId !== previous.anchorId) {
+        recuts++
+      }
+    }
+
+    expect(recuts).toBeGreaterThanOrEqual(1)
+    expect(recuts).toBeLessThan(5)
+  })
+
+  it('re-walks when the anchor disappears or the page count changes', () => {
+    const messages = transcript(400, heavyChars)
+    const one = advanceTranscriptWindow(null, messages)
+    const swapped = transcript(300, heavyChars).map(item => ({ ...item, id: `other-${item.id}` }))
+
+    expect(advanceTranscriptWindow(one, swapped).window).toEqual(selectTranscriptWindow(swapped))
+    expect(advanceTranscriptWindow(one, messages, 2).window.messages.length).toBeGreaterThan(one.window.messages.length)
+  })
+})
 
 describe('selectTranscriptWindow', () => {
   it('preserves an inexpensive transcript and its reference', () => {

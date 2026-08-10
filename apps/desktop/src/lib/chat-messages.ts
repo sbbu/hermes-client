@@ -212,6 +212,14 @@ function timelineDisplayContent(message: SessionMessage, content: string): strin
     return 'model changed'
   }
 
+  if (message.display_kind === 'auto_continue') {
+    return 'resumed interrupted turn'
+  }
+
+  if (message.display_kind === 'personality_switch') {
+    return 'personality changed'
+  }
+
   if (message.display_kind === 'async_delegation_complete') {
     const count =
       message.display_metadata && 'task_count' in message.display_metadata
@@ -821,7 +829,10 @@ export function toChatMessages(messages: SessionMessage[]): ChatMessage[] {
     const displayContent = timelineDisplayContent(message, displayContentForMessage(message.role, content))
 
     const displayRole =
-      message.display_kind === 'model_switch' || message.display_kind === 'async_delegation_complete'
+      message.display_kind === 'model_switch' ||
+      message.display_kind === 'auto_continue' ||
+      message.display_kind === 'personality_switch' ||
+      message.display_kind === 'async_delegation_complete'
         ? 'system'
         : message.role
 
