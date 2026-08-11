@@ -93,6 +93,12 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   },
   revealLogs: () => ipcRenderer.invoke('hermes:logs:reveal'),
   getRecentLogs: () => ipcRenderer.invoke('hermes:logs:recent'),
+  reportRendererError: report =>
+    ipcRenderer.send('hermes:logs:renderer-error', {
+      boundary: typeof report?.boundary === 'string' ? report.boundary.slice(0, 64) : '',
+      message: typeof report?.message === 'string' ? report.message.slice(0, 2000) : '',
+      componentStack: typeof report?.componentStack === 'string' ? report.componentStack.slice(0, 4000) : ''
+    }),
   readDir: dirPath => ipcRenderer.invoke('hermes:fs:readDir', dirPath),
   gitRoot: startPath => ipcRenderer.invoke('hermes:fs:gitRoot', startPath),
   worktrees: cwds => ipcRenderer.invoke('hermes:fs:worktrees', cwds),

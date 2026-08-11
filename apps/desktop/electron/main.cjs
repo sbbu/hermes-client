@@ -37,6 +37,8 @@ const {
 const { canImportHermesCli, verifyHermesCli } = require('./backend-probes.cjs')
 const { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } = require('./link-title-window.cjs')
 const { ensureMainWindow } = require('./main-window-lifecycle.cjs')
+const { attachRendererConsoleCapture, formatRendererBoundaryReport } = require('./renderer-log.cjs')
+const { installWindowRendererLifecycle } = require('./window-renderer-lifecycle.cjs')
 const { createWindowRevealController } = require('./window-reveal.cjs')
 const { probeGatewayWebSocket } = require('./gateway-ws-probe.cjs')
 const { adoptServedDashboardToken } = require('./dashboard-token.cjs')
@@ -754,13 +756,13 @@ const POOL_IDLE_MS = Math.max(60_000, Number(process.env.HERMES_DESKTOP_POOL_IDL
 // killing one to honor the soft cap would abort a running agent.
 const POOL_KEEPALIVE_FRESH_MS = 90_000
 let poolIdleReaper = null
-// Auto-reload budget for renderer crashes. A deterministic startup crash would
-// otherwise loop forever (reload → crash → reload), pinning CPU and spamming
-// logs. Allow a few reloads per rolling window, then stop and leave the dead
-// window so the user can read the error / quit.
+// One process-wide auto-reload budget for every first-party renderer. Without
+// a shared budget, several windows can each sustain their own crash loop.
 const RENDERER_RELOAD_WINDOW_MS = 60_000
 const RENDERER_RELOAD_MAX = 3
-let rendererReloadTimes = []
+const rendererReloadTimesRef = { current: [] }
+const rendererLogSenders = new WeakMap()
+let lastRendererCrashSyncFlushAt = 0
 // Latched bootstrap failure: when the first-launch install fails, we hold
 // onto the error so subsequent startHermes() calls (e.g. the renderer's
 // ensureGatewayOpen retrying after the WS won't open) return the same error
@@ -904,6 +906,11 @@ function rememberLog(chunk) {
   }
 
   scheduleDesktopLogFlush()
+}
+
+function attachFirstPartyRendererLogging(win, label) {
+  rendererLogSenders.set(win.webContents, label)
+  attachRendererConsoleCapture(win, label, rememberLog)
 }
 
 function openExternalUrl(rawUrl) {
@@ -4131,6 +4138,12 @@ function openOauthLoginWindow(baseUrl) {
     win.webContents.on('did-navigate', () => void checkCookie())
     win.webContents.on('did-redirect-navigation', () => void checkCookie())
     win.webContents.on('did-frame-navigate', () => void checkCookie())
+    // Third-party content is lifecycle-only: never persist its console output.
+    installWindowRendererLifecycle(win, {
+      kind: 'oauth',
+      callbacks: { log: rememberLog },
+      redactLoadUrl: true
+    })
     pollTimer = setInterval(() => void checkCookie(), 750)
 
     win.on('closed', () => {
@@ -5454,6 +5467,15 @@ function spawnSecondaryWindow({ sessionId, watch, newSession } = {}) {
 
   wireCommonWindowHandlers(win)
 
+  attachFirstPartyRendererLogging(win, 'session-window')
+  installWindowRendererLifecycle(win, {
+    kind: 'secondary',
+    callbacks: { log: rememberLog, reload: () => win.webContents.reload() },
+    reloadWindowMs: RENDERER_RELOAD_WINDOW_MS,
+    reloadMax: RENDERER_RELOAD_MAX,
+    recentReloadTimesRef: rendererReloadTimesRef
+  })
+
   win.loadURL(
     buildSessionWindowUrl(sessionId, {
       devServer: DEV_SERVER,
@@ -5564,6 +5586,9 @@ function spawnPetOverlayWindow(bounds) {
   wireCommonWindowHandlers(win, { zoom: false })
 
   wireWindowReveal(win, { show: () => win.showInactive() })
+
+  attachFirstPartyRendererLogging(win, 'pet-overlay')
+  installWindowRendererLifecycle(win, { kind: 'overlay', callbacks: { log: rememberLog } })
 
   win.on('closed', () => {
     if (petOverlayWindow === win) {
@@ -5689,50 +5714,14 @@ function createWindow() {
 
   wireCommonWindowHandlers(mainWindow)
 
-  mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    rememberLog(`[renderer] render-process-gone reason=${details?.reason} exitCode=${details?.exitCode}`)
-
-    if (details?.reason === 'crashed' || details?.reason === 'oom') {
-      const now = Date.now()
-      rendererReloadTimes = rendererReloadTimes.filter(t => now - t < RENDERER_RELOAD_WINDOW_MS)
-
-      if (rendererReloadTimes.length >= RENDERER_RELOAD_MAX) {
-        rememberLog(
-          `[renderer] suppressing reload: ${rendererReloadTimes.length} crashes within ${RENDERER_RELOAD_WINDOW_MS}ms (likely a crash loop)`
-        )
-
-        return
-      }
-
-      rendererReloadTimes.push(now)
-      setImmediate(() => {
-        if (!mainWindow || mainWindow.isDestroyed()) return
-        try {
-          mainWindow.webContents.reload()
-        } catch (err) {
-          rememberLog(`[renderer] reload after crash failed: ${err?.message || err}`)
-        }
-      })
-    }
+  installWindowRendererLifecycle(mainWindow, {
+    kind: 'main',
+    callbacks: { log: rememberLog, reload: () => createdMainWindow.webContents.reload() },
+    reloadWindowMs: RENDERER_RELOAD_WINDOW_MS,
+    reloadMax: RENDERER_RELOAD_MAX,
+    recentReloadTimesRef: rendererReloadTimesRef
   })
-
-  mainWindow.webContents.on('unresponsive', () => rememberLog('[renderer] webContents became unresponsive'))
-
-  // Electron always passes the event first. The canonical (Electron 36+) shape
-  // is (event, messageDetails); the deprecated positional shape is
-  // (event, level, message, line, sourceId). Handle both. `level` is numeric
-  // (0..3), where 3 === error.
-  mainWindow.webContents.on('console-message', (_event, detailsOrLevel, message, line, sourceId) => {
-    const details = detailsOrLevel && typeof detailsOrLevel === 'object' ? detailsOrLevel : null
-    const level = details ? details.level : detailsOrLevel
-
-    if (level !== 3) return
-
-    const text = details ? details.message : message
-    const src = details ? details.sourceUrl : sourceId
-    const lineNo = details ? details.lineNumber : line
-    rememberLog(`[renderer console] ${text} (${src}:${lineNo})`)
-  })
+  attachFirstPartyRendererLogging(mainWindow, 'main')
 
   if (DEV_SERVER) {
     mainWindow.loadURL(DEV_SERVER)
@@ -6479,6 +6468,23 @@ ipcMain.handle('hermes:logs:reveal', async () => {
 })
 
 ipcMain.handle('hermes:logs:recent', async () => ({ path: DESKTOP_LOG_PATH, lines: hermesLog.slice(-200) }))
+
+// Persist the React component stack before a crashing renderer disappears.
+ipcMain.on('hermes:logs:renderer-error', (event, report) => {
+  const label = rendererLogSenders.get(event.sender)
+  const senderFrame = event.senderFrame
+  if (!label || !senderFrame || senderFrame !== senderFrame.top || !report || typeof report !== 'object') return
+
+  const boundary = typeof report.boundary === 'string' ? report.boundary : ''
+  const message = typeof report.message === 'string' ? report.message : ''
+  const componentStack = typeof report.componentStack === 'string' ? report.componentStack : ''
+  rememberLog(formatRendererBoundaryReport(label, boundary, message, componentStack))
+  const now = Date.now()
+  if (now - lastRendererCrashSyncFlushAt >= 1_000) {
+    lastRendererCrashSyncFlushAt = now
+    flushDesktopLogBufferSync()
+  }
+})
 
 function isExecutableFile(filePath) {
   if (!filePath || !path.isAbsolute(filePath)) {

@@ -456,9 +456,9 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   const select = (p: OAuthProvider) => void startProviderOAuth(p, ctx)
   const featured = ordered.find(p => p.id === FEATURED_ID) ?? null
   const rest = featured ? ordered.filter(p => p.id !== FEATURED_ID) : ordered
-  // Collapse the secondary providers behind a disclosure only when Nous
-  // Portal is present to anchor the choice — otherwise show the full list.
-  const collapsible = Boolean(featured) && rest.length > 0
+  // Keep API-key choices behind the disclosure whenever Nous Portal anchors
+  // the picker, even when no secondary OAuth provider is available.
+  const collapsible = Boolean(featured)
   const showRest = !collapsible || showAll
 
   return (

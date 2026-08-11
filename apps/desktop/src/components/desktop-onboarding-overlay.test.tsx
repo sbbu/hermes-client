@@ -70,6 +70,15 @@ describe('onboarding Picker', () => {
     expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
   })
 
+  it('keeps API-key providers collapsed when Nous is the only OAuth provider', () => {
+    setProviders([provider('nous', 'Nous Portal')])
+    render(<Picker ctx={ctx} />)
+
+    expect(screen.queryByText('OpenRouter')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
+    expect(screen.getByText('OpenRouter')).toBeTruthy()
+  })
+
   it('shows every provider directly when Nous Portal is absent', () => {
     setProviders([provider('anthropic', 'Anthropic Claude'), provider('openai-codex', 'OpenAI Codex / ChatGPT')])
     render(<Picker ctx={ctx} />)

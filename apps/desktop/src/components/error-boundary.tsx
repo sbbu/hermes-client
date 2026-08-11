@@ -50,8 +50,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    const tag = this.props.label ? `[error-boundary:${this.props.label}]` : '[error-boundary]'
+    const label = this.props.label ?? ''
+    const tag = label ? `[error-boundary:${label}]` : '[error-boundary]'
     console.error(tag, error, info.componentStack)
+
+    try {
+      window.hermesDesktop?.reportRendererError?.({
+        boundary: label || 'unlabeled',
+        message: error.message,
+        componentStack: info.componentStack ?? ''
+      })
+    } catch {
+      // Diagnostics must never take the boundary down with them.
+    }
+
     this.props.onError?.(error, info)
 
     if (this.props.label === 'root' && isTransientAssistantUiLookupError(error) && this.takeAutoRecoveryAttempt()) {

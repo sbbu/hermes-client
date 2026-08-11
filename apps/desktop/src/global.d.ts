@@ -97,6 +97,7 @@ declare global {
       }
       revealLogs: () => Promise<{ ok: boolean; path: string; error?: string }>
       getRecentLogs: () => Promise<{ path: string; lines: string[] }>
+      reportRendererError?: (report: { boundary: string; message: string; componentStack: string }) => void
       readDir: (path: string) => Promise<HermesReadDirResult>
       gitRoot?: (path: string) => Promise<string | null>
       // Resolve git-worktree identity for a batch of session cwds, reading git's
