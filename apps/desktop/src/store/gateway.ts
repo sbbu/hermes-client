@@ -186,6 +186,22 @@ function createSecondary(profile: string): Secondary {
   return entry
 }
 
+async function sharedPrimaryRoute(profile: string): Promise<boolean> {
+  const desktop = window.hermesDesktop
+
+  if (!desktop) {
+    return false
+  }
+
+  try {
+    const conn = await desktop.getConnection(profile)
+
+    return Boolean(conn && typeof conn === 'object' && (conn as { profile?: string }).profile)
+  } catch {
+    return false
+  }
+}
+
 // Make `profile` the active gateway, lazily opening its socket if needed. The
 // primary is a no-op fast path. Background sockets are never closed here.
 export async function ensureGatewayForProfile(profile: string): Promise<void> {
@@ -193,6 +209,12 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
 
   if (key === primaryProfile) {
     setActive(key)
+
+    return
+  }
+
+  if (await sharedPrimaryRoute(key)) {
+    setActive(primaryProfile)
 
     return
   }

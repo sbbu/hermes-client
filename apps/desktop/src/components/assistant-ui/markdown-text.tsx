@@ -13,9 +13,11 @@ import { ExpandableBlock } from '@/components/chat/expandable-block'
 import { PreviewAttachment } from '@/components/chat/preview-attachment'
 import { chunkByLines, SyntaxHighlighter } from '@/components/chat/shiki-highlighter'
 import { ZoomableImage } from '@/components/chat/zoomable-image'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { normalizeExternalUrl, openExternalLink, PrettyLink } from '@/lib/external-link'
 import { createMemoizedMathPlugin } from '@/lib/katex-memo'
 import { parseMarkdownIntoBlocksCached } from '@/lib/markdown-blocks'
+import { clampHtmlNestingDepth } from '@/lib/markdown-html-depth'
 import { preprocessMarkdown } from '@/lib/markdown-preprocess'
 import {
   downloadGatewayMediaFile,
@@ -51,7 +53,7 @@ const mathPlugin = createMemoizedMathPlugin({ singleDollarTextMath: true })
 // module-scope so the prop identity is stable across renders.
 function preprocessWithTailRepair(text: string): string {
   try {
-    return tailBoundedRemend(preprocessMarkdown(text))
+    return tailBoundedRemend(preprocessMarkdown(clampHtmlNestingDepth(text)))
   } catch {
     return text
   }
@@ -481,27 +483,32 @@ function MarkdownTextSurface({ containerClassName, containerProps }: MarkdownTex
   }
 
   return (
-    <StreamdownTextPrimitive
-      components={components}
-      containerClassName={cn(MARKDOWN_CONTAINER_CLASS_NAME, containerClassName)}
-      containerProps={containerProps}
-      lineNumbers={false}
-      mode="streaming"
-      // Incomplete-markdown repair is handled by `preprocessWithTailRepair`
-      // below (tail-bounded remend) instead of Streamdown's built-in pass,
-      // which re-runs remend over the ENTIRE message on every flush — ~18%
-      // of streaming script time on 50KB+ messages. The repair itself stays
-      // always-on (even between flushes / for completed messages): an
-      // unclosed ```python ... ``` whose body contains `$` (shell snippets,
-      // JS template strings, dollar amounts) would otherwise leak those
-      // dollars to the math parser and render broken inline math. Shiki is
-      // independently deferred via `defer={isStreaming}` on the
-      // SyntaxHighlighter component.
-      parseIncompleteMarkdown={false}
-      parseMarkdownIntoBlocksFn={parseMarkdownIntoBlocksCached}
-      plugins={plugins}
-      preprocess={preprocessWithTailRepair}
-    />
+    <ErrorBoundary
+      fallback={() => <HugeTextFallback containerClassName={containerClassName} text={text} />}
+      label="markdown-render"
+    >
+      <StreamdownTextPrimitive
+        components={components}
+        containerClassName={cn(MARKDOWN_CONTAINER_CLASS_NAME, containerClassName)}
+        containerProps={containerProps}
+        lineNumbers={false}
+        mode="streaming"
+        // Incomplete-markdown repair is handled by `preprocessWithTailRepair`
+        // below (tail-bounded remend) instead of Streamdown's built-in pass,
+        // which re-runs remend over the ENTIRE message on every flush — ~18%
+        // of streaming script time on 50KB+ messages. The repair itself stays
+        // always-on (even between flushes / for completed messages): an
+        // unclosed ```python ... ``` whose body contains `$` (shell snippets,
+        // JS template strings, dollar amounts) would otherwise leak those
+        // dollars to the math parser and render broken inline math. Shiki is
+        // independently deferred via `defer={isStreaming}` on the
+        // SyntaxHighlighter component.
+        parseIncompleteMarkdown={false}
+        parseMarkdownIntoBlocksFn={parseMarkdownIntoBlocksCached}
+        plugins={plugins}
+        preprocess={preprocessWithTailRepair}
+      />
+    </ErrorBoundary>
   )
 }
 
