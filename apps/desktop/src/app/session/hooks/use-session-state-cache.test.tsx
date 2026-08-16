@@ -219,6 +219,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     act(() => $activeGatewayProfile.set('profile-b'))
 
     expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-A')
+    expect(cache.runtimeIdByStoredSessionIdRef.current.has('stored-B')).toBe(false)
   })
 
   it('rejects a late stored-id rotation from a background profile', () => {
@@ -236,6 +237,30 @@ describe('useSessionStateCache — per-session turn timer', () => {
 
     expect(cache.resolveStoredSessionId('stored-B')).toBe('stored-B')
     expect($activeSessionStoredIdRotation.get()).toBeNull()
+  })
+
+  it('does not run a late background-profile updater or contaminate the active profile cache', () => {
+    let cache!: Cache
+    $activeGatewayProfile.set('profile-a')
+    render(<Harness activeSessionId="runtime-A" onReady={c => (cache = c)} selectedStoredSessionId="stored-A" />)
+
+    act(() => {
+      cache.updateSessionState('runtime-A', state => ({ ...state, model: 'profile-a-model' }), 'stored-A', 'profile-a')
+      $activeGatewayProfile.set('profile-b')
+    })
+
+    const updater = vi.fn((state: NonNullable<ReturnType<typeof cache.sessionStateByRuntimeIdRef.current.get>>) => ({
+      ...state,
+      model: 'stale-profile-a-model'
+    }))
+
+    act(() => {
+      cache.updateSessionState('runtime-A', updater, 'stored-A', 'profile-a')
+    })
+
+    expect(updater).not.toHaveBeenCalled()
+    expect(cache.sessionStateByRuntimeIdRef.current.get('runtime-A')?.model).toBe('profile-a-model')
+    expect(cache.runtimeIdByStoredSessionIdRef.current.has('stored-A')).toBe(false)
   })
 
   it('mirrors the focused session model metadata when switching from a cached session', () => {

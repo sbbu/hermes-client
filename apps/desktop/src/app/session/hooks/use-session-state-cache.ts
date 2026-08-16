@@ -93,6 +93,10 @@ export function useSessionStateCache({
 
     if (redirectsProfileRef.current !== currentProfile) {
       storedSessionIdRedirectsRef.current.clear()
+      // Stored ids are profile-local. Keeping this profile-blind reverse map
+      // across a gateway-profile switch can route the new profile into the
+      // previous profile's runtime when both use the same stored id.
+      runtimeIdByStoredSessionIdRef.current.clear()
       redirectsProfileRef.current = currentProfile
     }
   }, [])
@@ -137,6 +141,14 @@ export function useSessionStateCache({
 
   const ensureSessionState = useCallback(
     (sessionId: string, storedSessionId?: string | null, sourceProfile?: string | null) => {
+      syncRedirectProfile()
+
+      if (sourceProfile && normalizeProfileKey(sourceProfile) !== redirectsProfileRef.current) {
+        // A queued event from the profile we just left must not mutate this
+        // profile-blind cache or either profile-blind route map.
+        return sessionStateByRuntimeIdRef.current.get(sessionId) ?? createClientSessionState(storedSessionId ?? null)
+      }
+
       const existing = sessionStateByRuntimeIdRef.current.get(sessionId)
 
       if (existing) {
@@ -340,6 +352,14 @@ export function useSessionStateCache({
       storedSessionId?: string | null,
       sourceProfile?: string | null
     ) => {
+      syncRedirectProfile()
+
+      if (sourceProfile && normalizeProfileKey(sourceProfile) !== redirectsProfileRef.current) {
+        // Do not invoke the updater: callers can perform edge-triggered side
+        // effects from inside it in addition to mutating the cache below.
+        return sessionStateByRuntimeIdRef.current.get(sessionId) ?? createClientSessionState(storedSessionId ?? null)
+      }
+
       const previous = ensureSessionState(sessionId, storedSessionId, sourceProfile)
       const next = updater({ ...previous, messages: previous.messages })
       sessionStateByRuntimeIdRef.current.set(sessionId, next)
@@ -374,7 +394,7 @@ export function useSessionStateCache({
 
       return next
     },
-    [ensureSessionState, syncSessionStateToView]
+    [ensureSessionState, syncRedirectProfile, syncSessionStateToView]
   )
 
   return {
