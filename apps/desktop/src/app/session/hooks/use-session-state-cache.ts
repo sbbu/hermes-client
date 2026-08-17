@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
+import { type MutableRefObject, useCallback, useEffect, useLayoutEffect, useRef } from 'react'
 
 import type { ChatMessage } from '@/lib/chat-messages'
 import { preserveLocalAssistantErrors } from '@/lib/chat-messages'
@@ -64,8 +64,10 @@ export function useSessionStateCache({
 }: SessionStateCacheOptions) {
   const busy = useStore($busy)
   const activeGatewayProfile = useStore($activeGatewayProfile)
-  const activeSessionIdRef = useRef<string | null>(null)
-  const selectedStoredSessionIdRef = useRef<string | null>(null)
+  const activeSessionIdRef = useRef<string | null>(activeSessionId)
+  const activeSessionIdPropRef = useRef(activeSessionId)
+  const selectedStoredSessionIdRef = useRef<string | null>(selectedStoredSessionId)
+  const selectedStoredSessionIdPropRef = useRef(selectedStoredSessionId)
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
   const storedSessionIdRedirectsRef = useRef(new Map<string, string>())
@@ -76,17 +78,25 @@ export function useSessionStateCache({
   // flush below tell a same-session refresh from a thread switch.
   const viewSessionIdRef = useRef<string | null>(null)
 
-  useEffect(() => {
-    activeSessionIdRef.current = activeSessionId
-  }, [activeSessionId])
+  // Keep event-facing refs coherent before child layout callbacks run, but only
+  // after React commits the switch. Render-time writes leak ids from suspended
+  // or discarded trees because ref objects are shared between fiber versions.
+  // Guard on the source props so unrelated commits preserve imperative pins.
+  useLayoutEffect(() => {
+    if (activeSessionIdPropRef.current !== activeSessionId) {
+      activeSessionIdPropRef.current = activeSessionId
+      activeSessionIdRef.current = activeSessionId
+    }
+
+    if (selectedStoredSessionIdPropRef.current !== selectedStoredSessionId) {
+      selectedStoredSessionIdPropRef.current = selectedStoredSessionId
+      selectedStoredSessionIdRef.current = selectedStoredSessionId
+    }
+  }, [activeSessionId, selectedStoredSessionId])
 
   useEffect(() => {
     setMutableRef(busyRef, busy)
   }, [busy, busyRef])
-
-  useEffect(() => {
-    selectedStoredSessionIdRef.current = selectedStoredSessionId
-  }, [selectedStoredSessionId])
 
   const syncRedirectProfile = useCallback(() => {
     const currentProfile = normalizeProfileKey($activeGatewayProfile.get())

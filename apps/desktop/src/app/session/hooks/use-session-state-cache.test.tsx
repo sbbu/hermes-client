@@ -1,5 +1,5 @@
 import { act, cleanup, render } from '@testing-library/react'
-import type { MutableRefObject } from 'react'
+import { type MutableRefObject, startTransition, Suspense, useLayoutEffect } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ChatMessage } from '@/lib/chat-messages'
@@ -52,6 +52,157 @@ function Harness({ activeSessionId, onReady, selectedStoredSessionId }: HarnessP
 
   return null
 }
+
+interface LayoutProbeHarnessProps extends HarnessProps {
+  onLayoutSnapshot: (snapshot: { active: string | null; selected: string | null }) => void
+}
+
+function LayoutProbeHarness({
+  activeSessionId,
+  onLayoutSnapshot,
+  onReady,
+  selectedStoredSessionId
+}: LayoutProbeHarnessProps) {
+  const busyRef: MutableRefObject<boolean> = { current: false }
+
+  const cache = useSessionStateCache({
+    activeSessionId,
+    busyRef,
+    selectedStoredSessionId,
+    setAwaitingResponse: () => undefined,
+    setBusy: () => undefined,
+    setMessages: () => undefined
+  })
+
+  onReady(cache)
+
+  useLayoutEffect(() => {
+    onLayoutSnapshot({
+      active: cache.activeSessionIdRef.current,
+      selected: cache.selectedStoredSessionIdRef.current
+    })
+  })
+
+  return null
+}
+
+const neverSettles = new Promise<void>(() => undefined)
+
+function SuspendingHarness({
+  activeSessionId,
+  onReady,
+  selectedStoredSessionId,
+  suspend
+}: HarnessProps & { suspend: boolean }) {
+  const busyRef: MutableRefObject<boolean> = { current: false }
+
+  const cache = useSessionStateCache({
+    activeSessionId,
+    busyRef,
+    selectedStoredSessionId,
+    setAwaitingResponse: () => undefined,
+    setBusy: () => undefined,
+    setMessages: () => undefined
+  })
+
+  onReady(cache)
+
+  if (suspend) {
+    throw neverSettles
+  }
+
+  return <span>{activeSessionId}</span>
+}
+
+describe('useSessionStateCache — committed session ref coherence', () => {
+  afterEach(() => cleanup())
+
+  it('exposes the new session ids during the layout phase after a switch', () => {
+    let cache!: Cache
+    const snapshots: Array<{ active: string | null; selected: string | null }> = []
+
+    const { rerender } = render(
+      <LayoutProbeHarness
+        activeSessionId="runtime-A"
+        onLayoutSnapshot={snapshot => snapshots.push(snapshot)}
+        onReady={value => (cache = value)}
+        selectedStoredSessionId="stored-A"
+      />
+    )
+
+    void cache
+    snapshots.length = 0
+
+    rerender(
+      <LayoutProbeHarness
+        activeSessionId="runtime-B"
+        onLayoutSnapshot={snapshot => snapshots.push(snapshot)}
+        onReady={value => (cache = value)}
+        selectedStoredSessionId="stored-B"
+      />
+    )
+
+    expect(snapshots[0]).toEqual({ active: 'runtime-B', selected: 'stored-B' })
+  })
+
+  it('preserves an imperative runtime-id pin when the source props do not change', () => {
+    let cache!: Cache
+
+    const { rerender } = render(
+      <Harness activeSessionId="runtime-A" onReady={value => (cache = value)} selectedStoredSessionId="stored-A" />
+    )
+
+    cache.activeSessionIdRef.current = 'runtime-resumed'
+
+    rerender(
+      <Harness activeSessionId="runtime-A" onReady={value => (cache = value)} selectedStoredSessionId="stored-A" />
+    )
+
+    expect(cache.activeSessionIdRef.current).toBe('runtime-resumed')
+
+    rerender(
+      <Harness activeSessionId="runtime-B" onReady={value => (cache = value)} selectedStoredSessionId="stored-B" />
+    )
+
+    expect(cache.activeSessionIdRef.current).toBe('runtime-B')
+  })
+
+  it('does not expose ids from a suspended, uncommitted session switch', () => {
+    let cache!: Cache
+
+    const view = render(
+      <Suspense fallback={<span>loading</span>}>
+        <SuspendingHarness
+          activeSessionId="runtime-A"
+          onReady={value => (cache = value)}
+          selectedStoredSessionId="stored-A"
+          suspend={false}
+        />
+      </Suspense>
+    )
+
+    cache.activeSessionIdRef.current = 'runtime-resumed'
+
+    act(() => {
+      startTransition(() => {
+        view.rerender(
+          <Suspense fallback={<span>loading</span>}>
+            <SuspendingHarness
+              activeSessionId="runtime-B"
+              onReady={() => undefined}
+              selectedStoredSessionId="stored-B"
+              suspend
+            />
+          </Suspense>
+        )
+      })
+    })
+
+    expect(view.getByText('runtime-A')).toBeTruthy()
+    expect(cache.activeSessionIdRef.current).toBe('runtime-resumed')
+    expect(cache.selectedStoredSessionIdRef.current).toBe('stored-A')
+  })
+})
 
 describe('useSessionStateCache — per-session turn timer', () => {
   beforeEach(() => {
