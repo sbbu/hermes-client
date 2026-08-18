@@ -43,8 +43,14 @@ let primaryGateway: HermesGateway | null = null
 let primaryProfile = 'default'
 
 export function setPrimaryGateway(gateway: HermesGateway | null, profile = 'default'): void {
+  const wasActive = activeKey === primaryProfile
   primaryGateway = gateway
   primaryProfile = normKey(profile)
+
+  if (wasActive) {
+    activeKey = primaryProfile
+    activeRouteProfile = primaryProfile
+  }
 }
 
 // ── Secondary (pool) backends ──────────────────────────────────────────────
@@ -64,6 +70,12 @@ interface Secondary {
 const secondaries = new Map<string, Secondary>()
 
 let activeKey = 'default'
+let activeRouteProfile = 'default'
+
+/** Bare profile name served by the active gateway route. */
+export function activeGatewayProfileKey(): string {
+  return activeRouteProfile
+}
 
 export function isActivePrimary(): boolean {
   return activeKey === primaryProfile
@@ -91,8 +103,9 @@ export function reportPrimaryGatewayState(state: ConnectionState): void {
   reportGatewayState(primaryProfile, state)
 }
 
-function setActive(profile: string): void {
+function setActive(profile: string, routeProfile = profile): void {
   activeKey = normKey(profile)
+  activeRouteProfile = normKey(routeProfile)
   const gateway = activeGateway()
   $gateway.set(gateway)
   setGatewayState(gateway?.connectionState ?? 'closed')
@@ -214,7 +227,7 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   }
 
   if (await sharedPrimaryRoute(key)) {
-    setActive(primaryProfile)
+    setActive(primaryProfile, key)
 
     return
   }
@@ -239,6 +252,38 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   }
 
   setActive(key)
+}
+
+/** Send an RPC through a named profile without changing the foreground route. */
+export async function requestGatewayForProfile<T>(
+  profile: string,
+  method: string,
+  params: Record<string, unknown> = {}
+): Promise<T> {
+  const key = normKey(profile)
+
+  if (key === primaryProfile || (await sharedPrimaryRoute(key))) {
+    if (!primaryGateway) {
+      throw new Error(`Hermes gateway unavailable for profile "${key}"`)
+    }
+
+    return primaryGateway.request<T>(method, key === primaryProfile ? params : { ...params, profile: key })
+  }
+
+  let entry = secondaries.get(key)
+
+  if (!entry) {
+    entry = createSecondary(key)
+  }
+
+  entry.wantOpen = true
+
+  if (!isOpen(entry.gateway)) {
+    clearTimer(entry)
+    await openSecondary(entry)
+  }
+
+  return entry.gateway.request<T>(method, params)
 }
 
 // Reconnect the active gateway after a transient request failure. Primary

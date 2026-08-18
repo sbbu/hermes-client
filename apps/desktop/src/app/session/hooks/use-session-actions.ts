@@ -61,6 +61,7 @@ import {
   setYoloActive,
   workspaceCwdForNewSession
 } from '@/store/session'
+import { requestForSessionProfile } from '@/store/session-request-router'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { reportBackendContract, reportInstallMethodWarning } from '@/store/updates'
 import { isWatchWindow } from '@/store/windows'
@@ -695,6 +696,11 @@ export function useSessionActions({
 
       await ensureGatewayProfile(sessionProfile)
 
+      // The active route can change again after the awaited swap. Resolve every
+      // session-scoped RPC against the session's owning profile at call time.
+      const requestForSession = <T>(method: string, params: Record<string, unknown> = {}): Promise<T> =>
+        requestForSessionProfile<T>(sessionProfile, requestGateway, method, params)
+
       const cachedRuntimeId = runtimeIdByStoredSessionIdRef.current.get(storedSessionId)
       const cachedState = cachedRuntimeId && sessionStateByRuntimeIdRef.current.get(cachedRuntimeId)
 
@@ -725,7 +731,7 @@ export function useSessionActions({
         setSessionStartedAt(Date.now())
 
         try {
-          const usage = await requestGateway<UsageStats>('session.usage', { session_id: cachedRuntimeId })
+          const usage = await requestForSession<UsageStats>('session.usage', { session_id: cachedRuntimeId })
 
           if (!isCurrentResume()) {
             return
@@ -794,7 +800,7 @@ export function useSessionActions({
         // Watch windows skip the prefetch — lazy resume attaches the live mirror.
         const prefetchPromise = watchWindow ? null : getLatestSessionMessages(storedSessionId, sessionProfile)
 
-        const resumePromise = requestGateway<SessionResumeResponse>('session.resume', {
+        const resumePromise = requestForSession<SessionResumeResponse>('session.resume', {
           session_id: storedSessionId,
           cols: 96,
           source: 'desktop',
