@@ -83,7 +83,13 @@ export function NotificationStack() {
       {expanded && olderNotifications.map(n => <NotificationItem key={n.id} notification={n} />)}
       {overflowCount > 0 && (
         <div className={cn(STACK_SURFACE, 'flex min-h-8 items-center justify-between rounded-lg px-3 text-xs')}>
-          <Button className="-ml-2 font-medium" onClick={() => setExpanded(v => !v)} size="xs" type="button" variant="text">
+          <Button
+            className="-ml-2 font-medium"
+            onClick={() => setExpanded(v => !v)}
+            size="xs"
+            type="button"
+            variant="text"
+          >
             {expanded ? copy.hide : copy.show} {copy.more(overflowCount)}
           </Button>
           <Button className="-mr-2" onClick={clearNotifications} size="xs" type="button" variant="text">
@@ -112,9 +118,13 @@ function NotificationItem({ notification }: { notification: AppNotification }) {
     >
       <Icon className={styles.iconClass} />
       <div className="col-start-2 min-w-0">
-        {notification.title && <AlertTitle className="col-start-auto">{notification.title}</AlertTitle>}
+        {notification.title && (
+          <AlertTitle className="col-start-auto line-clamp-none max-h-[4.5em] overflow-y-auto overscroll-contain whitespace-normal wrap-break-word">
+            {notification.title}
+          </AlertTitle>
+        )}
         <AlertDescription className="col-start-auto">
-          <p className="m-0">{notification.message}</p>
+          <p className="m-0 wrap-break-word">{notification.message}</p>
           {hasDetail && <NotificationDetail detail={notification.detail || ''} />}
           {notification.action && (
             <Button

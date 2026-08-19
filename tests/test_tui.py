@@ -16,7 +16,7 @@ def test_packaged_tui_entry_exists():
 
 def test_packaged_tui_double_escape_preserves_complete_expanded_draft():
     bundle = packaged_tui_entry().read_text()
-    assert 'expandTokens(cState.tokens)([...cState.inputBuf, cState.input].join("\\n"))' in bundle
+    assert 'expandTokens(cRefs.tokensRef.current)([...cState.inputBuf, cState.input].join("\\n"))' in bundle
     assert "cActions.pushHistory(draft)" in bundle
 
 

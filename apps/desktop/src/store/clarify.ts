@@ -2,11 +2,54 @@ import { atom, computed } from 'nanostores'
 
 import { $activeSessionId } from './session'
 
+export interface ClarifyQuestion {
+  qid: string
+  question: string
+  choices: string[] | null
+  multiSelect: boolean
+}
+
 export interface ClarifyRequest {
   requestId: string
   question: string
   choices: string[] | null
+  multiSelect?: boolean
   sessionId: string | null
+  questions?: ClarifyQuestion[]
+  lockedAnswers?: Record<string, string>
+}
+
+export function normalizeClarifyQuestions(value: unknown): ClarifyQuestion[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap(entry => {
+    if (!entry || typeof entry !== 'object') {
+      return []
+    }
+
+    const row = entry as Record<string, unknown>
+    const qid = typeof row.qid === 'string' ? row.qid.trim() : ''
+    const question = typeof row.question === 'string' ? row.question.trim() : ''
+
+    if (!qid || !question) {
+      return []
+    }
+
+    const choices = Array.isArray(row.choices)
+      ? row.choices.filter((choice): choice is string => typeof choice === 'string' && Boolean(choice.trim()))
+      : []
+
+    return [
+      {
+        choices: choices.length > 0 ? choices : null,
+        multiSelect: row.multi_select === true && choices.length > 0,
+        qid,
+        question
+      }
+    ]
+  })
 }
 
 // Pending clarify requests keyed by the runtime session id that raised them.

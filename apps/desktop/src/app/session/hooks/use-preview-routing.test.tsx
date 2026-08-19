@@ -139,6 +139,26 @@ describe('usePreviewRouting', () => {
     act(() => handleEvent({ payload: { path: './dist/index.html' }, session_id: 'session-1', type: 'tool.complete' }))
 
     expect($previewTarget.get()).toBeNull()
-    expect(window.localStorage.getItem('hermes.desktop.sessionPreviews.v1')).toBeNull()
+    expect(window.localStorage.getItem('hermes.desktop.sessionPreviews.v1')).toBe('{}')
+  })
+
+  it('honors preview.close only for the active session', async () => {
+    const target = previewTarget('/work/demo.html')
+
+    registerSessionPreview('session-1', target, 'tool-result')
+    render(
+      <PreviewRoutingHarness
+        onEvent={handler => {
+          handleEvent = handler
+        }}
+      />
+    )
+    await waitFor(() => expect($previewTarget.get()).not.toBeNull())
+
+    act(() => handleEvent({ payload: { url: target.source }, session_id: 'session-2', type: 'preview.close' }))
+    expect($previewTarget.get()).not.toBeNull()
+
+    act(() => handleEvent({ payload: { url: target.source }, session_id: 'session-1', type: 'preview.close' }))
+    expect($previewTarget.get()).toBeNull()
   })
 })

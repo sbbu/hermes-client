@@ -400,6 +400,35 @@ export function dismissPreviewTarget() {
   setPaneOpen(PREVIEW_PANE_ID, $filePreviewTabs.get().length > 0)
 }
 
+/** Close preview surfaces whose source, URL, label, or path matches a backend target. */
+export function closePreviewMatching(...targets: string[]): boolean {
+  const wanted = new Set(targets.map(target => target.trim()).filter(Boolean))
+
+  if (wanted.size === 0) {
+    return false
+  }
+
+  const matches = (target: PreviewTarget) =>
+    [target.source, target.url, target.label, target.path].some(value => typeof value === 'string' && wanted.has(value))
+
+  let closed = false
+  const liveTarget = $previewTarget.get()
+
+  if (liveTarget && matches(liveTarget)) {
+    dismissPreviewTarget()
+    closed = true
+  }
+
+  for (const tab of $filePreviewTabs.get()) {
+    if (matches(tab.target)) {
+      closeFilePreviewTab(tab.id)
+      closed = true
+    }
+  }
+
+  return closed
+}
+
 function closeFilePreviewTab(tabId: RightRailTabId) {
   if (!tabId.startsWith('file:')) {
     return

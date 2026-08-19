@@ -5,6 +5,7 @@ import {
   $clarifyRequests,
   type ClarifyRequest,
   clearClarifyRequest,
+  normalizeClarifyQuestions,
   setClarifyRequest
 } from './clarify'
 import { $activeSessionId } from './session'
@@ -77,5 +78,18 @@ describe('clarify store', () => {
 
     expect($clarifyRequests.get()['session-a']).toBeUndefined()
     expect($clarifyRequests.get()['session-b']?.requestId).toBe('other')
+  })
+
+  it('normalizes batch questions and preserves multi-select only for choices', () => {
+    expect(
+      normalizeClarifyQuestions([
+        { qid: 'q0', question: 'Pick', choices: ['A', '', 3], multi_select: true },
+        { qid: 'q1', question: 'Explain', choices: null, multi_select: true },
+        { qid: '', question: 'invalid' }
+      ])
+    ).toEqual([
+      { choices: ['A'], multiSelect: true, qid: 'q0', question: 'Pick' },
+      { choices: null, multiSelect: false, qid: 'q1', question: 'Explain' }
+    ])
   })
 })

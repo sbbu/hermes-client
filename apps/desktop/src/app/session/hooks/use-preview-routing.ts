@@ -6,6 +6,8 @@ import {
   $previewTarget,
   $sessionPreviewRegistry,
   beginPreviewServerRestart,
+  closePreviewMatching,
+  closeRightRail,
   completePreviewServerRestart,
   getSessionPreviewRecord,
   progressPreviewServerRestart,
@@ -100,6 +102,23 @@ export function usePreviewRouting({
   const handleDesktopGatewayEvent = useCallback<EventHandler>(
     event => {
       baseHandleGatewayEvent(event)
+
+      if (event.type === 'preview.close') {
+        if (event.session_id && event.session_id !== activeSessionIdRef.current) {
+          return
+        }
+
+        const { url } = asRecord(event.payload)
+        const target = typeof url === 'string' ? url.trim() : ''
+
+        if (target) {
+          closePreviewMatching(target)
+        } else {
+          closeRightRail()
+        }
+
+        return
+      }
 
       if (event.type === 'preview.restart.complete') {
         const { task_id, text } = asRecord(event.payload)

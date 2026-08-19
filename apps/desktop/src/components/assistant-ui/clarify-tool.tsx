@@ -2,7 +2,7 @@
 
 import { type ToolCallMessagePartProps } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
-import { type FormEvent, type KeyboardEvent, useCallback, useMemo, useRef, useState, type ComponentProps } from 'react'
+import { type ComponentProps, type FormEvent, type KeyboardEvent, useCallback, useMemo, useRef, useState } from 'react'
 
 import { ToolFallback } from '@/components/assistant-ui/tool-fallback'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,7 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, HelpCircle, Loader2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { $clarifyRequest, clearClarifyRequest } from '@/store/clarify'
+import { $clarifyRequest, type ClarifyRequest, clearClarifyRequest } from '@/store/clarify'
 import { $gateway } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
 
@@ -41,11 +41,7 @@ const OPTION_ROW_CLASS = 'flex w-full items-start gap-2 rounded-md px-2.5 py-1.5
 const CLARIFY_SHELL_CLASS =
   'relative mb-3 mt-2 rounded-[0.5rem] border border-border/70 bg-card/40 text-sm shadow-[inset_0_1px_0_color-mix(in_srgb,var(--foreground)_3%,transparent)]'
 
-function ClarifyShell({
-  children,
-  className,
-  ...props
-}: ComponentProps<'div'>) {
+function ClarifyShell({ children, className, ...props }: ComponentProps<'div'>) {
   return (
     <div className={cn(CLARIFY_SHELL_CLASS, className)} data-slot="clarify-inline" {...props}>
       <span aria-hidden className="arc-border" />
@@ -151,7 +147,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
         setSubmitting(false)
       }
     },
-    [gateway, matchingRequest, ready]
+    [copy.gatewayDisconnected, copy.notReady, copy.sendFailed, gateway, matchingRequest, ready]
   )
 
   const handleTextareaKey = useCallback(
@@ -183,6 +179,10 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
     },
     [draft, respond]
   )
+
+  if (request?.questions?.length) {
+    return <ClarifyBatchPending request={request} />
+  }
 
   if (loading) {
     return (
@@ -303,6 +303,116 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
           </Button>
         </div>
       )}
+    </ClarifyShell>
+  )
+}
+
+function ClarifyBatchPending({ request }: { request: ClarifyRequest }) {
+  const { t } = useI18n()
+  const copy = t.assistant.clarify
+  const gateway = useStore($gateway)
+  const questions = useMemo(() => request.questions ?? [], [request.questions])
+  const [answers, setAnswers] = useState<Record<string, string>>(() => ({ ...(request.lockedAnswers ?? {}) }))
+  const [submitting, setSubmitting] = useState(false)
+
+  const toggleChoice = useCallback((qid: string, choice: string, multiSelect: boolean) => {
+    setAnswers(current => {
+      if (!multiSelect) {
+        return { ...current, [qid]: choice }
+      }
+
+      let selected: string[] = []
+
+      try {
+        const parsed = JSON.parse(current[qid] ?? '[]')
+        selected = Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []
+      } catch {
+        selected = []
+      }
+
+      const next = selected.includes(choice) ? selected.filter(item => item !== choice) : [...selected, choice]
+
+      return { ...current, [qid]: JSON.stringify(next) }
+    })
+  }, [])
+
+  const submit = useCallback(async () => {
+    if (!gateway || submitting) {
+      return
+    }
+
+    setSubmitting(true)
+
+    try {
+      for (const question of questions) {
+        await gateway.request('clarify.respond', {
+          answer: answers[question.qid] ?? '',
+          question_id: question.qid,
+          request_id: request.requestId
+        })
+      }
+
+      triggerHaptic('submit')
+      clearClarifyRequest(request.requestId, request.sessionId)
+    } catch (error) {
+      notifyError(error, copy.sendFailed)
+      setSubmitting(false)
+    }
+  }, [answers, copy.sendFailed, gateway, questions, request.requestId, request.sessionId, submitting])
+
+  return (
+    <ClarifyShell className="grid gap-4 px-3 py-3">
+      {questions.map((question, questionIndex) => {
+        let selected: string[] = []
+
+        if (question.multiSelect) {
+          try {
+            const parsed = JSON.parse(answers[question.qid] ?? '[]')
+            selected = Array.isArray(parsed) ? parsed.filter(item => typeof item === 'string') : []
+          } catch {
+            selected = []
+          }
+        }
+
+        return (
+          <fieldset className="grid gap-2" disabled={submitting} key={question.qid}>
+            <legend className="mb-1 whitespace-pre-wrap font-medium leading-snug text-foreground">
+              {questions.length > 1 ? `${questionIndex + 1}. ` : ''}
+              {question.question}
+            </legend>
+            {question.choices?.map(choice => {
+              const checked = question.multiSelect ? selected.includes(choice) : answers[question.qid] === choice
+
+              return (
+                <button
+                  aria-pressed={checked}
+                  className={cn(OPTION_ROW_CLASS, checked ? 'bg-accent/60' : 'hover:bg-accent/40')}
+                  key={choice}
+                  onClick={() => toggleChoice(question.qid, choice, question.multiSelect)}
+                  type="button"
+                >
+                  <RadioDot selected={checked} />
+                  <span className="flex-1 wrap-anywhere">{choice}</span>
+                  {checked && <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-primary" />}
+                </button>
+              )
+            })}
+            {!question.choices && (
+              <Textarea
+                className="min-h-16 resize-y rounded-lg border-transparent bg-accent/40 text-sm focus-visible:bg-background/60"
+                onChange={event => setAnswers(current => ({ ...current, [question.qid]: event.target.value }))}
+                placeholder={copy.placeholder}
+                value={answers[question.qid] ?? ''}
+              />
+            )}
+          </fieldset>
+        )
+      })}
+      <div className="flex justify-end">
+        <Button disabled={submitting} onClick={() => void submit()} size="sm" type="button">
+          {submitting ? <Loader2 className="size-3.5 animate-spin" /> : copy.send}
+        </Button>
+      </div>
     </ClarifyShell>
   )
 }

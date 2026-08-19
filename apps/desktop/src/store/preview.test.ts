@@ -12,6 +12,7 @@ import {
   beginPreviewServerRestart,
   clearSessionPreviewRegistry,
   closeActiveRightRailTab,
+  closePreviewMatching,
   dismissPreviewTarget,
   getSessionPreviewRecord,
   type PreviewTarget,
@@ -84,6 +85,17 @@ describe('preview store', () => {
     setCurrentSessionPreviewTarget(target, 'tool-result')
 
     expect(getSessionPreviewRecord('session-1')?.dismissedAt).toBeUndefined()
+  })
+
+  it('closes only a preview matching the backend target', () => {
+    const target = previewTarget('/work/demo.html')
+
+    setCurrentSessionPreviewTarget(target, 'tool-result')
+
+    expect(closePreviewMatching('/work/other.html')).toBe(false)
+    expect($previewTarget.get()).not.toBeNull()
+    expect(closePreviewMatching('/work/demo.html')).toBe(true)
+    expect($previewTarget.get()).toBeNull()
   })
 
   it('replaces the session preview instead of keeping a back stack', () => {

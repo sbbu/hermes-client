@@ -29,7 +29,7 @@ import {
 import { triggerHaptic } from '@/lib/haptics'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { parseTodos } from '@/lib/todos'
-import { setClarifyRequest } from '@/store/clarify'
+import { normalizeClarifyQuestions, setClarifyRequest } from '@/store/clarify'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
 import { $gateway } from '@/store/gateway'
@@ -1162,12 +1162,43 @@ export function useMessageStream({
         // over; the inline ClarifyTool reads the active session's entry.
         const requestId = typeof payload?.request_id === 'string' ? payload.request_id : ''
         const question = typeof payload?.question === 'string' ? payload.question : ''
+        const questions = normalizeClarifyQuestions(payload?.questions)
 
-        if (requestId && question) {
+        if (requestId && questions.length > 0) {
+          const lockedAnswers =
+            payload?.answers && typeof payload.answers === 'object'
+              ? Object.fromEntries(
+                  Object.entries(payload.answers).filter(
+                    (entry): entry is [string, string] => typeof entry[1] === 'string'
+                  )
+                )
+              : undefined
+
+          setClarifyRequest({
+            choices: null,
+            lockedAnswers,
+            question: '',
+            questions,
+            requestId,
+            sessionId: sessionId ?? null
+          })
+
+          if (sessionId) {
+            updateSessionState(sessionId, state => ({ ...state, needsInput: true }))
+          }
+
+          dispatchNativeNotification({
+            body: questions.map(item => item.question).join(' · '),
+            kind: 'input',
+            sessionId,
+            title: translateNow('notifications.native.inputTitle')
+          })
+        } else if (requestId && question) {
           setClarifyRequest({
             requestId,
             question,
             choices: Array.isArray(payload?.choices) ? payload!.choices!.filter(c => typeof c === 'string') : null,
+            multiSelect: payload?.multi_select === true,
             sessionId: sessionId ?? null
           })
 
