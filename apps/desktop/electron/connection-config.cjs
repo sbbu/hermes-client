@@ -171,6 +171,30 @@ function profileRemoteOverride(config, profile) {
 }
 
 /**
+ * Decide whether a profile owns a pooled backend or shares the primary one.
+ * A per-profile remote override always owns its socket. Only profiles inheriting
+ * an app-wide remote use the primary connection with a request profile scope.
+ */
+function resolveProfileBackendRoute(profile, opts = {}) {
+  const scopedProfile = connectionScopeKey(profile)
+  const primaryProfile = connectionScopeKey(opts.primaryProfile) || 'default'
+
+  if (!scopedProfile || scopedProfile === primaryProfile) {
+    return { backend: 'primary', descriptorProfile: null }
+  }
+
+  if (opts.profileRemoteOverride) {
+    return { backend: 'pool', descriptorProfile: null }
+  }
+
+  if (opts.globalRemote) {
+    return { backend: 'primary', descriptorProfile: scopedProfile }
+  }
+
+  return { backend: 'pool', descriptorProfile: null }
+}
+
+/**
  * In global-remote mode one backend serves every Desktop profile, so REST calls
  * that are scoped by renderer-side `request.profile` must carry that scope as a
  * query parameter. Local pooled backends and per-profile remote overrides do not
@@ -282,6 +306,7 @@ module.exports = {
   pathWithGlobalRemoteProfile,
   profileRemoteOverride,
   resolveAuthMode,
+  resolveProfileBackendRoute,
   resolveTestWsUrl,
   tokenPreview
 }

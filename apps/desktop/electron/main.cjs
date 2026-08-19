@@ -92,6 +92,7 @@ const {
   pathWithGlobalRemoteProfile,
   profileRemoteOverride,
   resolveAuthMode,
+  resolveProfileBackendRoute,
   resolveTestWsUrl,
   tokenPreview
 } = require('./connection-config.cjs')
@@ -4895,15 +4896,27 @@ function primaryProfileKey() {
   return readActiveDesktopProfile() || 'default'
 }
 
-// Resolve a backend connection for the given profile. Routes the primary
-// profile to startHermes() (the window backend: boot UI, bootstrap, remote
-// mode), and any OTHER profile to a lazily-spawned pool backend. An empty /
-// unknown profile resolves to the primary, so all legacy callers are unchanged.
+// Resolve a backend connection for the given profile. The primary profile and
+// profiles inheriting its app-wide remote use startHermes(); explicit profile
+// remotes use lazily-spawned pool entries. An empty profile resolves to the
+// primary, so legacy callers are unchanged.
 async function ensureBackend(profile) {
   const key = profile && String(profile).trim() ? String(profile).trim() : primaryProfileKey()
+  const config = readDesktopConnectionConfig()
+  const route = resolveProfileBackendRoute(key, {
+    globalRemote: Boolean(process.env.HERMES_DESKTOP_REMOTE_URL || config.mode === 'remote'),
+    primaryProfile: primaryProfileKey(),
+    profileRemoteOverride: Boolean(profileRemoteOverride(config, key))
+  })
 
-  if (key === primaryProfileKey()) {
-    return startHermes()
+  if (route.backend === 'primary') {
+    const connection = await startHermes()
+
+    // Pooled descriptors also carry `profile` for WebSocket URL minting. Mark
+    // only the inherited global-remote route as sharing the primary socket.
+    return route.descriptorProfile
+      ? { ...connection, profile: route.descriptorProfile, sharedPrimary: true }
+      : connection
   }
 
   const existing = backendPool.get(key)

@@ -27,6 +27,7 @@ const {
   pathWithGlobalRemoteProfile,
   profileRemoteOverride,
   resolveAuthMode,
+  resolveProfileBackendRoute,
   resolveTestWsUrl,
   tokenPreview
 } = require('./connection-config.cjs')
@@ -89,6 +90,38 @@ test('profileRemoteOverride tolerates a missing/!object profiles map', () => {
   assert.equal(profileRemoteOverride({}, 'coder'), null)
   assert.equal(profileRemoteOverride({ profiles: null }, 'coder'), null)
   assert.equal(profileRemoteOverride(null, 'coder'), null)
+})
+
+// --- resolveProfileBackendRoute ---
+
+test('resolveProfileBackendRoute shares only inherited global remotes', () => {
+  assert.deepEqual(
+    resolveProfileBackendRoute('writer', {
+      globalRemote: true,
+      primaryProfile: 'default',
+      profileRemoteOverride: false
+    }),
+    { backend: 'primary', descriptorProfile: 'writer' }
+  )
+  assert.deepEqual(
+    resolveProfileBackendRoute('writer', {
+      globalRemote: true,
+      primaryProfile: 'default',
+      profileRemoteOverride: true
+    }),
+    { backend: 'pool', descriptorProfile: null }
+  )
+})
+
+test('resolveProfileBackendRoute keeps primary and non-remote routes unscoped', () => {
+  assert.deepEqual(resolveProfileBackendRoute('default', { globalRemote: true, primaryProfile: 'default' }), {
+    backend: 'primary',
+    descriptorProfile: null
+  })
+  assert.deepEqual(resolveProfileBackendRoute('writer', { globalRemote: false, primaryProfile: 'default' }), {
+    backend: 'pool',
+    descriptorProfile: null
+  })
 })
 
 // --- pathWithGlobalRemoteProfile ---

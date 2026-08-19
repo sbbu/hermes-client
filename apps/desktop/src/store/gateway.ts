@@ -199,6 +199,9 @@ function createSecondary(profile: string): Secondary {
   return entry
 }
 
+// Both shared-primary and pooled descriptors carry `profile`; only the former
+// may reuse the primary socket. Per-profile remote overrides must retain their
+// dedicated socket or requests silently land on the default backend.
 async function sharedPrimaryRoute(profile: string): Promise<boolean> {
   const desktop = window.hermesDesktop
 
@@ -209,7 +212,7 @@ async function sharedPrimaryRoute(profile: string): Promise<boolean> {
   try {
     const conn = await desktop.getConnection(profile)
 
-    return Boolean(conn && typeof conn === 'object' && (conn as { profile?: string }).profile)
+    return Boolean(conn && typeof conn === 'object' && (conn as { sharedPrimary?: boolean }).sharedPrimary === true)
   } catch {
     return false
   }

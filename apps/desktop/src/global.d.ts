@@ -316,9 +316,11 @@ export interface HermesConnection {
   token: string
   wsUrl: string
   logs: string[]
-  // Set for pool (non-primary) backends so the renderer knows which profile a
-  // connection belongs to.
+  // Set for non-primary profile routes so the renderer knows their scope.
   profile?: string
+  // True only when `profile` is a request scope on the shared primary backend.
+  // Pooled backends also carry `profile`, so presence alone is ambiguous.
+  sharedPrimary?: boolean
   windowButtonPosition: { x: number; y: number } | null
 }
 
