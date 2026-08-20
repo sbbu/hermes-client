@@ -95,6 +95,9 @@ SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_HOME_SUFFIX_RE = re.compile(r"\$\{HOME(?P<op>%%|%)(?P<pattern>[^{}]*)\}")
 SHELL_IDENTITY_REF_RE = re.compile(r"\$\{(?:USER|LOGNAME)\}|\$(?:USER|LOGNAME)\b")
+SHELL_PARAMETER_NAME_RE = re.compile(
+    r"(?:[A-Za-z_][A-Za-z0-9_]*|[0-9]+|[*@#?$!-])"
+)
 
 
 _ANSI_C_SIMPLE_ESCAPES = {
@@ -250,7 +253,10 @@ def _shell_parameter_word_spans(text: str) -> list[tuple[int, int, str]]:
             continue
 
         name_start = index + 2
-        name_match = re.match(r"[A-Za-z_][A-Za-z0-9_]*", text[name_start:])
+        # Shell parameters include positional numbers and one-character special
+        # parameters as well as variable names. In an interactive shell with no
+        # positional arguments, `${1:-rm}` and `${@:-rm}` both expand to `rm`.
+        name_match = SHELL_PARAMETER_NAME_RE.match(text[name_start:])
         if not name_match:
             index += 2
             continue
