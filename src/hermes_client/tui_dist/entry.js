@@ -26898,6 +26898,9 @@ function parseOscColor2(data) {
 function supportsExtendedKeys() {
   return EXTENDED_KEYS_TERMINALS.includes(env.terminal ?? "");
 }
+function skipKittyKeyboardProtocol() {
+  return env.terminal === "ghostty";
+}
 function writeDiffToTerminal(terminal, diff2, skipSyncMarkers = false, onDrain) {
   if (diff2.length === 0) {
     return { bytes: 0, backpressure: false };
@@ -59729,7 +59732,9 @@ var init_App = __esm({
             this.props.stdout.write(EBP);
             this.props.stdout.write(EFE);
             if (supportsExtendedKeys()) {
-              this.props.stdout.write(ENABLE_KITTY_KEYBOARD);
+              if (!skipKittyKeyboardProtocol()) {
+                this.props.stdout.write(ENABLE_KITTY_KEYBOARD);
+              }
               this.props.stdout.write(ENABLE_MODIFY_OTHER_KEYS);
             }
             setImmediate(() => {
@@ -62722,7 +62727,7 @@ var init_ink = __esm({
         }
         this.resume();
         this.options.stdout.write(
-          "\x1B[?1004h" + (supportsExtendedKeys() ? DISABLE_KITTY_KEYBOARD + ENABLE_KITTY_KEYBOARD + ENABLE_MODIFY_OTHER_KEYS : "")
+          "\x1B[?1004h" + (supportsExtendedKeys() ? DISABLE_KITTY_KEYBOARD + (skipKittyKeyboardProtocol() ? "" : ENABLE_KITTY_KEYBOARD) + ENABLE_MODIFY_OTHER_KEYS : "")
         );
       }
       onRender() {
@@ -63162,7 +63167,9 @@ var init_ink = __esm({
           return;
         }
         if (supportsExtendedKeys()) {
-          this.options.stdout.write(DISABLE_KITTY_KEYBOARD + ENABLE_KITTY_KEYBOARD + ENABLE_MODIFY_OTHER_KEYS);
+          this.options.stdout.write(
+            DISABLE_KITTY_KEYBOARD + (skipKittyKeyboardProtocol() ? "" : ENABLE_KITTY_KEYBOARD) + ENABLE_MODIFY_OTHER_KEYS
+          );
         }
         if (!this.altScreenActive) {
           return;
