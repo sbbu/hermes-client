@@ -93,6 +93,7 @@ import { useI18n } from '@/i18n'
 import { attachmentDisplayText, attachmentId, pathLabel } from '@/lib/chat-runtime'
 import { sanitizeComposerInput } from '@/lib/composer-input-sanitize'
 import { DATA_IMAGE_URL_RE } from '@/lib/embedded-images'
+import { type ErrorSurface, formatErrorDiagnostics } from '@/lib/error-surface'
 import { LinkifiedText } from '@/lib/external-link'
 import { triggerHaptic } from '@/lib/haptics'
 import { GitBranchIcon, Loader2Icon, Volume2Icon, VolumeXIcon, XIcon } from '@/lib/icons'
@@ -272,6 +273,13 @@ const AssistantMessage: FC<{
   const isRunning = messageStatus === 'running'
   const isPlaceholder = useAuiState(s => s.message.status?.type === 'running' && s.message.content.length === 0)
   const hasVisibleText = useAuiState(s => contentHasVisibleText(s.message.content))
+  const errorSurface = useAuiState(s => s.message.metadata?.custom?.errorSurface as ErrorSurface | undefined)
+
+  const errorText = useAuiState(s => {
+    const status = s.message.status as { error?: unknown; type?: string } | undefined
+
+    return status?.type === 'incomplete' && typeof status.error === 'string' ? status.error : ''
+  })
 
   // Preview targets only materialize once the turn completes — while running
   // the selector returns '' (stable), so per-token flushes skip the regex
@@ -320,20 +328,42 @@ const AssistantMessage: FC<{
         )}
         <MessagePrimitive.Error>
           <ErrorPrimitive.Root
-            className="mt-1.5 flex items-start gap-1.5 text-[0.78rem] leading-5 text-[color-mix(in_srgb,var(--dt-destructive)_78%,var(--ui-text-secondary))]"
+            className="mt-1.5 flex flex-col gap-1.5 rounded-lg border border-[color-mix(in_srgb,var(--dt-destructive)_35%,transparent)] bg-[color-mix(in_srgb,var(--dt-destructive)_7%,transparent)] px-3 py-2 text-[0.78rem] leading-5 text-[color-mix(in_srgb,var(--dt-destructive)_78%,var(--ui-text-secondary))]"
             role="alert"
           >
-            <ErrorPrimitive.Message className="min-w-0 flex-1" />
-            {onDismissError && (
-              <TooltipIconButton
-                className="-my-0.5 shrink-0 text-current opacity-70 hover:opacity-100"
-                onClick={() => onDismissError(messageId)}
-                side="top"
-                tooltip={t.assistant.thread.dismissError}
-              >
-                <XIcon className="size-3.5" />
-              </TooltipIconButton>
-            )}
+            <div className="flex items-start gap-1.5">
+              <div className="min-w-0 flex-1">
+                <div className="font-medium capitalize">
+                  {errorSurface ? `${errorSurface.layer} error` : 'Hermes error'}
+                </div>
+                <ErrorPrimitive.Message className="min-w-0" />
+              </div>
+              {onDismissError && (
+                <TooltipIconButton
+                  className="-my-0.5 shrink-0 text-current opacity-70 hover:opacity-100"
+                  onClick={() => onDismissError(messageId)}
+                  side="top"
+                  tooltip={t.assistant.thread.dismissError}
+                >
+                  <XIcon className="size-3.5" />
+                </TooltipIconButton>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(!errorSurface || errorSurface.retryable) && (
+                <ActionBarPrimitive.Reload asChild>
+                  <button className="aui-error-action" onClick={() => triggerHaptic('submit')} type="button">
+                    Retry
+                  </button>
+                </ActionBarPrimitive.Reload>
+              )}
+              <CopyButton
+                appearance="inline"
+                className="aui-error-action"
+                label="Copy error details"
+                text={() => formatErrorDiagnostics({ errorText, surface: errorSurface })}
+              />
+            </div>
           </ErrorPrimitive.Root>
         </MessagePrimitive.Error>
       </div>

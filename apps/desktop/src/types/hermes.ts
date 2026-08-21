@@ -240,6 +240,8 @@ export interface ModelInfoResponse {
 }
 
 export interface ModelPricing {
+  /** Sale reduction supplied by the gateway; free promotional models use 100. */
+  discount_percent?: number
   /** Formatted $/Mtok input price, e.g. "$3.00", or "free", or "" if unknown. */
   input: string
   /** Formatted $/Mtok output price. */
@@ -408,12 +410,17 @@ export interface SessionMessagesResponse {
 }
 
 export interface SessionResumeResponse {
+  error?: string
+  error_surface?: unknown
   info?: SessionRuntimeInfo
   message_count: number
   messages: SessionMessage[]
   messages_omitted?: boolean
   resumed: string
+  recoverable?: boolean
   session_id: string
+  status?: string
+  streaming?: boolean
 }
 
 export interface SessionRuntimeInfo {

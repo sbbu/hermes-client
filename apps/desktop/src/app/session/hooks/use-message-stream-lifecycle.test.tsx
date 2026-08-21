@@ -204,6 +204,47 @@ describe('useMessageStream lifecycle recovery', () => {
     expect(chatMessageText(messages[0])).toBe('Partial answer continued')
   })
 
+  it('retains terminal error frames with the failing-layer descriptor', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.complete', {
+      error: 'rate limited',
+      error_surface: {
+        code: 'rate_limit',
+        layer: 'provider',
+        model: 'failed/model',
+        provider: 'openrouter',
+        retryable: false
+      },
+      status: 'error',
+      text: 'Error: rate limited'
+    })
+
+    const message = sessionStates!.get(SID)?.messages.at(-1)
+    expect(message?.error).toBe('rate limited')
+    expect(message?.errorSurface).toEqual({
+      code: 'rate_limit',
+      layer: 'provider',
+      model: 'failed/model',
+      provider: 'openrouter',
+      retryable: false
+    })
+    expect(chatMessageText(message!)).toBe('')
+  })
+
+  it('preserves streamed output on partial terminal errors', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.delta', { text: 'Useful partial output' })
+    emit('message.complete', { error: 'stream dropped', partial: true, status: 'error' })
+
+    const message = sessionStates!.get(SID)?.messages.at(-1)
+    expect(message?.error).toBe('stream dropped')
+    expect(chatMessageText(message!)).toBe('Useful partial output')
+  })
+
   it('routes session metadata through the cache without directly writing composer atoms', async () => {
     await mountStream()
     setCurrentModel('manual-model')

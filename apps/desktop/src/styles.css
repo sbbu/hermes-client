@@ -1436,3 +1436,21 @@ canvas {
     animation: none;
   }
 }
+
+.aui-error-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border: 1px solid color-mix(in srgb, var(--dt-destructive) 30%, transparent);
+  border-radius: 9999px;
+  background: transparent;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.1rem;
+  color: color-mix(in srgb, var(--dt-destructive) 80%, var(--ui-text-secondary));
+  cursor: pointer;
+}
+
+.aui-error-action:hover {
+  background: color-mix(in srgb, var(--dt-destructive) 10%, transparent);
+}

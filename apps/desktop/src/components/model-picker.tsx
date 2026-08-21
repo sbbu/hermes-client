@@ -33,6 +33,16 @@ interface ModelPickerDialogProps {
   contentClassName?: string
 }
 
+const MODEL_SEARCH_ALIASES: Record<string, readonly string[]> = {
+  'x-preview-f-free': ['ox-alpha', 'ox']
+}
+
+function modelSearchText(model: string): string {
+  const aliases = MODEL_SEARCH_ALIASES[model.toLowerCase()]
+
+  return aliases ? `${model} ${aliases.join(' ')}` : model
+}
+
 export function ModelPickerDialog({
   open,
   onOpenChange,
@@ -173,7 +183,7 @@ function ModelResults({
 
   const matches = (provider: ModelOptionProvider, model: string) =>
     !q ||
-    model.toLowerCase().includes(q) ||
+    modelSearchText(model).toLowerCase().includes(q) ||
     provider.name.toLowerCase().includes(q) ||
     provider.slug.toLowerCase().includes(q)
 
@@ -257,13 +267,25 @@ function ModelPrice({ price, isCurrent }: { price?: ModelPricing; isCurrent: boo
 
   if (price.free) {
     return (
-      <span
-        className={cn(
-          'shrink-0 rounded-sm px-1 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide',
-          isCurrent ? 'bg-primary-foreground/20' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+      <span className="inline-flex shrink-0 items-center gap-1.5">
+        {typeof price.discount_percent === 'number' && (
+          <span
+            className={cn(
+              'rounded-sm px-1 py-0.5 text-[0.62rem] font-semibold',
+              isCurrent ? 'bg-primary-foreground/20' : 'bg-amber-500/15 text-amber-700 dark:text-amber-400'
+            )}
+          >
+            -{price.discount_percent}%
+          </span>
         )}
-      >
-        {copy.free}
+        <span
+          className={cn(
+            'shrink-0 rounded-sm px-1 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide',
+            isCurrent ? 'bg-primary-foreground/20' : 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+          )}
+        >
+          {copy.free}
+        </span>
       </span>
     )
   }

@@ -1,5 +1,6 @@
 import type { ThreadMessageLike } from '@assistant-ui/react'
 
+import type { ErrorSurface } from '@/lib/error-surface'
 import { dedupeGeneratedImageEchoesInParts } from '@/lib/generated-images'
 import { mediaDisplayLabel, mediaMarkdownHref } from '@/lib/media'
 import { parseTodos } from '@/lib/todos'
@@ -15,6 +16,7 @@ export type ChatMessage = {
   pending?: boolean
   interim?: boolean
   error?: string
+  errorSurface?: ErrorSurface
   branchGroupId?: string
   hidden?: boolean
   /** Composer attachment ref strings (`@file:...`, `@image:...`) sent with this user message. */
@@ -38,6 +40,9 @@ export type GatewayEventPayload = {
   result?: unknown
   summary?: string
   error?: string | boolean
+  error_surface?: unknown
+  partial?: boolean
+  recoverable?: boolean
   inline_diff?: string
   duration_s?: number
   todos?: unknown

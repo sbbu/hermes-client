@@ -20,6 +20,7 @@ import {
 } from '@/lib/chat-messages'
 import { coerceGatewayText, coerceThinkingText, normalizePersonalityValue } from '@/lib/chat-runtime'
 import { playCompletionSound } from '@/lib/completion-sound'
+import { type ErrorSurface, parseErrorSurface } from '@/lib/error-surface'
 import { resolveGatewayEventSessionId } from '@/lib/gateway-events'
 import {
   dedupeGeneratedImageEchoesInParts,
@@ -653,7 +654,12 @@ export function useMessageStream({
   )
 
   const completeAssistantMessage = useCallback(
-    (sessionId: string, text: string, responsePreviewed?: boolean) => {
+    (
+      sessionId: string,
+      text: string,
+      responsePreviewed?: boolean,
+      terminalError?: { error: string; partial: boolean; surface?: ErrorSurface }
+    ) => {
       let shouldHydrate = false
 
       const completedState = updateSessionState(sessionId, state => {
@@ -676,7 +682,7 @@ export function useMessageStream({
 
         const streamId = state.streamId
         const finalText = renderMediaTags(text).trim()
-        const completionError = completionErrorText(finalText)
+        const completionError = terminalError?.error || completionErrorText(finalText)
         const interimBoundaryPending = state.interimBoundaryPending
 
         const replaceTextPart = (parts: ChatMessagePart[]) => {
@@ -686,13 +692,18 @@ export function useMessageStream({
         }
 
         const completeMessage = (message: ChatMessage): ChatMessage => {
-          const settled = { ...message, pending: false, interim: false }
+          const settled = {
+            ...message,
+            pending: false,
+            interim: false,
+            ...(terminalError?.surface ? { errorSurface: terminalError.surface } : {})
+          }
 
           return completionError
             ? {
                 ...settled,
                 error: completionError,
-                parts: message.parts.filter(part => part.type !== 'text')
+                parts: terminalError?.partial ? message.parts : message.parts.filter(part => part.type !== 'text')
               }
             : {
                 ...settled,
@@ -703,9 +714,10 @@ export function useMessageStream({
         const newAssistantFromCompletion = (): ChatMessage => ({
           id: `assistant-${Date.now()}`,
           role: 'assistant',
-          parts: completionError ? [] : [assistantTextPart(finalText)],
+          parts: completionError && !terminalError?.partial ? [] : finalText ? [assistantTextPart(finalText)] : [],
           branchGroupId: state.pendingBranchGroup ?? undefined,
-          ...(completionError && { error: completionError })
+          ...(completionError && { error: completionError }),
+          ...(terminalError?.surface ? { errorSurface: terminalError.surface } : {})
         })
 
         const prev = state.messages
@@ -1076,7 +1088,21 @@ export function useMessageStream({
         playCompletionSound()
 
         const finalText = coerceGatewayText(payload?.text) || coerceGatewayText(payload?.rendered)
-        completeAssistantMessage(sessionId, finalText, payload?.response_previewed)
+        const surface = parseErrorSurface(payload?.error_surface)
+
+        const terminalError =
+          payload?.status === 'error'
+            ? {
+                error:
+                  (typeof payload.error === 'string' ? payload.error.trim() : '') ||
+                  finalText ||
+                  'Hermes reported an error',
+                partial: Boolean(payload.partial),
+                ...(surface ? { surface } : {})
+              }
+            : undefined
+
+        completeAssistantMessage(sessionId, finalText, payload?.response_previewed, terminalError)
 
         if (isActiveEvent) {
           setTurnStartedAt(null)
