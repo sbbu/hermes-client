@@ -90,6 +90,11 @@ RM_HOME_GUARD_REASON = "recursive rm targeting user home"
 SHELL_PARAMETER_GUARD_REASON = "complex shell parameter expansion"
 MAX_SHELL_PARAMETER_VARIANTS = 256
 MAX_SHELL_PARAMETER_DEPTH = 32
+MAX_NESTED_SHELL_COMMAND_DEPTH = 16
+NESTED_SHELL_COMMAND_GUARD_REASON = "complex nested shell command"
+SHELL_COMMAND_NAMES = frozenset(
+    {"ash", "bash", "csh", "dash", "fish", "ksh", "mksh", "pdksh", "sh", "tcsh", "yash", "zsh"}
+)
 SHELL_IFS_REF_RE = re.compile(r"\$(?:IFS\b|\{IFS(?::?[-=+?][^}]*)?\})")
 SHELL_HOME_PARAM_RE = re.compile(r"^\$\{HOME(?::?[-=+?][^}]*)?\}(?:/|$)")
 SHELL_USER_HOME_PARAM_RE = re.compile(r"^/(?:Users|home)/\$\{(?:USER|LOGNAME)(?::?[-=+?][^}]*)?\}(?:/|$)")
@@ -463,6 +468,25 @@ def _rm_word_is_command(word: str) -> bool:
     return basename in {"rm", "rm.exe"}
 
 
+def _nested_shell_command_payloads(words: list[str]) -> list[str]:
+    """Extract command strings that shell builtins/interpreters will reparse."""
+    for index, word in enumerate(words):
+        basename = word.rstrip("/").rsplit("/", 1)[-1].lower()
+        if basename == "eval":
+            payload = " ".join(words[index + 1 :])
+            return [payload] if payload else []
+        if basename not in SHELL_COMMAND_NAMES:
+            continue
+        for option_index in range(index + 1, len(words)):
+            option = words[option_index]
+            if option.startswith("-") and not option.startswith("--") and "c" in option[1:]:
+                if option_index + 1 < len(words):
+                    return [words[option_index + 1]]
+                return []
+        return []
+    return []
+
+
 def _dangerous_rm_args_reason(args: list[str]) -> str | None:
     flags: set[str] = set()
     targets: list[str] = []
@@ -489,7 +513,9 @@ def _dangerous_rm_args_reason(args: list[str]) -> str | None:
     return None
 
 
-def _dangerous_rm_target_reason(text: str) -> str | None:
+def _dangerous_rm_target_reason(text: str, *, _nested_depth: int = 0) -> str | None:
+    if _nested_depth > MAX_NESTED_SHELL_COMMAND_DEPTH:
+        return NESTED_SHELL_COMMAND_GUARD_REASON
     raw_fragments = [text or "", *re.split(r"[\r\n;|&`()]+", text or "")]
     fragments: list[str] = []
     for fragment in raw_fragments:
@@ -516,6 +542,10 @@ def _dangerous_rm_target_reason(text: str) -> str | None:
             if not _rm_word_is_command(word):
                 continue
             reason = _dangerous_rm_args_reason(words[index + 1 :])
+            if reason:
+                return reason
+        for payload in _nested_shell_command_payloads(words):
+            reason = _dangerous_rm_target_reason(payload, _nested_depth=_nested_depth + 1)
             if reason:
                 return reason
     return None

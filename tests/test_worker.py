@@ -93,6 +93,11 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("echo `rm -rf /`")
     assert blocked_type_pattern("echo $(printf ok; rm -rf /)")
     assert blocked_type_pattern("echo $( (rm -rf /) )")
+    assert blocked_type_pattern("eval 'rm -rf /'")
+    assert blocked_type_pattern('sh -c "rm -rf /"')
+    assert blocked_type_pattern("bash -lc 'rm -rf ~'")
+    assert blocked_type_pattern("/bin/csh -c 'rm -rf /'")
+    assert blocked_type_pattern("zsh -c 'eval \"rm -rf /\"'")
     assert blocked_type_pattern("rm -rf${IFS}/")
     assert blocked_type_pattern("rm${IFS}-rf${IFS}/")
     assert blocked_type_pattern("sudo${IFS}rm${IFS}-fr${IFS}/")
@@ -142,6 +147,7 @@ def test_local_computer_use_blocks_dangerous_type_payloads():
     assert blocked_type_pattern("rm -rf '${HOME%/*}/$USER'") is None
     assert blocked_type_pattern("r${COMMAND_SUFFIX:-mdir} ${FLAGS:--r} /") is None
     assert blocked_type_pattern("env PATH=/bin rm -fr /tmp") is None
+    assert blocked_type_pattern("zsh -lc 'rm -rf /tmp'") is None
 
 
 def test_local_computer_use_bounds_shell_parameter_variants():
