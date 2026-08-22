@@ -410,17 +410,28 @@ export interface SessionMessagesResponse {
 }
 
 export interface SessionResumeResponse {
-  error?: string
-  error_surface?: unknown
+  inflight?: null | {
+    assistant?: string
+    corrections?: string[]
+    correction_offsets?: number[]
+    error?: string
+    error_surface?: unknown
+    recoverable?: boolean
+    status?: string
+    streaming?: boolean
+    user?: string
+  }
   info?: SessionRuntimeInfo
   message_count: number
   messages: SessionMessage[]
   messages_omitted?: boolean
+  queued?: null | {
+    user?: string
+  }
   resumed: string
-  recoverable?: boolean
+  running?: boolean
   session_id: string
   status?: string
-  streaming?: boolean
 }
 
 export interface SessionRuntimeInfo {

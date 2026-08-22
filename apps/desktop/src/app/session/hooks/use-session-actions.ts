@@ -5,9 +5,17 @@ import type { NavigateFunction } from 'react-router-dom'
 
 import { deleteSession, getLatestSessionMessages, getSession, setSessionArchived } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
+import {
+  assistantTextPart,
+  type ChatMessage,
+  chatMessageText,
+  preserveLocalAssistantErrors,
+  textPart,
+  toChatMessages
+} from '@/lib/chat-messages'
 import { normalizePersonalityValue } from '@/lib/chat-runtime'
 import { embeddedImageUrls, textWithoutEmbeddedImages } from '@/lib/embedded-images'
+import { parseErrorSurface } from '@/lib/error-surface'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { clearQueuedPrompts } from '@/store/composer-queue'
 import { $pinnedSessionIds } from '@/store/layout'
@@ -177,6 +185,158 @@ function reconcileResumeMessages(nextMessages: ChatMessage[], previousMessages: 
 
     return withAppendedText(preserved, previousImages.map(url => `\n${url}`).join(''))
   })
+}
+
+const REFERENCE_ONLY_LINE_RE =
+  /^@(file|folder|url|image|tool|line|terminal|session):(?:`[^`\n]+`|"[^"\n]+"|'[^'\n]+'|\S+)$/
+
+function comparableUserText(text: string): string {
+  return text
+    .split('\n')
+    .filter(line => !REFERENCE_ONLY_LINE_RE.test(line.trimEnd()))
+    .join('\n')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function appendLiveSessionProjection(
+  messages: ChatMessage[],
+  projection: Pick<SessionResumeResponse, 'inflight' | 'queued' | 'session_id'>
+): ChatMessage[] {
+  const inflightUser = projection.inflight?.user?.trim() ?? ''
+  const inflightAssistant = projection.inflight?.assistant ?? ''
+  const inflightStreaming = Boolean(projection.inflight?.streaming)
+  const rawCorrections = projection.inflight?.corrections ?? []
+  const rawOffsets = projection.inflight?.correction_offsets
+
+  const correctionEntries = rawCorrections
+    .map((correction, index) => ({ text: correction?.trim() ?? '', offset: rawOffsets?.[index] }))
+    .filter(entry => entry.text)
+
+  const corrections = correctionEntries.map(entry => entry.text)
+
+  const offsetsUsable =
+    correctionEntries.length > 0 &&
+    correctionEntries.every(entry => typeof entry.offset === 'number' && entry.offset >= 0)
+
+  const explicitError = projection.inflight?.error?.trim() ?? ''
+
+  const inflightError = explicitError || (projection.inflight?.status === 'error' ? 'Hermes reported an error' : '')
+  const errorSurface = parseErrorSurface(projection.inflight?.error_surface)
+
+  const queuedUser = projection.queued?.user?.trim() ?? ''
+
+  if (
+    !inflightUser &&
+    !inflightAssistant &&
+    !inflightStreaming &&
+    !inflightError &&
+    !queuedUser &&
+    corrections.length === 0
+  ) {
+    return messages
+  }
+
+  const sessionId = projection.session_id || 'session'
+  const streamId = `assistant-stream-${sessionId}`
+  const projected: ChatMessage[] = []
+  const latestUserIndex = messages.map(message => message.role).lastIndexOf('user')
+  const latestUserRun: ChatMessage[] = []
+
+  for (let index = latestUserIndex; index >= 0; index -= 1) {
+    const candidate = messages[index]
+
+    if (candidate.role === 'user') {
+      latestUserRun.unshift(candidate)
+
+      continue
+    }
+
+    if (candidate.role === 'assistant' && (candidate.pending || candidate.id.startsWith('assistant-stream-'))) {
+      continue
+    }
+
+    break
+  }
+
+  const persistedInLatestRun = (text: string) =>
+    latestUserRun.some(message => comparableUserText(chatMessageText(message)) === comparableUserText(text))
+
+  if (inflightUser && !persistedInLatestRun(inflightUser)) {
+    projected.push({
+      id: `user-inflight-${sessionId}`,
+      role: 'user',
+      parts: [textPart(inflightUser)]
+    })
+  }
+
+  const pushCorrection = (correction: string, index: number) => {
+    if (!persistedInLatestRun(correction)) {
+      projected.push({
+        id: `user-inflight-correction-${index}-${sessionId}`,
+        role: 'user',
+        parts: [textPart(correction)]
+      })
+    }
+  }
+
+  const wantsAssistant = Boolean(
+    inflightAssistant || inflightStreaming || inflightError || (inflightUser && queuedUser)
+  )
+
+  if (wantsAssistant && offsetsUsable && !inflightError && inflightAssistant) {
+    let cursor = 0
+
+    for (const [index, entry] of correctionEntries.entries()) {
+      const boundary = Math.min(Math.max(entry.offset as number, cursor), inflightAssistant.length)
+      const segment = inflightAssistant.slice(cursor, boundary)
+
+      if (segment.trim()) {
+        projected.push({
+          id: `inflight-assistant-segment-${index}-${sessionId}`,
+          role: 'assistant',
+          parts: [assistantTextPart(segment)],
+          pending: false,
+          interim: true
+        })
+      }
+
+      cursor = boundary
+      pushCorrection(entry.text, index)
+    }
+
+    const tail = inflightAssistant.slice(cursor)
+
+    projected.push({
+      id: streamId,
+      role: 'assistant',
+      parts: tail.trim() ? [assistantTextPart(tail)] : [],
+      pending: inflightStreaming
+    })
+  } else {
+    if (wantsAssistant) {
+      projected.push({
+        id: streamId,
+        role: 'assistant',
+        parts: inflightAssistant ? [assistantTextPart(inflightAssistant)] : [],
+        pending: inflightError ? false : inflightStreaming,
+        ...(inflightError ? { error: inflightError } : {}),
+        ...(inflightError && errorSurface ? { errorSurface } : {})
+      })
+    }
+
+    corrections.forEach(pushCorrection)
+  }
+
+  if (queuedUser) {
+    projected.push({
+      id: `user-queued-${sessionId}`,
+      role: 'user',
+      parts: [textPart(queuedUser)]
+    })
+  }
+
+  return projected.length ? [...messages, ...projected] : messages
 }
 
 function upsertOptimisticSession(
@@ -853,7 +1013,11 @@ export function useSessionActions({
                 return chatMessageArraysEquivalent(currentMessages, resumedMessages) ? currentMessages : resumedMessages
               })()
 
-        const messagesForView = preserveLocalAssistantErrors(preferredMessages, currentMessages)
+        // REST only contains committed history. The live resume projection is
+        // authoritative for the running/failed tail and an accepted queued turn,
+        // so merge it even when the transcript prefetch won the fast path.
+        const messagesWithLiveProjection = appendLiveSessionProjection(preferredMessages, resumed)
+        const messagesForView = preserveLocalAssistantErrors(messagesWithLiveProjection, currentMessages)
 
         setActiveSessionId(resumed.session_id)
         activeSessionIdRef.current = resumed.session_id
@@ -861,7 +1025,11 @@ export function useSessionActions({
 
         patchSessionWorkspace(storedSessionId, runtimeInfo?.cwd)
 
-        resumedRunning = Boolean((resumed as { running?: boolean }).running)
+        resumedRunning = Boolean(resumed.running)
+        const resumedStreamId = `assistant-stream-${resumed.session_id}`
+
+        const hasResumedStream =
+          resumedRunning && messagesForView.some(message => message.id === resumedStreamId && message.pending)
 
         updateSessionState(
           resumed.session_id,
@@ -870,7 +1038,11 @@ export function useSessionActions({
             ...(runtimeInfo ?? {}),
             messages: messagesForView,
             busy: resumedRunning,
-            awaitingResponse: resumedRunning
+            awaitingResponse: resumedRunning,
+            // A live session does not replay message.start on resume. Point
+            // subsequent deltas/completion at the projected row instead of
+            // seeding a duplicate assistant bubble.
+            ...(hasResumedStream ? { streamId: resumedStreamId, sawAssistantPayload: true } : {})
           }),
           storedSessionId
         )

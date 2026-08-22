@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getLatestSessionMessages } from '@/hermes'
+import { chatMessageText } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
 import {
@@ -374,6 +375,8 @@ describe('resumeSession composer model intent', () => {
 // hook must (a) not throw out of the fallback (which stranded the loader), and
 // (b) arm $resumeFailedSessionId so use-route-resume can retry. A resume that
 // succeeds must NOT leave the flag armed.
+let resumedSessionState: ClientSessionState | null = null
+
 function ResumeHarness({
   onReady,
   requestGateway
@@ -398,7 +401,12 @@ function ResumeHarness({
     selectedStoredSessionIdRef: ref<string | null>(null),
     sessionStateByRuntimeIdRef: ref(new Map<string, ClientSessionState>()),
     syncSessionStateToView: vi.fn(),
-    updateSessionState: (_sessionId, updater) => updater({} as ClientSessionState)
+    updateSessionState: (_sessionId, updater) => {
+      const next = updater(createClientSessionState())
+      resumedSessionState = next
+
+      return next
+    }
   })
 
   useEffect(() => {
@@ -411,6 +419,7 @@ function ResumeHarness({
 describe('resumeSession failure recovery', () => {
   afterEach(() => {
     cleanup()
+    resumedSessionState = null
     setResumeFailedSessionId(null)
     setMessages([])
     setCurrentModelSource('')
@@ -561,5 +570,137 @@ describe('resumeSession failure recovery', () => {
 
     expect($resumeFailedSessionId.get()).toBeNull()
     expect(resumeParams).toMatchObject({ source: 'desktop' })
+  })
+
+  it('restores a retained failed turn when the terminal frame was lost', async () => {
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({
+      messages: [{ content: 'long job', role: 'user', timestamp: 1 }],
+      session_id: 'stored-1'
+    } as never)
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.resume') {
+        return {
+          inflight: {
+            assistant: 'Useful partial output',
+            error: 'stream dropped',
+            error_surface: { code: 'stream_drop', layer: 'streaming', retryable: true },
+            recoverable: true,
+            status: 'error',
+            streaming: false,
+            user: 'long job'
+          },
+          info: {},
+          messages: [],
+          messages_omitted: true,
+          resumed: 'stored-1',
+          running: false,
+          session_id: 'runtime-1'
+        } as never
+      }
+
+      return {} as never
+    })
+
+    await runResume(requestGateway)
+
+    expect(resumedSessionState?.messages).toHaveLength(2)
+    expect(resumedSessionState?.messages[0]).toMatchObject({ role: 'user' })
+    expect(resumedSessionState?.messages[1]).toMatchObject({
+      error: 'stream dropped',
+      errorSurface: { code: 'stream_drop', layer: 'streaming', retryable: true },
+      pending: false,
+      role: 'assistant'
+    })
+    expect(resumedSessionState?.messages[1].parts).toEqual([{ text: 'Useful partial output', type: 'text' }])
+  })
+
+  it('restores the running tail, redirect corrections, and queued turn', async () => {
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({
+      messages: [
+        { content: 'earlier', role: 'user', timestamp: 1 },
+        { content: 'earlier answer', role: 'assistant', timestamp: 2 }
+      ],
+      session_id: 'stored-1'
+    } as never)
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.resume') {
+        return {
+          inflight: {
+            assistant: 'Moving.Still.',
+            corrections: ['hurry up'],
+            correction_offsets: [7],
+            streaming: true,
+            user: 'current prompt'
+          },
+          info: {},
+          messages: [],
+          messages_omitted: true,
+          queued: { user: 'next prompt' },
+          resumed: 'stored-1',
+          running: true,
+          session_id: 'runtime-1'
+        } as never
+      }
+
+      return {} as never
+    })
+
+    await runResume(requestGateway)
+
+    expect(resumedSessionState?.messages.map(message => [message.role, chatMessageText(message)])).toEqual([
+      ['user', 'earlier'],
+      ['assistant', 'earlier answer'],
+      ['user', 'current prompt'],
+      ['assistant', 'Moving.'],
+      ['user', 'hurry up'],
+      ['assistant', 'Still.'],
+      ['user', 'next prompt']
+    ])
+    expect(resumedSessionState?.messages[5]).toMatchObject({
+      id: 'assistant-stream-runtime-1',
+      pending: true
+    })
+    expect(resumedSessionState).toMatchObject({
+      awaitingResponse: true,
+      busy: true,
+      sawAssistantPayload: true,
+      streamId: 'assistant-stream-runtime-1'
+    })
+  })
+
+  it('marks status-only retained failures instead of rendering them as healthy', async () => {
+    vi.mocked(getLatestSessionMessages).mockResolvedValue({ messages: [], session_id: 'stored-1' } as never)
+
+    const requestGateway = vi.fn(async (method: string) => {
+      if (method === 'session.resume') {
+        return {
+          inflight: {
+            assistant: 'Partial output',
+            status: 'error',
+            streaming: false
+          },
+          info: {},
+          messages: [],
+          messages_omitted: true,
+          resumed: 'stored-1',
+          running: false,
+          session_id: 'runtime-1'
+        } as never
+      }
+
+      return {} as never
+    })
+
+    await runResume(requestGateway)
+
+    expect(resumedSessionState?.messages).toHaveLength(1)
+    expect(resumedSessionState?.messages[0]).toMatchObject({
+      error: 'Hermes reported an error',
+      pending: false,
+      role: 'assistant'
+    })
+    expect(chatMessageText(resumedSessionState!.messages[0])).toBe('Partial output')
   })
 })
