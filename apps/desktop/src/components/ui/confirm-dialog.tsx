@@ -1,9 +1,16 @@
 import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ActionStatus } from '@/components/ui/action-status'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { AlertTriangle } from '@/lib/icons'
 
@@ -37,6 +44,7 @@ export function ConfirmDialog({
   destructive = false
 }: ConfirmDialogProps) {
   const { t } = useI18n()
+  const closeTimerRef = useRef<null | number>(null)
   const [status, setStatus] = useState<'done' | 'idle' | 'saving'>('idle')
   const [error, setError] = useState<null | string>(null)
   const busy = status === 'saving' || status === 'done'
@@ -52,6 +60,15 @@ export function ConfirmDialog({
     }
   }, [open])
 
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+    }
+  }, [])
+
   async function run() {
     if (busy) {
       return
@@ -63,7 +80,10 @@ export function ConfirmDialog({
     try {
       await onConfirm()
       setStatus('done')
-      window.setTimeout(onClose, 600)
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null
+        onClose()
+      }, 600)
     } catch (err) {
       setStatus('idle')
       setError(err instanceof Error ? err.message : t.errors.genericFailure)
@@ -100,7 +120,12 @@ export function ConfirmDialog({
             {resolvedCancelLabel}
           </Button>
           <Button disabled={busy} onClick={() => void run()} variant={destructive ? 'destructive' : 'default'}>
-            <ActionStatus busy={resolvedBusyLabel} done={resolvedDoneLabel} idle={resolvedConfirmLabel} state={status} />
+            <ActionStatus
+              busy={resolvedBusyLabel}
+              done={resolvedDoneLabel}
+              idle={resolvedConfirmLabel}
+              state={status}
+            />
           </Button>
         </DialogFooter>
       </DialogContent>

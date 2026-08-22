@@ -356,7 +356,10 @@ export function toRuntimeMessage(message: ChatMessage): ThreadMessage {
   return {
     id: message.id,
     role,
-    content: message.parts as Extract<ThreadMessage, { role: 'assistant' }>['content'],
+    content: withUniqueToolCallIdsWithinMessage(message).parts as Extract<
+      ThreadMessage,
+      { role: 'assistant' }
+    >['content'],
     createdAt,
     status: message.error
       ? { type: 'incomplete', reason: 'error', error: message.error }
@@ -371,6 +374,32 @@ export function toRuntimeMessage(message: ChatMessage): ThreadMessage {
       custom: { errorSurface: message.errorSurface }
     }
   } as ThreadMessage
+}
+
+/** Ensure assistant-ui never receives duplicate resource keys within one message. */
+export function withUniqueToolCallIdsWithinMessage(message: ChatMessage): ChatMessage {
+  const seen = new Set<string>()
+  let changed = false
+
+  const parts = message.parts.map((part, index) => {
+    if (part.type !== 'tool-call' || !part.toolCallId) {
+      return part
+    }
+
+    if (!seen.has(part.toolCallId)) {
+      seen.add(part.toolCallId)
+
+      return part
+    }
+
+    changed = true
+    const uniqueId = `${part.toolCallId}-dup-${index}`
+    seen.add(uniqueId)
+
+    return { ...part, toolCallId: uniqueId } as ChatMessagePart
+  })
+
+  return changed ? { ...message, parts } : message
 }
 
 export type ToolMergeCache = WeakMap<
@@ -397,6 +426,35 @@ function isToolOnlyAssistant(message: ChatMessage): boolean {
   )
 }
 
+export function concatToolPartsUnique(
+  prevParts: readonly ChatMessagePart[],
+  nextParts: readonly ChatMessagePart[]
+): ChatMessagePart[] {
+  const seen = new Set<string>()
+
+  for (const part of prevParts) {
+    if (part.type === 'tool-call' && part.toolCallId) {
+      seen.add(part.toolCallId)
+    }
+  }
+
+  const out = [...prevParts]
+
+  for (const part of nextParts) {
+    if (part.type === 'tool-call' && part.toolCallId) {
+      if (seen.has(part.toolCallId)) {
+        continue
+      }
+
+      seen.add(part.toolCallId)
+    }
+
+    out.push(part)
+  }
+
+  return out
+}
+
 /**
  * Fold each settled tool-only assistant message into the preceding assistant
  * message so its calls join that message's tool group (and can collapse into
@@ -417,7 +475,7 @@ export function coalesceToolOnlyAssistants(messages: ChatMessage[], cache: ToolM
       const merged =
         cached && cached.prev === prev && cached.prevParts === prev.parts && cached.parts === message.parts
           ? cached.merged
-          : { ...prev, parts: [...prev.parts, ...message.parts] }
+          : { ...prev, parts: concatToolPartsUnique(prev.parts, message.parts) }
 
       cache.set(message, { merged, parts: message.parts, prev, prevParts: prev.parts })
       out[out.length - 1] = merged

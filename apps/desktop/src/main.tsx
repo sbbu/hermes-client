@@ -13,9 +13,13 @@ import { HapticsProvider } from './components/haptics-provider'
 import { I18nProvider } from './i18n'
 import { installClipboardShim } from './lib/clipboard'
 import { queryClient } from './lib/query-client'
+import { installSelectionCopyColorGuard } from './lib/selection-copy-colors'
 import { ThemeProvider } from './themes/context'
 
 installClipboardShim()
+// Chromium inlines the current theme's colors into native selection copies.
+// Strip opposite-scheme paint so copied text remains readable after pasting.
+installSelectionCopyColorGuard()
 
 const winParam = new URLSearchParams(window.location.search).get('win')
 

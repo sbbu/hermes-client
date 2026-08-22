@@ -9,7 +9,9 @@ import {
   createToolMergeCache,
   optimisticAttachmentRef,
   parseCommandDispatch,
-  parseSlashCommand
+  parseSlashCommand,
+  toRuntimeMessage,
+  withUniqueToolCallIdsWithinMessage
 } from './chat-runtime'
 
 const DATA_URL = 'data:image/png;base64,iVBORw0KGgoAAAANS'
@@ -85,6 +87,35 @@ describe('coalesceToolOnlyAssistants', () => {
     const pendingTools: ChatMessage = { id: 'a2', parts: [toolPart('call-1')], pending: true, role: 'assistant' }
 
     expect(coalesceToolOnlyAssistants([base, pendingTools], createToolMergeCache())).toEqual([base, pendingTools])
+  })
+
+  it('drops a carried-over duplicate tool call while preserving new calls', () => {
+    const base: ChatMessage = {
+      id: 'a1',
+      parts: [{ text: 'working', type: 'text' }, toolPart('call-a'), toolPart('call-b')],
+      role: 'assistant'
+    }
+
+    const tools: ChatMessage = { id: 'a2', parts: [toolPart('call-b'), toolPart('call-c')], role: 'assistant' }
+
+    const [merged] = coalesceToolOnlyAssistants([base, tools], createToolMergeCache())
+    expect(merged.parts.filter(part => part.type === 'tool-call').map(part => part.toolCallId)).toEqual([
+      'call-a',
+      'call-b',
+      'call-c'
+    ])
+  })
+
+  it('renames duplicate tool calls within one runtime message', () => {
+    const message: ChatMessage = {
+      id: 'a1',
+      parts: [toolPart('call-a'), toolPart('call-a')],
+      role: 'assistant'
+    }
+
+    const repaired = withUniqueToolCallIdsWithinMessage(message)
+    expect(repaired.parts.map(part => part.type === 'tool-call' && part.toolCallId)).toEqual(['call-a', 'call-a-dup-1'])
+    expect(toRuntimeMessage(message).content).toEqual(repaired.parts)
   })
 })
 
