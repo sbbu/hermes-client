@@ -2,6 +2,7 @@ import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $desktopBoot } from '@/store/boot'
+import { $notifications, clearNotifications } from '@/store/notifications'
 import { $gatewayState } from '@/store/session'
 
 import { useGatewayBoot } from './use-gateway-boot'
@@ -68,7 +69,9 @@ class FakeWebSocket {
   }
 
   private emit(type: string, ev: unknown) {
-    for (const fn of this.listeners[type] ?? []) fn(ev)
+    for (const fn of this.listeners[type] ?? []) {
+      fn(ev)
+    }
   }
 }
 
@@ -123,6 +126,7 @@ beforeEach(() => {
   ;(globalThis as { WebSocket: unknown }).WebSocket = FakeWebSocket
   ;(window as { hermesDesktop?: unknown }).hermesDesktop = fakeDesktop()
   $gatewayState.set('idle')
+  clearNotifications()
   $desktopBoot.set({
     error: null,
     fakeMode: false,
@@ -196,7 +200,7 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     expect($desktopBoot.get().error).toBeTruthy()
   })
 
-  it('a remote that drops post-boot keeps looping with NO boot.error (the dead-end CONNECTING combo)', async () => {
+  it('a remote that drops post-boot keeps retrying without a boot error', async () => {
     render(<Harness />)
     await flushAsync()
 
@@ -211,11 +215,7 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     act(() => FakeWebSocket.instances[0].drop())
     await flushAsync()
 
-    // Burn a couple backoff cycles BEFORE the escalation threshold (<6 attempts,
-    // ~the first ~15s). This is the window where stock and fixed behave the
-    // same: socket down, hook retrying, gatewayState non-open, boot.error still
-    // null → CONNECTING covers the screen with no recovery surface. (Past ~45s
-    // the fix raises boot.error; that's asserted in the next test.)
+    // Burn a backoff cycle before the five-minute warning threshold.
     await advanceBackoff()
 
     expect($gatewayState.get()).not.toBe('open')
@@ -224,7 +224,7 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     expect(FakeWebSocket.instances.length).toBeGreaterThan(1)
   })
 
-  it('FIX: after the prolonged drop the hook raises a recoverable boot error (the escape hatch)', async () => {
+  it('warns non-blockingly after a prolonged drop', async () => {
     render(<Harness />)
     await flushAsync()
     expect($desktopBoot.get().error).toBeNull()
@@ -233,33 +233,13 @@ describe('useGatewayBoot remote reconnect loop (real hook, fake socket)', () => 
     act(() => FakeWebSocket.instances[0].drop())
     await flushAsync()
 
-    // Walk the backoff past the >=6 attempt threshold (~45s of failures).
-    for (let i = 0; i < 8; i += 1) {
+    // Walk the backoff beyond five minutes of failures.
+    for (let i = 0; i < 22; i += 1) {
       await advanceBackoff()
     }
 
-    // The hook surfaced the recoverable error → BootFailureOverlay (Use local
-    // gateway / Sign in / Retry) becomes reachable instead of CONNECTING.
-    expect($desktopBoot.get().error).toBeTruthy()
-  })
-
-  it('FIX: a successful reconnect clears the recoverable error', async () => {
-    render(<Harness />)
-    await flushAsync()
-
-    FakeWebSocket.mode = 'fail'
-    act(() => FakeWebSocket.instances[0].drop())
-    await flushAsync()
-    for (let i = 0; i < 8; i += 1) {
-      await advanceBackoff()
-    }
-    expect($desktopBoot.get().error).toBeTruthy()
-
-    // The remote comes back: next reconnect attempt opens.
-    FakeWebSocket.mode = 'open'
-    await advanceBackoff()
-
-    expect($gatewayState.get()).toBe('open')
+    // The transcript remains usable: no full-screen boot failure is raised.
     expect($desktopBoot.get().error).toBeNull()
+    expect($notifications.get().some(item => item.kind === 'warning')).toBe(true)
   })
 })

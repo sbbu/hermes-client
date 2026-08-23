@@ -1,6 +1,7 @@
 import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@hermes/shared'
 import { useEffect, useRef } from 'react'
 
+import { shouldApplyPostBootProgressError } from '@/components/boot-failure-reauth'
 import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
@@ -41,9 +42,10 @@ import {
 } from '@/store/session'
 import type { RpcEvent } from '@/types/hermes'
 
-// A dropped remote gateway must eventually expose the recoverable boot-error
-// surface instead of retrying forever behind the fullscreen connecting state.
-const RECONNECT_ESCALATE_AFTER_MS = 45_000
+// Brief remote transport blips commonly self-heal. Keep chat readable and
+// draftable while reconnecting, and only raise a non-blocking warning after a
+// sustained outage. Confirmed reauth still opens recovery immediately.
+const RECONNECT_ESCALATE_AFTER_MS = 300_000
 
 interface GatewayBootOptions {
   handleGatewayEvent: (event: RpcEvent) => void
@@ -169,12 +171,11 @@ export function useGatewayBoot({
           callbacksRef.current.refreshSessions().catch(() => undefined)
         ])
       } catch (err) {
-        // OAuth session expired mid-reconnect: surface the actionable "sign in
-        // again" message once instead of silently looping the backoff against a
-        // ticket that can never succeed. Transport failures fall through to the
-        // backoff in the finally block below.
+        // OAuth session expired mid-reconnect: surface the actionable recovery
+        // overlay once. Transport failures stay in the non-blocking backoff loop.
         if (!cancelled && isGatewayReauthRequired(err) && !reauthNotified) {
           reauthNotified = true
+          failDesktopBoot(err instanceof Error ? err.message : String(err))
           notifyError(err, translateNow('boot.errors.gatewaySignInRequired'))
         }
       } finally {
@@ -187,7 +188,12 @@ export function useGatewayBoot({
 
           if (Date.now() - reconnectFailingSince >= RECONNECT_ESCALATE_AFTER_MS && !escalated) {
             escalated = true
-            failDesktopBoot(translateNow('boot.errors.gatewayConnectionLost'))
+            notify({
+              kind: 'warning',
+              title: translateNow('boot.errors.gatewayConnectionLost'),
+              message: translateNow('boot.errors.gatewayConnectionLostDetail'),
+              durationMs: 0
+            })
           }
 
           scheduleReconnect()
@@ -224,7 +230,21 @@ export function useGatewayBoot({
       }
     }
 
-    const offBootProgress = desktop.onBootProgress(payload => applyDesktopBootProgress(payload))
+    const offBootProgress = desktop.onBootProgress(payload => {
+      // Once cold boot succeeded, only confirmed reauth may reclaim the
+      // full-screen recovery surface. Ticket-mint and reachability blips stay in
+      // the reconnect loop so the existing transcript remains usable.
+      if (bootCompleted) {
+        if (payload.error && shouldApplyPostBootProgressError(payload.error)) {
+          applyDesktopBootProgress(payload)
+        }
+
+        return
+      }
+
+      applyDesktopBootProgress(payload)
+    })
+
     void desktop
       .getBootProgress()
       .then(snapshot => applyDesktopBootProgress(snapshot))

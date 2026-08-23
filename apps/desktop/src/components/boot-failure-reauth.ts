@@ -45,6 +45,23 @@ export function isRemoteReauthFailure(config: DesktopConnectionConfig | null | u
   )
 }
 
+/** True only for explicit remote-session authentication failures. */
+export function isRemoteReauthError(error: string | null | undefined): boolean {
+  const text = String(error || '').toLowerCase()
+
+  return (
+    text.includes('remote gateway session has expired') ||
+    text.includes('gateway sign-in required') ||
+    text.includes('needs oauth login') ||
+    (text.includes('oauth') && (text.includes('not signed in') || text.includes('sign in')))
+  )
+}
+
+/** Post-boot transport errors must not replace usable chat with a boot overlay. */
+export function shouldApplyPostBootProgressError(error: string | null | undefined): boolean {
+  return isRemoteReauthError(error)
+}
+
 // Derive the password flag + display label from the probed providers. A
 // gateway is treated as password-style only when EVERY advertised provider
 // supports password (a mixed deployment keeps the generic OAuth copy), so the
@@ -62,9 +79,7 @@ export function deriveProviderShape(providers: DesktopAuthProvider[] | null | un
   const isPassword = list.every(p => Boolean(p.supportsPassword))
 
   const providerLabel =
-    list.length === 1
-      ? list[0].displayName || list[0].name
-      : list.map(p => p.displayName || p.name).join(' / ')
+    list.length === 1 ? list[0].displayName || list[0].name : list.map(p => p.displayName || p.name).join(' / ')
 
   return { isPassword, providerLabel }
 }
@@ -75,7 +90,8 @@ export function signInLabel(reauth: RemoteReauth | null, copy: SignInCopy = DEFA
     return copy.remoteGateway
   }
 
-  const provider = reauth?.providerLabel === DEFAULT_SIGN_IN_COPY.identityProvider ? copy.identityProvider : reauth?.providerLabel
+  const provider =
+    reauth?.providerLabel === DEFAULT_SIGN_IN_COPY.identityProvider ? copy.identityProvider : reauth?.providerLabel
 
   return copy.withProvider(provider ?? copy.identityProvider)
 }

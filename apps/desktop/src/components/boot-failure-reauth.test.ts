@@ -2,7 +2,12 @@ import { describe, expect, it } from 'vitest'
 
 import type { DesktopConnectionConfig } from '@/global'
 
-import { deriveProviderShape, isRemoteReauthFailure, signInLabel } from './boot-failure-reauth'
+import {
+  deriveProviderShape,
+  isRemoteReauthFailure,
+  shouldApplyPostBootProgressError,
+  signInLabel
+} from './boot-failure-reauth'
 
 function config(overrides: Partial<DesktopConnectionConfig> = {}): DesktopConnectionConfig {
   return {
@@ -42,6 +47,19 @@ describe('isRemoteReauthFailure', () => {
   it('false for null/undefined config', () => {
     expect(isRemoteReauthFailure(null)).toBe(false)
     expect(isRemoteReauthFailure(undefined)).toBe(false)
+  })
+})
+
+describe('shouldApplyPostBootProgressError', () => {
+  it('applies confirmed reauth but ignores transient post-boot transport errors', () => {
+    expect(shouldApplyPostBootProgressError('Your remote gateway session has expired.')).toBe(true)
+    expect(
+      shouldApplyPostBootProgressError(
+        'Could not reach the remote gateway while refreshing its WebSocket ticket. Try reconnecting.'
+      )
+    ).toBe(false)
+    expect(shouldApplyPostBootProgressError('Lost connection to the gateway')).toBe(false)
+    expect(shouldApplyPostBootProgressError(null)).toBe(false)
   })
 })
 

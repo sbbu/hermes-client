@@ -71,6 +71,14 @@ describe('PendingToolApproval', () => {
     expect(screen.getByRole('button', { name: /Reject/ })).toBeTruthy()
   })
 
+  it.each(['patch', 'write_file'])('renders controls for protected %s approvals', toolName => {
+    setRequest('Protected instruction file write')
+    render(<PendingToolApproval part={part(toolName)} />)
+
+    expect(screen.getByRole('button', { name: /Run/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Reject/ })).toBeTruthy()
+  })
+
   it('sends approval.respond {choice: "once"} and clears the request on Run', async () => {
     const request = mockGateway()
     setRequest()
