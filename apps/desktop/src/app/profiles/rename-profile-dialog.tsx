@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ActionStatus } from '@/components/ui/action-status'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { renameProfile } from '@/hermes'
 import { useI18n } from '@/i18n'
@@ -29,6 +36,21 @@ export function RenameProfileDialog({
   const [name, setName] = useState(currentName)
   const [status, setStatus] = useState<'done' | 'idle' | 'saving'>('idle')
   const [error, setError] = useState<null | string>(null)
+  const closeTimerRef = useRef<null | number>(null)
+  const mountedRef = useRef(false)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) {
@@ -65,10 +87,27 @@ export function RenameProfileDialog({
 
     try {
       await renameProfile(currentName, trimmed)
+
+      if (!mountedRef.current) {
+        return
+      }
+
       await onRenamed?.(trimmed)
+
+      if (!mountedRef.current) {
+        return
+      }
+
       setStatus('done')
-      window.setTimeout(onClose, 800)
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null
+        onClose()
+      }, 800)
     } catch (err) {
+      if (!mountedRef.current) {
+        return
+      }
+
       setStatus('idle')
       setError(err instanceof Error ? err.message : p.failedRename)
     }

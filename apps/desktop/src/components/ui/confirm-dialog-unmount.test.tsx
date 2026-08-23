@@ -3,7 +3,10 @@ import { afterEach, expect, test, vi } from 'vitest'
 
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
-afterEach(cleanup)
+afterEach(() => {
+  cleanup()
+  vi.useRealTimers()
+})
 
 vi.mock('@/i18n', () => ({
   useI18n: () => ({
@@ -53,5 +56,35 @@ test('the close timer does not fire after unmount', async () => {
   vi.advanceTimersByTime(1000)
 
   expect(onClose).not.toHaveBeenCalled()
-  vi.useRealTimers()
+})
+
+test('a pending confirmation cannot schedule a close after unmount', async () => {
+  vi.useFakeTimers()
+
+  const onClose = vi.fn()
+  let resolveConfirm!: () => void
+
+  const pendingConfirm = new Promise<void>(resolve => {
+    resolveConfirm = resolve
+  })
+
+  const { unmount } = render(
+    <ConfirmDialog
+      confirmLabel="Delete"
+      onClose={onClose}
+      onConfirm={() => pendingConfirm}
+      open
+      title="Delete session"
+    />
+  )
+
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+  unmount()
+  resolveConfirm()
+  await Promise.resolve()
+  await Promise.resolve()
+
+  vi.advanceTimersByTime(1000)
+
+  expect(onClose).not.toHaveBeenCalled()
 })

@@ -1,8 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { ActionStatus } from '@/components/ui/action-status'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
@@ -39,6 +46,21 @@ export function CreateProfileDialog({
   const [soul, setSoul] = useState('')
   const [status, setStatus] = useState<'done' | 'idle' | 'saving'>('idle')
   const [error, setError] = useState<null | string>(null)
+  const closeTimerRef = useRef<null | number>(null)
+  const mountedRef = useRef(false)
+
+  useEffect(() => {
+    mountedRef.current = true
+
+    return () => {
+      mountedRef.current = false
+
+      if (closeTimerRef.current !== null) {
+        window.clearTimeout(closeTimerRef.current)
+        closeTimerRef.current = null
+      }
+    }
+  }, [])
 
   useEffect(() => {
     if (!open) {
@@ -75,10 +97,26 @@ export function CreateProfileDialog({
         await updateProfileSoul(trimmed, soul)
       }
 
+      if (!mountedRef.current) {
+        return
+      }
+
       await onCreated?.(trimmed)
+
+      if (!mountedRef.current) {
+        return
+      }
+
       setStatus('done')
-      window.setTimeout(onClose, 800)
+      closeTimerRef.current = window.setTimeout(() => {
+        closeTimerRef.current = null
+        onClose()
+      }, 800)
     } catch (err) {
+      if (!mountedRef.current) {
+        return
+      }
+
       setStatus('idle')
       setError(err instanceof Error ? err.message : p.failedCreate)
     }
@@ -114,7 +152,10 @@ export function CreateProfileDialog({
             <label className="text-xs font-medium" htmlFor="new-profile-clone-from">
               {p.cloneFrom}
             </label>
-            <Select onValueChange={value => setCloneFrom(value === '__none__' ? null : value)} value={cloneFrom ?? '__none__'}>
+            <Select
+              onValueChange={value => setCloneFrom(value === '__none__' ? null : value)}
+              value={cloneFrom ?? '__none__'}
+            >
               <SelectTrigger className="h-9 rounded-md" id="new-profile-clone-from">
                 <SelectValue />
               </SelectTrigger>
