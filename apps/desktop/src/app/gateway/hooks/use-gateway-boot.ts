@@ -307,8 +307,11 @@ export function useGatewayBoot({
       }
     }
 
+    const onFocus = () => reconnectNow()
+
     window.addEventListener('online', onOnline)
     document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onFocus)
 
     // Keep live pool backends alive while this window is open (the main process
     // can't observe the direct renderer↔backend WS). No-op for the primary.
@@ -443,6 +446,7 @@ export function useGatewayBoot({
       offActiveProfile()
       window.removeEventListener('online', onOnline)
       document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onFocus)
       offPowerResume?.()
       offState()
       offEvent()

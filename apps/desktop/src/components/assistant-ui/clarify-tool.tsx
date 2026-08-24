@@ -1,6 +1,6 @@
 'use client'
 
-import { type ToolCallMessagePartProps } from '@assistant-ui/react'
+import { type ToolCallMessagePartProps, useAuiState } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
 import { type ComponentProps, type FormEvent, type KeyboardEvent, useCallback, useMemo, useRef, useState } from 'react'
 
@@ -76,7 +76,8 @@ export const ClarifyTool = (props: ToolCallMessagePartProps) => {
   return <ClarifyToolPending {...props} />
 }
 
-function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
+function ClarifyToolPending(props: ToolCallMessagePartProps) {
+  const { args } = props
   const { t } = useI18n()
   const copy = t.assistant.clarify
   const request = useStore($clarifyRequest)
@@ -109,13 +110,19 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
   const [submitting, setSubmitting] = useState(false)
   const [selectedChoice, setSelectedChoice] = useState<string | null>(null)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const messageRunning = useAuiState(state => state.message.status?.type === 'running')
+  const [wasLive, setWasLive] = useState(false)
+
+  if (request && !wasLive) {
+    setWasLive(true)
+  }
 
   // Race: tool.start fires a tick before clarify.request, so request_id
   // arrives slightly after the tool block mounts. Hold the whole panel on a
   // spinner until the gateway request is wired — showing disabled choices or
   // a "loading question" stub is worse than a brief wait.
   const ready = Boolean(matchingRequest?.requestId)
-  const loading = !ready && !submitting
+  const loading = !ready && !submitting && !question
 
   const respond = useCallback(
     async (answer: string) => {
@@ -180,6 +187,10 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
     [draft, respond]
   )
 
+  if (!messageRunning && !request && !wasLive) {
+    return <ToolFallback {...props} />
+  }
+
   if (request?.questions?.length) {
     return <ClarifyBatchPending request={request} />
   }
@@ -218,7 +229,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
                 selectedChoice === choice && 'bg-accent/60'
               )}
               data-choice
-              disabled={submitting}
+              disabled={submitting || !ready}
               key={`${index}-${choice}`}
               onClick={() => {
                 setSelectedChoice(choice)
@@ -233,7 +244,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
           ))}
           <button
             className={cn(OPTION_ROW_CLASS, 'text-muted-foreground hover:bg-accent/40 hover:text-foreground')}
-            disabled={submitting}
+            disabled={submitting || !ready}
             onClick={() => {
               setTyping(true)
               window.setTimeout(() => textareaRef.current?.focus({ preventScroll: true }), 0)
@@ -250,7 +261,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
         <form className="grid gap-2" onSubmit={handleSubmitFreeform}>
           <Textarea
             className="min-h-20 resize-y rounded-lg border-transparent bg-accent/40 text-sm focus-visible:bg-background/60"
-            disabled={submitting}
+            disabled={submitting || !ready}
             onChange={event => setDraft(event.target.value)}
             onKeyDown={handleTextareaKey}
             placeholder={copy.placeholder}
@@ -266,7 +277,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
             <div className="flex items-center gap-1.5">
               {hasChoices && (
                 <Button
-                  disabled={submitting}
+                  disabled={submitting || !ready}
                   onClick={() => {
                     setTyping(false)
                     setDraft('')
@@ -278,10 +289,16 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
                   {copy.back}
                 </Button>
               )}
-              <Button disabled={submitting} onClick={() => void respond('')} size="sm" type="button" variant="ghost">
+              <Button
+                disabled={submitting || !ready}
+                onClick={() => void respond('')}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
                 {copy.skip}
               </Button>
-              <Button disabled={submitting || !draft.trim()} size="sm" type="submit">
+              <Button disabled={submitting || !ready || !draft.trim()} size="sm" type="submit">
                 {submitting ? <Loader2 className="size-3.5 animate-spin" /> : copy.send}
               </Button>
             </div>
@@ -293,7 +310,7 @@ function ClarifyToolPending({ args }: ToolCallMessagePartProps) {
         <div className="flex justify-end">
           <Button
             className="-mr-2"
-            disabled={submitting}
+            disabled={submitting || !ready}
             onClick={() => void respond('')}
             size="xs"
             type="button"

@@ -1205,6 +1205,7 @@ export function useMessageStream({
             lockedAnswers,
             question: '',
             questions,
+            receivedAt: Date.now() / 1000,
             requestId,
             sessionId: sessionId ?? null
           })
@@ -1225,6 +1226,7 @@ export function useMessageStream({
             question,
             choices: Array.isArray(payload?.choices) ? payload!.choices!.filter(c => typeof c === 'string') : null,
             multiSelect: payload?.multi_select === true,
+            receivedAt: Date.now() / 1000,
             sessionId: sessionId ?? null
           })
 

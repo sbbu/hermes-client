@@ -84,6 +84,7 @@ import type {
 import { NEW_CHAT_ROUTE, sessionRoute, SETTINGS_ROUTE } from '../../routes'
 import type { ClientSessionState, SidebarNavItem } from '../../types'
 
+import { restorePendingClarifyFromSnapshot } from './restore-pending-clarify'
 import { chatMessageArraysEquivalent } from './session-message-equivalence'
 
 export { chatMessageArraysEquivalent, chatMessagesEquivalent, chatPartsEquivalent } from './session-message-equivalence'
@@ -793,6 +794,7 @@ export function useSessionActions({
   const resumeSession = useCallback(
     async (storedSessionId: string, replaceRoute = false) => {
       const requestId = resumeRequestRef.current + 1
+      const resumeStartedAt = Date.now() / 1000
       const switchingSessions = selectedStoredSessionIdRef.current !== storedSessionId
       resumeRequestRef.current = requestId
 
@@ -891,6 +893,24 @@ export function useSessionActions({
         setSessionStartedAt(Date.now())
 
         try {
+          const activateStartedAt = Date.now() / 1000
+
+          const activated = await requestForSession<SessionResumeResponse>('session.activate', {
+            session_id: cachedRuntimeId,
+            omit_messages: true,
+            source: 'desktop'
+          })
+
+          const hasPendingClarify = restorePendingClarifyFromSnapshot(activated, cachedRuntimeId, activateStartedAt)
+
+          const activatedState = updateSessionState(
+            cachedRuntimeId,
+            state => ({ ...state, needsInput: hasPendingClarify || state.needsInput }),
+            storedSessionId
+          )
+
+          syncSessionStateToView(cachedRuntimeId, activatedState)
+
           const usage = await requestForSession<UsageStats>('session.usage', { session_id: cachedRuntimeId })
 
           if (!isCurrentResume()) {
@@ -994,6 +1014,8 @@ export function useSessionActions({
           return
         }
 
+        const hasPendingClarify = restorePendingClarifyFromSnapshot(resumed, resumed.session_id, resumeStartedAt)
+
         const currentMessages = $messages.get()
 
         // Keep the local snapshot when resume would only reshuffle runtime
@@ -1039,6 +1061,7 @@ export function useSessionActions({
             messages: messagesForView,
             busy: resumedRunning,
             awaitingResponse: resumedRunning,
+            needsInput: hasPendingClarify,
             // A live session does not replay message.start on resume. Point
             // subsequent deltas/completion at the projected row instead of
             // seeding a duplicate assistant bubble.

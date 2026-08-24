@@ -24,6 +24,7 @@ export type GatewayEventName =
 
 export interface GatewayEvent<P = unknown> {
   payload?: P;
+  seq?: number;
   session_id?: string;
   type: GatewayEventName;
 }
@@ -70,6 +71,7 @@ export interface GatewayClientOptions {
 
 const ANY = "*";
 const DEFAULT_REQUEST_TIMEOUT_MS = 120_000;
+const REPLAY_REQUEST_TIMEOUT_MS = 10_000;
 // A reconnect after sleep/wake must not hang forever in 'connecting' (which
 // keeps the composer disabled and stuck on "Starting Hermes..."). If the open
 // handshake doesn't land in this window, fail to 'error' so callers can retry.
@@ -82,6 +84,8 @@ export class JsonRpcGatewayClient {
   private pending = new Map<GatewayRequestId, PendingCall>();
   private socket: WebSocketLike | null = null;
   private state: ConnectionState = "idle";
+  private lastSeenSeq = new Map<string, number>();
+  private replayInFlight = false;
   private readonly eventHandlers = new Map<
     string,
     Set<(event: GatewayEvent) => void>
@@ -179,6 +183,7 @@ export class JsonRpcGatewayClient {
         clearConnectState();
         this.setState("open");
         resolve();
+        void this.fetchReplay();
       };
 
       const onError = () => {
@@ -403,7 +408,75 @@ export class JsonRpcGatewayClient {
     }
 
     if (frame.method === "event" && frame.params?.type) {
-      this.dispatchEvent(frame.params);
+      if (this.recordSeq(frame.params)) {
+        this.dispatchEvent(frame.params);
+      }
+    }
+  }
+
+  private recordSeq(event: GatewayEvent): boolean {
+    const sessionId = event.session_id;
+    const seq = event.seq;
+
+    if (!sessionId || typeof seq !== "number" || !Number.isFinite(seq)) {
+      return true;
+    }
+
+    const previous = this.lastSeenSeq.get(sessionId) ?? 0;
+
+    if (seq > previous) {
+      this.lastSeenSeq.set(sessionId, seq);
+
+      return true;
+    }
+
+    return false;
+  }
+
+  getSeqWatermarks(): Record<string, number> {
+    return Object.fromEntries(this.lastSeenSeq);
+  }
+
+  private async fetchReplay(): Promise<void> {
+    if (this.replayInFlight || this.lastSeenSeq.size === 0) {
+      return;
+    }
+
+    this.replayInFlight = true;
+
+    try {
+      const results = await Promise.allSettled(
+        Object.entries(this.getSeqWatermarks()).map(([sessionId, lastSeen]) =>
+          this.request<{ events?: GatewayEvent[] }>(
+            "session.events.since",
+            { session_id: sessionId, last_seen: lastSeen },
+            REPLAY_REQUEST_TIMEOUT_MS,
+          ),
+        ),
+      );
+
+      for (const result of results) {
+        if (
+          result.status !== "fulfilled" ||
+          !Array.isArray(result.value?.events)
+        ) {
+          continue;
+        }
+
+        for (const event of result.value.events) {
+          if (!event?.type) {
+            continue;
+          }
+
+          if (this.recordSeq(event)) {
+            this.dispatchEvent(event);
+          }
+        }
+      }
+    } catch {
+      // Replay improves reconnects but must never make reconnect itself fail.
+    } finally {
+      this.replayInFlight = false;
     }
   }
 

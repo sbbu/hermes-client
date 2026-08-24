@@ -425,6 +425,14 @@ export interface SessionResumeResponse {
   message_count: number
   messages: SessionMessage[]
   messages_omitted?: boolean
+  pending_clarify?: null | {
+    answers?: Record<string, unknown>
+    choices?: unknown
+    multi_select?: boolean
+    question?: string
+    questions?: unknown
+    request_id?: string
+  }
   queued?: null | {
     user?: string
   }

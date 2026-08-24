@@ -17,6 +17,13 @@ export interface ClarifyRequest {
   sessionId: string | null
   questions?: ClarifyQuestion[]
   lockedAnswers?: Record<string, string>
+  receivedAt?: number
+}
+
+export function normalizeClarifyChoices(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((choice): choice is string => typeof choice === 'string' && Boolean(choice.trim()))
+    : []
 }
 
 export function normalizeClarifyQuestions(value: unknown): ClarifyQuestion[] {
