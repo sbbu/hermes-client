@@ -52,27 +52,32 @@ def run_tui(
     local_home.mkdir(parents=True, exist_ok=True)
     active_session = tempfile.NamedTemporaryFile(prefix="hermes-client-tui-session-", suffix=".json", delete=False)
     active_session.close()
+    try:
+        env = os.environ.copy()
+        env["HERMES_TUI_GATEWAY_URL"] = ws_url
+        env["HERMES_TUI_ACTIVE_SESSION_FILE"] = active_session.name
+        # Force thin-client runtime boundaries even when launched from a shell that
+        # already has a full local Hermes environment exported.
+        env["HERMES_HOME"] = str(local_home)
+        env["HERMES_CWD"] = os.getcwd()
+        env.setdefault("NODE_ENV", "production")
+        env["HERMES_BIN"] = shutil.which("hermes-client") or sys.argv[0] or "hermes-client"
+        if query:
+            env["HERMES_TUI_QUERY"] = query
+        if resume:
+            env["HERMES_TUI_RESUME"] = resume
+        if inline is not None:
+            env["HERMES_TUI_INLINE"] = "1" if inline else "0"
+        if mouse is not None:
+            env["HERMES_TUI_MOUSE_TRACKING"] = "1" if mouse else "0"
 
-    env = os.environ.copy()
-    env["HERMES_TUI_GATEWAY_URL"] = ws_url
-    env["HERMES_TUI_ACTIVE_SESSION_FILE"] = active_session.name
-    # Force thin-client runtime boundaries even when launched from a shell that
-    # already has a full local Hermes environment exported.
-    env["HERMES_HOME"] = str(local_home)
-    env["HERMES_CWD"] = os.getcwd()
-    env.setdefault("NODE_ENV", "production")
-    env["HERMES_BIN"] = shutil.which("hermes-client") or sys.argv[0] or "hermes-client"
-    if query:
-        env["HERMES_TUI_QUERY"] = query
-    if resume:
-        env["HERMES_TUI_RESUME"] = resume
-    if inline is not None:
-        env["HERMES_TUI_INLINE"] = "1" if inline else "0"
-    if mouse is not None:
-        env["HERMES_TUI_MOUSE_TRACKING"] = "1" if mouse else "0"
-
-    with resources.as_file(packaged_tui_entry()) as entry:
-        entry_path = Path(entry)
-        if not entry_path.is_file():
-            raise RuntimeError(f"packaged TUI entry missing: {entry_path}")
-        return subprocess.call([node, "--expose-gc", str(entry_path)], env=env)
+        with resources.as_file(packaged_tui_entry()) as entry:
+            entry_path = Path(entry)
+            if not entry_path.is_file():
+                raise RuntimeError(f"packaged TUI entry missing: {entry_path}")
+            return subprocess.call([node, "--expose-gc", str(entry_path)], env=env)
+    finally:
+        try:
+            os.unlink(active_session.name)
+        except OSError:
+            pass
