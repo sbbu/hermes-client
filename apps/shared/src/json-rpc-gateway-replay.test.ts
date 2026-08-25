@@ -127,6 +127,53 @@ describe("JsonRpcGatewayClient replay", () => {
     client.close();
   });
 
+  it("dispatches replay frames returned by the gateway", async () => {
+    const client = makeClient();
+    const seen: number[] = [];
+    client.on("tool.complete", (event) =>
+      seen.push((event.payload as { n: number }).n),
+    );
+
+    const connecting = client.connect("ws://example");
+    sockets[0].open();
+    await connecting;
+    sockets[0].serverFrame({
+      method: "event",
+      params: { type: "message.delta", session_id: "a", seq: 3 },
+    });
+
+    const socket = await reconnect(client);
+    await vi.waitFor(() =>
+      expect(socket.lastRequest().method).toBe("session.events.since"),
+    );
+
+    const request = socket.lastRequest();
+    socket.serverFrame({
+      id: request.id,
+      result: {
+        events: [
+          null,
+          "malformed",
+          { method: "event", params: null },
+          {
+            jsonrpc: "2.0",
+            method: "event",
+            params: {
+              type: "tool.complete",
+              session_id: "a",
+              seq: 4,
+              payload: { n: 1 },
+            },
+          },
+        ],
+      },
+    });
+
+    await vi.waitFor(() => expect(seen).toEqual([1]));
+    expect(client.getSeqWatermarks()).toEqual({ a: 4 });
+    client.close();
+  });
+
   it("does not request replay without a watermark", async () => {
     const client = makeClient();
     const connecting = client.connect("ws://example");

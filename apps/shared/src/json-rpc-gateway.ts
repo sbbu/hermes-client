@@ -77,6 +77,32 @@ const REPLAY_REQUEST_TIMEOUT_MS = 10_000;
 // handshake doesn't land in this window, fail to 'error' so callers can retry.
 const DEFAULT_CONNECT_TIMEOUT_MS = 15_000;
 
+function normalizeReplayEvent(value: unknown): GatewayEvent | undefined {
+  if (!value || typeof value !== "object") {
+    return undefined;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  if (typeof candidate.type === "string") {
+    return candidate as unknown as GatewayEvent;
+  }
+
+  if (
+    candidate.method !== "event" ||
+    !candidate.params ||
+    typeof candidate.params !== "object"
+  ) {
+    return undefined;
+  }
+
+  const event = candidate.params as Record<string, unknown>;
+
+  return typeof event.type === "string"
+    ? (event as unknown as GatewayEvent)
+    : undefined;
+}
+
 export class JsonRpcGatewayClient {
   private connecting: ConnectingCall | null = null;
   private connectPromise: Promise<void> | null = null;
@@ -447,7 +473,7 @@ export class JsonRpcGatewayClient {
     try {
       const results = await Promise.allSettled(
         Object.entries(this.getSeqWatermarks()).map(([sessionId, lastSeen]) =>
-          this.request<{ events?: GatewayEvent[] }>(
+          this.request<{ events?: unknown[] }>(
             "session.events.since",
             { session_id: sessionId, last_seen: lastSeen },
             REPLAY_REQUEST_TIMEOUT_MS,
@@ -463,7 +489,9 @@ export class JsonRpcGatewayClient {
           continue;
         }
 
-        for (const event of result.value.events) {
+        for (const replayed of result.value.events) {
+          const event = normalizeReplayEvent(replayed);
+
           if (!event?.type) {
             continue;
           }
