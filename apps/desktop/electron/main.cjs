@@ -107,6 +107,12 @@ const {
   resolveRequestedPathForIpc,
   resolveTimeoutMs
 } = require('./hardening.cjs')
+const {
+  SECRET_STORAGE_POLICY_FILE,
+  classifyStoredSecret,
+  readSecretStoragePolicy,
+  writeSecretStoragePolicy
+} = require('./secret-storage-policy.cjs')
 
 let nodePty = null
 let nodePtyDir = null
@@ -354,6 +360,7 @@ const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstr
 const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
 const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'connection.json')
+const DESKTOP_SECRET_STORAGE_POLICY_PATH = path.join(app.getPath('userData'), SECRET_STORAGE_POLICY_FILE)
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
 const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
 // active-profile.json records which Hermes profile the desktop launches its
@@ -1560,9 +1567,10 @@ function readDesktopUpdateConfig() {
 
 // Atomic file write: temp + rename (atomic on all platforms). Prevents
 // partial writes on crash/power loss that corrupt JSON config files.
-function writeFileAtomic(targetPath, data, encoding) {
+function writeFileAtomic(targetPath, data, encoding, mode) {
   const tmp = targetPath + '.tmp'
-  fs.writeFileSync(tmp, data, encoding)
+  const options = mode == null ? encoding : { encoding, mode }
+  fs.writeFileSync(tmp, data, options)
   fs.renameSync(tmp, targetPath)
 }
 
@@ -4283,8 +4291,27 @@ async function freshGatewayWsUrl(profile) {
   return connection.wsUrl
 }
 
+function desktopSecretStoragePolicyIo() {
+  return {
+    readText: () => fs.readFileSync(DESKTOP_SECRET_STORAGE_POLICY_PATH, 'utf8'),
+    writeText: text => {
+      fs.mkdirSync(path.dirname(DESKTOP_SECRET_STORAGE_POLICY_PATH), { recursive: true })
+      writeFileAtomic(DESKTOP_SECRET_STORAGE_POLICY_PATH, text)
+    }
+  }
+}
+
+function readDesktopSecretStoragePolicy() {
+  return readSecretStoragePolicy(desktopSecretStoragePolicyIo())
+}
+
 function encryptDesktopSecret(value) {
-  return encryptDesktopSecretStrict(value, safeStorage)
+  const raw = String(value || '')
+  if (!raw) return null
+  if (!readDesktopSecretStoragePolicy().on) {
+    return { encoding: 'plain', value: raw }
+  }
+  return encryptDesktopSecretStrict(raw, safeStorage)
 }
 
 function decryptDesktopSecret(secret) {
@@ -4299,6 +4326,9 @@ function decryptDesktopSecret(secret) {
   }
 
   if (secret.encoding === 'safeStorage') {
+    if (classifyStoredSecret(secret, readDesktopSecretStoragePolicy()) === 'drop') {
+      return ''
+    }
     try {
       return safeStorage.decryptString(Buffer.from(value, 'base64'))
     } catch {
@@ -4307,6 +4337,96 @@ function decryptDesktopSecret(secret) {
   }
 
   return value
+}
+
+function storedConnectionSecretSlots(config) {
+  const slots = []
+  if (config?.remote?.token && typeof config.remote.token === 'object') {
+    slots.push(config.remote)
+  }
+  for (const profile of Object.values(config?.profiles || {})) {
+    if (profile?.token && typeof profile.token === 'object') slots.push(profile)
+  }
+  return slots
+}
+
+function migrateLegacyDesktopSecrets(config) {
+  const policy = readDesktopSecretStoragePolicy()
+  if (policy.on || policy.migrated) return config
+
+  let changed = false
+  let failed = false
+  for (const slot of storedConnectionSecretSlots(config)) {
+    if (failed || classifyStoredSecret(slot.token, policy) !== 'migrate') continue
+    try {
+      const value = safeStorage.decryptString(Buffer.from(String(slot.token.value || ''), 'base64'))
+      slot.token = value ? { encoding: 'plain', value } : null
+      changed = true
+    } catch {
+      // Stop touching the keychain after the first failure. The migrated marker
+      // makes unreadable legacy blobs inert on later launches.
+      failed = true
+    }
+  }
+
+  if (changed) {
+    try {
+      writeDesktopConnectionConfig(config)
+    } catch {
+      // Keep the decrypted in-memory config usable. Without a persisted rewrite
+      // or marker, the next launch safely retries the one-shot migration.
+      return config
+    }
+  }
+  try {
+    writeSecretStoragePolicy({ on: false, migrated: true }, desktopSecretStoragePolicyIo())
+  } catch {
+    // A read path must not discard an otherwise valid connection config merely
+    // because the marker file is temporarily unwritable.
+  }
+  return config
+}
+
+function setDesktopSecretStorageEncryption(on) {
+  const enabled = on === true
+  const config = readDesktopConnectionConfig()
+  const replacements = []
+
+  for (const slot of storedConnectionSecretSlots(config)) {
+    const secret = slot.token
+    const raw = String(secret?.value || '')
+    if (!raw) continue
+
+    let value = raw
+    if (secret.encoding === 'safeStorage') {
+      value = safeStorage.decryptString(Buffer.from(raw, 'base64'))
+    }
+    replacements.push([slot, enabled ? encryptDesktopSecretStrict(value, safeStorage) : { encoding: 'plain', value }])
+  }
+
+  for (const [slot, secret] of replacements) slot.token = secret
+  if (enabled) {
+    // Enable policy first: a crash before the config rewrite still leaves the
+    // old plain encoding readable. The reverse order could classify newly
+    // encrypted blobs as dropped while the policy remained off.
+    writeSecretStoragePolicy({ on: true, migrated: true }, desktopSecretStoragePolicyIo())
+    try {
+      writeDesktopConnectionConfig(config)
+    } catch (error) {
+      try {
+        writeSecretStoragePolicy({ on: false, migrated: true }, desktopSecretStoragePolicyIo())
+      } catch {
+        // Existing plain blobs remain readable even if policy rollback fails.
+      }
+      throw error
+    }
+  } else {
+    // Plain blobs are readable under either policy, so config-first is the
+    // crash-safe order while disabling encryption.
+    writeDesktopConnectionConfig(config)
+    writeSecretStoragePolicy({ on: false, migrated: true }, desktopSecretStoragePolicyIo())
+  }
+  return { on: enabled }
 }
 
 // Validate + normalize the per-profile remote overrides map read from disk.
@@ -4368,14 +4488,14 @@ function readDesktopConnectionConfig() {
       // or 'token' (legacy static session token). Default to 'token' for
       // backward compatibility with configs written before OAuth support.
       remote.authMode = remote.authMode === 'oauth' ? 'oauth' : 'token'
-      config = {
+      config = migrateLegacyDesktopSecrets({
         mode: CLIENT_ONLY ? 'remote' : parsed.mode === 'remote' ? 'remote' : 'local',
         remote: Object.keys(remote).length ? remote : config.remote,
         // Per-profile remote overrides: each profile may point at its own
         // backend (local spawn or its own remote URL). Preserved verbatim so
         // profileRemoteOverride() can resolve them; normalized lazily on save.
         profiles: sanitizeConnectionProfiles(parsed.profiles)
-      }
+      })
     }
   } catch {
     // Missing or malformed connection settings fall back to hermes-client's remote config.
@@ -4389,7 +4509,12 @@ function readDesktopConnectionConfig() {
 
 function writeDesktopConnectionConfig(config) {
   fs.mkdirSync(path.dirname(DESKTOP_CONNECTION_CONFIG_PATH), { recursive: true })
-  writeFileAtomic(DESKTOP_CONNECTION_CONFIG_PATH, JSON.stringify(config, null, 2))
+  writeFileAtomic(DESKTOP_CONNECTION_CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8', 0o600)
+  try {
+    fs.chmodSync(DESKTOP_CONNECTION_CONFIG_PATH, 0o600)
+  } catch {
+    // Windows and unusual filesystems may not expose POSIX permission bits.
+  }
   connectionConfigCache = config
   connectionConfigCacheMtime = fs.statSync(DESKTOP_CONNECTION_CONFIG_PATH).mtimeMs
 }
@@ -5991,6 +6116,8 @@ ipcMain.handle('hermes:bootstrap:get', async () => getBootstrapState())
 ipcMain.handle('hermes:connection-config:get', async (_event, profile) =>
   sanitizeDesktopConnectionConfig(readDesktopConnectionConfig(), profile)
 )
+ipcMain.handle('hermes:secret-storage:get', async () => ({ on: readDesktopSecretStoragePolicy().on }))
+ipcMain.handle('hermes:secret-storage:set', async (_event, on) => setDesktopSecretStorageEncryption(on))
 ipcMain.handle('hermes:connection-config:test', async (_event, payload) => testDesktopConnectionConfig(payload))
 ipcMain.handle('hermes:connection-config:probe', async (_event, rawUrl) => probeRemoteAuthMode(rawUrl))
 ipcMain.handle('hermes:connection-config:oauth-login', async (_event, rawUrl) => {

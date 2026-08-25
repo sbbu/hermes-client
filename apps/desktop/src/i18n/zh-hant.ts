@@ -616,7 +616,11 @@ export const zhHant = defineLocale({
       tokenDesc: '用於 REST 和 WebSocket 存取的儀表板工作階段 Token。留空則保留已儲存的 Token。',
       existingToken: value => `現有 Token ${value}`,
       savedToken: '已儲存',
-      pasteSessionToken: '貼上工作階段 Token',
+      pasteSessionToken: '貼上工作階段權杖',
+      keychainEncryptionTitle: '使用系統鑰匙圈加密已儲存的機密',
+      keychainEncryptionDesc:
+        '預設關閉。開啟後，閘道 Token 將使用系統鑰匙圈加密，系統可能會要求授權或密碼。關閉時，它們以僅目前使用者可讀的一般檔案形式儲存。',
+      keychainEncryptionFailed: '無法變更機密加密設定',
       testRemote: '測試遠端',
       saveForRestart: '儲存至下次重新啟動',
       saveAndReconnect: '儲存並重新連線',

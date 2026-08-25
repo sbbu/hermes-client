@@ -105,6 +105,8 @@ export function GatewaySettings() {
   const [state, setState] = useState<GatewaySettingsState>(EMPTY_STATE)
   const [remoteToken, setRemoteToken] = useState('')
   const [lastTest, setLastTest] = useState<null | string>(null)
+  const [keychainEncryption, setKeychainEncryptionState] = useState(false)
+  const [keychainEncryptionBusy, setKeychainEncryptionBusy] = useState(false)
 
   // Connection scope: null = the global/default connection (the original
   // behavior); a profile name = that profile's per-profile remote override, so
@@ -115,6 +117,43 @@ export function GatewaySettings() {
   useEffect(() => {
     void refreshActiveProfile()
   }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    void window.hermesDesktop
+      ?.getSecretStorageEncryption?.()
+      .then(result => {
+        if (!cancelled) {
+          setKeychainEncryptionState(result?.on === true)
+        }
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const setKeychainEncryption = async (on: boolean) => {
+    setKeychainEncryptionBusy(true)
+    setKeychainEncryptionState(on)
+
+    try {
+      const result = await window.hermesDesktop.setSecretStorageEncryption(on)
+      setKeychainEncryptionState(result.on === true)
+    } catch (error) {
+      try {
+        const actual = await window.hermesDesktop.getSecretStorageEncryption()
+        setKeychainEncryptionState(actual.on === true)
+      } catch {
+        setKeychainEncryptionState(!on)
+      }
+
+      notifyError(error, g.keychainEncryptionFailed)
+    } finally {
+      setKeychainEncryptionBusy(false)
+    }
+  }
 
   // Auth-mode probe: as the user types a remote URL we ask the gateway (via
   // its public /api/status) whether it gates with OAuth or a static session
@@ -592,6 +631,19 @@ export function GatewaySettings() {
       </div>
 
       <div className="mt-6 grid gap-1">
+        <ListRow
+          action={
+            <input
+              checked={keychainEncryption}
+              className="size-4 accent-primary"
+              disabled={keychainEncryptionBusy}
+              onChange={event => void setKeychainEncryption(event.target.checked)}
+              type="checkbox"
+            />
+          }
+          description={g.keychainEncryptionDesc}
+          title={g.keychainEncryptionTitle}
+        />
         <ListRow
           action={
             <Button onClick={() => void window.hermesDesktop?.revealLogs()} size="sm" variant="textStrong">

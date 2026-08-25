@@ -68,6 +68,22 @@ describe('Hermes REST session helpers', () => {
     )
   })
 
+  it('routes session lists through the active profile backend', async () => {
+    setApiRequestProfile('coder')
+
+    await listSessions(20, 1)
+    await listAllProfileSessions(20, 1)
+
+    expect(api).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ profile: 'coder', path: expect.stringMatching(/^\/api\/sessions\?/) })
+    )
+    expect(api).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ profile: 'coder', path: expect.stringMatching(/^\/api\/profiles\/sessions\?/) })
+    )
+  })
+
   it('scopes cron lists by sidebar profile and active backend', async () => {
     api.mockResolvedValue([])
     setApiRequestProfile('coder')

@@ -704,7 +704,11 @@ export const zh: Translations = {
       tokenDesc: '用于 REST 和 WebSocket 访问的 dashboard 会话 token。留空则保留已保存的 token。',
       existingToken: value => `现有 token ${value}`,
       savedToken: '已保存',
-      pasteSessionToken: '粘贴会话 token',
+      pasteSessionToken: '粘贴会话令牌',
+      keychainEncryptionTitle: '使用系统钥匙串加密已保存的机密',
+      keychainEncryptionDesc:
+        '默认关闭。开启后，网关 token 将使用系统钥匙串加密，系统可能会请求授权或密码。关闭时，它们以仅当前用户可读的普通文件形式存储。',
+      keychainEncryptionFailed: '无法更改机密加密设置',
       testRemote: '测试远程',
       saveForRestart: '保存到下次重启',
       saveAndReconnect: '保存并重连',
