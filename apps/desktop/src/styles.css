@@ -3,6 +3,9 @@
 @import 'tw-shimmer';
 @import 'katex/dist/katex.min.css';
 @import '@vscode/codicons/dist/codicon.css';
+/* Tailwind's default hover variant is media-gated. Some Windows digitizers
+   report no hover even while a mouse is present, hiding hover-only controls. */
+@custom-variant hover (&:hover);
 @custom-variant dark (&:is(.dark *));
 
 /* Sidebar sections: tall viewports give each its own scroller; compact ones

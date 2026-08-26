@@ -24,7 +24,7 @@ interface VirtualSessionListProps {
   className?: string
   onArchiveSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
-  onResumeSession: (sessionId: string) => void
+  onResumeSession: (sessionId: string, session?: SessionInfo) => void
   onTogglePin: (sessionId: string) => void
   pinned: boolean
   sessions: SessionInfo[]
@@ -52,7 +52,11 @@ export const VirtualSessionList: FC<VirtualSessionListProps> = ({
   const virtualizer = useVirtualizer({
     count: sessions.length,
     estimateSize: () => ROW_ESTIMATE_PX,
-    getItemKey: index => sessions[index]?.id ?? index,
+    getItemKey: index => {
+      const session = sessions[index]
+
+      return session ? `${session.profile ?? ''}::${session.id}` : index
+    },
     getScrollElement: () => scrollerRef.current,
     // jsdom-friendly default; the real rect takes over on first observe.
     initialRect: { height: 600, width: 240 },
@@ -78,13 +82,15 @@ export const VirtualSessionList: FC<VirtualSessionListProps> = ({
       onArchive: () => onArchiveSession(session.id),
       onDelete: () => onDeleteSession(session.id),
       onPin: () => onTogglePin(sessionPinId(session)),
-      onResume: () => onResumeSession(session.id)
+      onResume: () => onResumeSession(session.id, session)
     }
+
+    const rowKey = `${session.profile ?? ''}::${session.id}`
 
     return sortable ? (
       <VirtualSortableRow
         index={virtualItem.index}
-        key={session.id}
+        key={rowKey}
         measureRef={virtualizer.measureElement}
         rowProps={commonProps}
         session={session}
@@ -93,7 +99,7 @@ export const VirtualSessionList: FC<VirtualSessionListProps> = ({
       <SidebarSessionRow
         {...commonProps}
         data-index={virtualItem.index}
-        key={session.id}
+        key={rowKey}
         ref={virtualizer.measureElement}
         session={session}
       />
@@ -104,7 +110,10 @@ export const VirtualSessionList: FC<VirtualSessionListProps> = ({
   // DndContext + SortableContext (keyed on the same ids); the virtualized rows
   // just consume that context via useSortable.
   return (
-    <div className={cn('relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain', className)} ref={scrollerRef}>
+    <div
+      className={cn('relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain', className)}
+      ref={scrollerRef}
+    >
       <div className="grid gap-px" style={{ paddingBottom: `${paddingBottom}px`, paddingTop: `${paddingTop}px` }}>
         {rows}
       </div>

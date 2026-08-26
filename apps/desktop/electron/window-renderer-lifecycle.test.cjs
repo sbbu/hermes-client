@@ -6,6 +6,7 @@ const {
   describeRendererLifecycleEvent,
   installWindowRendererLifecycle,
   pruneReloadTimes,
+  shouldReloadAfterFailedLoad,
   shouldReloadAfterRendererGone
 } = require('./window-renderer-lifecycle.cjs')
 
@@ -120,4 +121,35 @@ test('third-party load failures redact secret-bearing URLs', () => {
   win.emit('did-fail-load', -105, 'ERR_NAME_NOT_RESOLVED', 'https://idp.example/callback?code=secret#token', true)
   assert.match(logs[0], /url=\(redacted\)$/)
   assert.doesNotMatch(logs[0], /secret|token/)
+})
+
+test('failed-load policy reloads main frames, ignores aborts, and surfaces exhaustion', () => {
+  const common = { isMainFrame: true, recentReloadTimes: [], now: () => 100 }
+  assert.equal(shouldReloadAfterFailedLoad({ ...common, errorCode: -6 }).reload, true)
+  assert.equal(shouldReloadAfterFailedLoad({ ...common, errorCode: -3 }).reload, false)
+  assert.equal(shouldReloadAfterFailedLoad({ ...common, errorCode: -6, isMainFrame: false }).reload, false)
+  assert.equal(
+    shouldReloadAfterFailedLoad({ ...common, errorCode: -6, recentReloadTimes: [1, 2, 3], reloadMax: 3 }).surfaceError,
+    true
+  )
+})
+
+test('failed-load recovery is bounded and ends on a visible-error callback', async () => {
+  const win = fakeWindow()
+  const budget = { current: [] }
+  let reloads = 0
+  let surfaced = 0
+  installWindowRendererLifecycle(win, {
+    kind: 'main',
+    callbacks: { log: () => {}, reload: () => reloads++, onFailedLoadBudgetExhausted: () => surfaced++ },
+    recentReloadTimesRef: budget,
+    reloadMax: 1,
+    reloadOnFailedLoad: true,
+    now: () => 10
+  })
+  win.emit('did-fail-load', -6, 'ERR_FILE_NOT_FOUND', 'file:///missing', true)
+  await new Promise(resolve => setImmediate(resolve))
+  assert.equal(reloads, 1)
+  win.emit('did-fail-load', -6, 'ERR_FILE_NOT_FOUND', 'file:///missing', true)
+  assert.equal(surfaced, 1)
 })

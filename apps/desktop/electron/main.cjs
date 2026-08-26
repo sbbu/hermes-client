@@ -38,6 +38,7 @@ const { canImportHermesCli, verifyHermesCli } = require('./backend-probes.cjs')
 const { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } = require('./link-title-window.cjs')
 const { ensureMainWindow } = require('./main-window-lifecycle.cjs')
 const { attachRendererConsoleCapture, formatRendererBoundaryReport } = require('./renderer-log.cjs')
+const { loadRendererLoadErrorPage } = require('./renderer-load-error-page.cjs')
 const { installWindowRendererLifecycle } = require('./window-renderer-lifecycle.cjs')
 const { createWindowRevealController } = require('./window-reveal.cjs')
 const { probeGatewayWebSocket } = require('./gateway-ws-probe.cjs')
@@ -5836,10 +5837,22 @@ function createWindow() {
 
   installWindowRendererLifecycle(mainWindow, {
     kind: 'main',
-    callbacks: { log: rememberLog, reload: () => createdMainWindow.webContents.reload() },
+    callbacks: {
+      log: rememberLog,
+      reload: () => createdMainWindow.webContents.reload(),
+      onFailedLoadBudgetExhausted: details => {
+        rememberLog('[renderer:main] load-failure budget exhausted; loading visible error page')
+        void loadRendererLoadErrorPage(createdMainWindow, {
+          errorCode: details?.errorCode,
+          errorDescription: 'The desktop renderer failed to load repeatedly after the update.',
+          reloadUrl: DEV_SERVER || pathToFileURL(resolveRendererIndex()).toString()
+        })
+      }
+    },
     reloadWindowMs: RENDERER_RELOAD_WINDOW_MS,
     reloadMax: RENDERER_RELOAD_MAX,
-    recentReloadTimesRef: rendererReloadTimesRef
+    recentReloadTimesRef: rendererReloadTimesRef,
+    reloadOnFailedLoad: true
   })
   attachFirstPartyRendererLogging(mainWindow, 'main')
 

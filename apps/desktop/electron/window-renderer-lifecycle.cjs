@@ -35,6 +35,18 @@ function shouldReloadAfterRendererGone(details) {
   return { reload: true }
 }
 
+function shouldReloadAfterFailedLoad(details) {
+  if (details.isMainFrame !== true) return { reload: false, suppressedReason: 'unrecoverable-reason' }
+  if (String(details.errorCode) === '-3') return { reload: false, suppressedReason: 'expected-teardown' }
+
+  const windowMs = details.reloadWindowMs ?? DEFAULT_RELOAD_WINDOW_MS
+  const max = details.reloadMax ?? DEFAULT_RELOAD_MAX
+  const now = safeNow(details.now)
+  const recent = pruneReloadTimes(details.recentReloadTimes, now, windowMs)
+  if (recent.length >= max) return { reload: false, suppressedReason: 'crash-loop', surfaceError: true }
+  return { reload: true }
+}
+
 function describeRendererLifecycleEvent(event) {
   const kind = String(event.kind || '?')
   if (event.event === 'unresponsive') return `[renderer:${kind}] webContents became unresponsive`
@@ -51,7 +63,7 @@ function describeRendererLifecycleEvent(event) {
 
 function installWindowRendererLifecycle(win, options) {
   const { kind } = options
-  const { log, reload, onCrashLoopSuppressed } = options.callbacks
+  const { log, reload, onCrashLoopSuppressed, onFailedLoadBudgetExhausted } = options.callbacks
   const reloadWindowMs = options.reloadWindowMs ?? DEFAULT_RELOAD_WINDOW_MS
   const reloadMax = options.reloadMax ?? DEFAULT_RELOAD_MAX
   const budgetRef = options.recentReloadTimesRef ?? { current: [] }
@@ -108,6 +120,30 @@ function installWindowRendererLifecycle(win, options) {
           url: redactLoadUrl ? '(redacted)' : String(validatedURL ?? '')
         })
       )
+
+      if (options.reloadOnFailedLoad && typeof reload === 'function') {
+        const nowMs = safeNow(options.now)
+        const recent = pruneReloadTimes(budgetRef.current, nowMs, reloadWindowMs)
+        budgetRef.current.length = 0
+        budgetRef.current.push(...recent)
+        const decision = shouldReloadAfterFailedLoad({
+          errorCode,
+          isMainFrame,
+          recentReloadTimes: budgetRef.current,
+          reloadWindowMs,
+          reloadMax,
+          now: () => nowMs
+        })
+
+        if (decision.reload) {
+          pushReloadTime(budgetRef.current, nowMs)
+          setImmediate(() => {
+            if (!win.isDestroyed()) reload()
+          })
+        } else if (decision.surfaceError) {
+          onFailedLoadBudgetExhausted?.({ errorCode, isMainFrame, url: validatedURL })
+        }
+      }
     }
   }
 
@@ -130,5 +166,6 @@ module.exports = {
   installWindowRendererLifecycle,
   pruneReloadTimes,
   pushReloadTime,
+  shouldReloadAfterFailedLoad,
   shouldReloadAfterRendererGone
 }

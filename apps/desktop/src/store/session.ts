@@ -150,21 +150,29 @@ export function mergeSessionPage(
 ): SessionInfo[] {
   const keep = keepIds instanceof Set ? keepIds : new Set(keepIds)
 
+  // Session ids are unique only within a profile. Restored/copied state DBs
+  // can expose the same id in two profiles, and those rows must never dedupe.
+  const profileKeyOf = (session: SessionInfo) => (session.profile ?? '').trim() || 'default'
+  const identity = (session: SessionInfo) => `${profileKeyOf(session)}::${session.id}`
+
+  const lineageIdentity = (session: SessionInfo) =>
+    `${profileKeyOf(session)}::${session._lineage_root_id ?? session.id}`
+
   if (keep.size === 0) {
     return incoming
   }
 
-  const incomingIds = new Set(incoming.map(session => session.id))
+  const incomingIds = new Set(incoming.map(identity))
   // Deduplicate by compression lineage: when auto-compression rotates the tip
   // id (old #4 → new #5), the incoming page carries the new tip but the
   // previous list still holds the old one.  Without lineage-level dedup both
   // rows survive as separate sidebar entries (fixes #43483).
-  const incomingLineageKeys = new Set(incoming.map(session => session._lineage_root_id ?? session.id))
+  const incomingLineageKeys = new Set(incoming.map(lineageIdentity))
 
   const survivors = previous.filter(
     session =>
-      !incomingIds.has(session.id) &&
-      !incomingLineageKeys.has(session._lineage_root_id ?? session.id) &&
+      !incomingIds.has(identity(session)) &&
+      !incomingLineageKeys.has(lineageIdentity(session)) &&
       (keep.has(session.id) || (session._lineage_root_id != null && keep.has(session._lineage_root_id)))
   )
 

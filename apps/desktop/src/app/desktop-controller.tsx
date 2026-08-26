@@ -58,6 +58,7 @@ import {
   $profiles,
   $profileScope,
   ALL_PROFILES,
+  ensureGatewayProfile,
   normalizeProfileKey,
   refreshActiveProfile
 } from '../store/profile'
@@ -1076,7 +1077,19 @@ export function DesktopController() {
       }}
       onNavigate={selectSidebarItem}
       onNewSessionInWorkspace={startSessionInWorkspace}
-      onResumeSession={sessionId => navigate(sessionRoute(sessionId))}
+      onResumeSession={(sessionId, session) => {
+        const profile = session?.profile?.trim()
+
+        if (profile) {
+          void ensureGatewayProfile(profile)
+            .then(() => navigate(sessionRoute(sessionId)))
+            .catch(() => undefined)
+
+          return
+        }
+
+        navigate(sessionRoute(sessionId))
+      }}
       onTriggerCronJob={(jobId, profile) => {
         void triggerCronJob(jobId, profile)
           .then(() => refreshCronJobs())

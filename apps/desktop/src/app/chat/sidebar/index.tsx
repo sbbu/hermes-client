@@ -326,7 +326,7 @@ interface ChatSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onLoadMoreSessions: () => void
   onLoadMoreProfileSessions?: (profile: string) => Promise<void> | void
   onLoadMoreMessaging?: (platform: string) => Promise<void> | void
-  onResumeSession: (sessionId: string) => void
+  onResumeSession: (sessionId: string, session?: SessionInfo) => void
   onDeleteSession: (sessionId: string) => void
   onArchiveSession: (sessionId: string) => void
   onNewSessionInWorkspace: (path: null | string) => void
@@ -1199,7 +1199,7 @@ interface SidebarSessionsSectionProps {
   sessions: SessionInfo[]
   activeSessionId: null | string
   workingSessionIdSet: Set<string>
-  onResumeSession: (sessionId: string) => void
+  onResumeSession: (sessionId: string, session?: SessionInfo) => void
   onDeleteSession: (sessionId: string) => void
   onArchiveSession: (sessionId: string) => void
   onTogglePin: (sessionId: string) => void
@@ -1269,14 +1269,16 @@ function SidebarSessionsSection({
       onArchive: () => onArchiveSession(session.id),
       onDelete: () => onDeleteSession(session.id),
       onPin: () => onTogglePin(sessionPinId(session)),
-      onResume: () => onResumeSession(session.id),
+      onResume: () => onResumeSession(session.id, session),
       session
     }
 
+    const rowKey = `${session.profile ?? ''}::${session.id}`
+
     return draggable ? (
-      <SortableSidebarSessionRow key={session.id} {...rowProps} />
+      <SortableSidebarSessionRow key={rowKey} {...rowProps} />
     ) : (
-      <SidebarSessionRow key={session.id} {...rowProps} />
+      <SidebarSessionRow key={rowKey} {...rowProps} />
     )
   }
 
