@@ -22,9 +22,54 @@ function classifyStoredSecret(secret, policy) {
   return policy.migrated ? 'drop' : 'migrate'
 }
 
+function storedConnectionSecretSlots(config) {
+  const slots = []
+  if (config?.remote?.token && typeof config.remote.token === 'object') {
+    slots.push(config.remote)
+  }
+  for (const profile of Object.values(config?.profiles || {})) {
+    if (profile?.token && typeof profile.token === 'object') slots.push(profile)
+  }
+  return slots
+}
+
+function detachedConnectionConfig(config) {
+  const source = config && typeof config === 'object' ? config : {}
+  const copy = { ...source }
+
+  if (source.remote && typeof source.remote === 'object') {
+    copy.remote = { ...source.remote }
+  }
+  if (source.profiles && typeof source.profiles === 'object') {
+    copy.profiles = Object.fromEntries(
+      Object.entries(source.profiles).map(([name, profile]) => [
+        name,
+        profile && typeof profile === 'object' ? { ...profile } : profile
+      ])
+    )
+  }
+  return copy
+}
+
+function rewriteStoredSecrets(config, enabled, crypto) {
+  const rewritten = detachedConnectionConfig(config)
+
+  for (const slot of storedConnectionSecretSlots(rewritten)) {
+    const secret = slot.token
+    const raw = String(secret?.value || '')
+    if (!raw) continue
+
+    const value = secret.encoding === 'safeStorage' ? crypto.decrypt(secret) : raw
+    slot.token = enabled ? crypto.encrypt(value) : { encoding: 'plain', value }
+  }
+  return rewritten
+}
+
 module.exports = {
   SECRET_STORAGE_POLICY_FILE,
   classifyStoredSecret,
   readSecretStoragePolicy,
+  rewriteStoredSecrets,
+  storedConnectionSecretSlots,
   writeSecretStoragePolicy
 }

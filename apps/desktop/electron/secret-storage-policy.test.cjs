@@ -5,6 +5,7 @@ const {
   SECRET_STORAGE_POLICY_FILE,
   classifyStoredSecret,
   readSecretStoragePolicy,
+  rewriteStoredSecrets,
   writeSecretStoragePolicy
 } = require('./secret-storage-policy.cjs')
 
@@ -47,4 +48,32 @@ test('safeStorage blobs migrate once while encryption is off', () => {
   assert.equal(classifyStoredSecret(secret, { on: false, migrated: true }), 'drop')
   assert.equal(classifyStoredSecret(secret, { on: true, migrated: true }), 'keep')
   assert.equal(classifyStoredSecret({ encoding: 'plain', value: 'abc' }, { on: false, migrated: true }), 'keep')
+})
+
+test('secret rewrites leave the cached connection config untouched until persistence succeeds', () => {
+  const cached = {
+    mode: 'remote',
+    remote: { token: { encoding: 'plain', value: 'global-token' } },
+    profiles: {
+      coder: { mode: 'remote', token: { encoding: 'plain', value: 'profile-token' } }
+    }
+  }
+
+  const rewritten = rewriteStoredSecrets(cached, true, {
+    decrypt: stored => `decrypted:${stored.value}`,
+    encrypt: value => ({ encoding: 'safeStorage', value: `encrypted:${value}` })
+  })
+
+  assert.deepEqual(cached, {
+    mode: 'remote',
+    remote: { token: { encoding: 'plain', value: 'global-token' } },
+    profiles: {
+      coder: { mode: 'remote', token: { encoding: 'plain', value: 'profile-token' } }
+    }
+  })
+  assert.deepEqual(rewritten.remote.token, { encoding: 'safeStorage', value: 'encrypted:global-token' })
+  assert.deepEqual(rewritten.profiles.coder.token, {
+    encoding: 'safeStorage',
+    value: 'encrypted:profile-token'
+  })
 })

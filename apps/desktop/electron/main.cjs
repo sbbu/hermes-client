@@ -111,6 +111,8 @@ const {
   SECRET_STORAGE_POLICY_FILE,
   classifyStoredSecret,
   readSecretStoragePolicy,
+  rewriteStoredSecrets,
+  storedConnectionSecretSlots,
   writeSecretStoragePolicy
 } = require('./secret-storage-policy.cjs')
 
@@ -4339,17 +4341,6 @@ function decryptDesktopSecret(secret) {
   return value
 }
 
-function storedConnectionSecretSlots(config) {
-  const slots = []
-  if (config?.remote?.token && typeof config.remote.token === 'object') {
-    slots.push(config.remote)
-  }
-  for (const profile of Object.values(config?.profiles || {})) {
-    if (profile?.token && typeof profile.token === 'object') slots.push(profile)
-  }
-  return slots
-}
-
 function migrateLegacyDesktopSecrets(config) {
   const policy = readDesktopSecretStoragePolicy()
   if (policy.on || policy.migrated) return config
@@ -4389,22 +4380,13 @@ function migrateLegacyDesktopSecrets(config) {
 
 function setDesktopSecretStorageEncryption(on) {
   const enabled = on === true
-  const config = readDesktopConnectionConfig()
-  const replacements = []
-
-  for (const slot of storedConnectionSecretSlots(config)) {
-    const secret = slot.token
-    const raw = String(secret?.value || '')
-    if (!raw) continue
-
-    let value = raw
-    if (secret.encoding === 'safeStorage') {
-      value = safeStorage.decryptString(Buffer.from(raw, 'base64'))
-    }
-    replacements.push([slot, enabled ? encryptDesktopSecretStrict(value, safeStorage) : { encoding: 'plain', value }])
-  }
-
-  for (const [slot, secret] of replacements) slot.token = secret
+  // Rewrite a detached copy. readDesktopConnectionConfig() returns its live
+  // cache object, which must not be poisoned if a later policy/config write
+  // fails and the transaction rolls back.
+  const config = rewriteStoredSecrets(readDesktopConnectionConfig(), enabled, {
+    decrypt: secret => safeStorage.decryptString(Buffer.from(String(secret.value || ''), 'base64')),
+    encrypt: value => encryptDesktopSecretStrict(value, safeStorage)
+  })
   if (enabled) {
     // Enable policy first: a crash before the config rewrite still leaves the
     // old plain encoding readable. The reverse order could classify newly
