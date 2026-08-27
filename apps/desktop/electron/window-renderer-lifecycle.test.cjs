@@ -153,3 +153,23 @@ test('failed-load recovery is bounded and ends on a visible-error callback', asy
   win.emit('did-fail-load', -6, 'ERR_FILE_NOT_FOUND', 'file:///missing', true)
   assert.equal(surfaced, 1)
 })
+
+test('failed-load recovery contains reload races', async () => {
+  const win = fakeWindow()
+  const logs = []
+  installWindowRendererLifecycle(win, {
+    kind: 'main',
+    callbacks: {
+      log: line => logs.push(line),
+      reload: () => {
+        throw new Error('webContents destroyed during reload')
+      }
+    },
+    reloadOnFailedLoad: true
+  })
+
+  win.emit('did-fail-load', -6, 'ERR_FILE_NOT_FOUND', 'file:///missing', true)
+  await new Promise(resolve => setImmediate(resolve))
+
+  assert.match(logs.at(-1), /reload after failed load failed: webContents destroyed during reload/)
+})

@@ -138,7 +138,14 @@ function installWindowRendererLifecycle(win, options) {
         if (decision.reload) {
           pushReloadTime(budgetRef.current, nowMs)
           setImmediate(() => {
-            if (!win.isDestroyed()) reload()
+            if (win.isDestroyed()) return
+            try {
+              reload()
+            } catch (error) {
+              log(
+                `[renderer:${kind}] reload after failed load failed: ${error instanceof Error ? error.message : String(error)}`
+              )
+            }
           })
         } else if (decision.surfaceError) {
           onFailedLoadBudgetExhausted?.({ errorCode, isMainFrame, url: validatedURL })
