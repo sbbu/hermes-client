@@ -6,7 +6,9 @@ import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
+import { decideLivenessForceClose, LIVENESS_REPROBE_DELAY_MS } from '@/lib/gateway-liveness-policy'
 import { reconnectBackoffDelayMs } from '@/lib/reconnect-backoff'
+import { RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
 import {
   $desktopBoot,
   applyDesktopBootProgress,
@@ -46,6 +48,7 @@ import type { RpcEvent } from '@/types/hermes'
 // draftable while reconnecting, and only raise a non-blocking warning after a
 // sustained outage. Confirmed reauth still opens recovery immediately.
 const RECONNECT_ESCALATE_AFTER_MS = 300_000
+const GATEWAY_LIVENESS_PROBE_TIMEOUT_MS = 5_000
 
 interface GatewayBootOptions {
   handleGatewayEvent: (event: RpcEvent) => void
@@ -108,6 +111,8 @@ export function useGatewayBoot({
     let reconnecting = false
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null
     let reconnectAttempt = 0
+    let livenessProbeFailures = 0
+    let livenessReprobeTimer: ReturnType<typeof setTimeout> | null = null
     let reconnectFailingSince: number | null = null
     // Surface "sign in again" once per disconnect episode, not on every backoff
     // tick — a stale OAuth ticket fails every attempt and would otherwise stack
@@ -127,6 +132,13 @@ export function useGatewayBoot({
       }
     }
 
+    const clearLivenessReprobeTimer = () => {
+      if (livenessReprobeTimer !== null) {
+        clearTimeout(livenessReprobeTimer)
+        livenessReprobeTimer = null
+      }
+    }
+
     const attemptReconnect = async () => {
       if (cancelled || reconnecting || gatewayOpen()) {
         return
@@ -140,15 +152,26 @@ export function useGatewayBoot({
         // whose 'exit' would clear the main process's cached descriptor — without
         // this the renderer re-dials the same dead endpoint forever and stays on
         // "Starting Hermes…". The probe is a no-op for a healthy or local backend.
-        await desktop.revalidateConnection?.().catch(() => undefined)
+        if (desktop.revalidateConnection) {
+          await withTimeout(
+            desktop.revalidateConnection(),
+            RECONNECT_ATTEMPT_TIMEOUT_MS,
+            'Timed out revalidating Hermes backend'
+          ).catch(() => undefined)
+        }
 
-        const conn = await desktop.getConnection($activeGatewayProfile.get())
+        const conn = await withTimeout(
+          desktop.getConnection($activeGatewayProfile.get()),
+          RECONNECT_ATTEMPT_TIMEOUT_MS,
+          'Timed out reconnecting to Hermes backend'
+        )
 
         if (cancelled) {
           return
         }
 
         publish(conn)
+
         // Re-mint the WS URL before reconnecting. OAuth tickets are single-use
         // with a short TTL, so the ticket baked into the cached conn.wsUrl is
         // dead on every reconnect after the initial boot — reusing it surfaces
@@ -156,7 +179,12 @@ export function useGatewayBoot({
         // mints a fresh ticket (or throws a reauth error in OAuth mode rather
         // than connecting with a stale one). For local/token gateways the URL
         // carries a long-lived token and the re-mint is a cheap no-op.
-        const wsUrl = await resolveGatewayWsUrl(desktop, conn)
+        const wsUrl = await withTimeout(
+          resolveGatewayWsUrl(desktop, conn),
+          RECONNECT_ATTEMPT_TIMEOUT_MS,
+          'Timed out re-minting the gateway WebSocket URL'
+        )
+
         await gateway.connect(wsUrl)
 
         if (cancelled) {
@@ -214,7 +242,7 @@ export function useGatewayBoot({
       }, delay)
     }
 
-    const reconnectNow = () => {
+    const reconnectNow = async () => {
       if (cancelled || !bootCompleted) {
         return
       }
@@ -227,6 +255,42 @@ export function useGatewayBoot({
 
       if (!gatewayOpen()) {
         void attemptReconnect()
+
+        return
+      }
+
+      try {
+        await gateway.request('ping', {}, GATEWAY_LIVENESS_PROBE_TIMEOUT_MS)
+        livenessProbeFailures = 0
+        clearLivenessReprobeTimer()
+      } catch (error) {
+        // Method-not-found still proves that the transport is alive on an older backend.
+        if ((error as { code?: number } | null)?.code === -32601) {
+          livenessProbeFailures = 0
+
+          return
+        }
+
+        livenessProbeFailures += 1
+
+        const decision = decideLivenessForceClose({
+          consecutiveFailures: livenessProbeFailures,
+          workingSessionCount: $workingSessionIds.get().length
+        })
+
+        if (decision.close) {
+          livenessProbeFailures = 0
+          gateway.close()
+
+          return
+        }
+
+        if (livenessReprobeTimer === null) {
+          livenessReprobeTimer = setTimeout(() => {
+            livenessReprobeTimer = null
+            void reconnectNow()
+          }, LIVENESS_REPROBE_DELAY_MS)
+        }
       }
     }
 
@@ -272,7 +336,9 @@ export function useGatewayBoot({
         reconnectFailingSince = null
         reauthNotified = false
         escalated = false
+        livenessProbeFailures = 0
         clearReconnectTimer()
+        clearLivenessReprobeTimer()
 
         // A revalidate-driven reconnect can rebuild the backend in place when the
         // cached remote was found dead, which re-drives the boot-progress overlay.
@@ -440,6 +506,7 @@ export function useGatewayBoot({
     return () => {
       cancelled = true
       clearReconnectTimer()
+      clearLivenessReprobeTimer()
       clearInterval(keepaliveTimer)
       offWorking()
       offAttention()

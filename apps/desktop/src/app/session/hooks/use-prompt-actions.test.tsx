@@ -58,6 +58,7 @@ function Harness({
   busyRef,
   onReady,
   onSeedState,
+  onUpdateState,
   refreshSessions,
   requestGateway,
   resumeStoredSession,
@@ -74,6 +75,7 @@ function Harness({
   getRouteToken?: () => string
   onReady: (handle: HarnessHandle) => void
   onSeedState?: (state: Record<string, unknown>) => void
+  onUpdateState?: (sessionId: string, storedSessionId?: null | string) => void
   refreshSessions: () => Promise<void>
   requestGateway: <T>(method: string, params?: Record<string, unknown>) => Promise<T>
   resumeStoredSession?: (storedSessionId: string) => Promise<void> | void
@@ -111,7 +113,8 @@ function Harness({
     selectedStoredSessionIdRef,
     startFreshSessionDraft: () => undefined,
     sttEnabled: false,
-    updateSessionState: (_sessionId, updater) => {
+    updateSessionState: (sessionId, updater, storedSessionId) => {
+      onUpdateState?.(sessionId, storedSessionId)
       // Seed with interrupted:true so we can prove a fresh submit clears it.
       const next = updater(stateRef.current) as unknown as Record<string, unknown>
       stateRef.current = next as never
@@ -992,8 +995,9 @@ describe('usePromptActions sleep/wake session recovery', () => {
     // After sleep/wake the gateway's in-memory session table is cleared, so the
     // first prompt.submit with the stale runtime id fails. The hook resumes the
     // durable stored id (which survives gateway restarts), gets a fresh live id,
-    // and retries the send transparently.
+    // publishes that ownership, and retries the send transparently.
     const calls: { method: string; params?: Record<string, unknown> }[] = []
+    let bindingPublished = false
     let submitAttempts = 0
 
     const requestGateway = vi.fn(async (method: string, params?: Record<string, unknown>) => {
@@ -1005,6 +1009,8 @@ describe('usePromptActions sleep/wake session recovery', () => {
         if (submitAttempts === 1) {
           throw new Error('session not found')
         }
+
+        expect(bindingPublished).toBe(true)
 
         return {} as never
       }
@@ -1020,6 +1026,11 @@ describe('usePromptActions sleep/wake session recovery', () => {
     render(
       <Harness
         onReady={h => (handle = h)}
+        onUpdateState={(runtimeId, storedId) => {
+          if (runtimeId === RECOVERED_SESSION_ID && storedId === STORED_SESSION_ID) {
+            bindingPublished = true
+          }
+        }}
         refreshSessions={async () => undefined}
         requestGateway={requestGateway}
         storedSessionId={STORED_SESSION_ID}

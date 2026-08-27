@@ -828,6 +828,9 @@ export function usePromptActions({
 
             if (recoveredId) {
               activeSessionIdRef.current = recoveredId
+              // Publish durable-session ownership before retrying so remote
+              // routing keeps the recovered runtime on its owning backend.
+              updateSessionState(recoveredId, state => state, startingStoredSessionId)
               await withSessionBusyRetry(() =>
                 requestGateway('prompt.submit', { session_id: recoveredId, text }, PROMPT_SUBMIT_REQUEST_TIMEOUT_MS)
               )

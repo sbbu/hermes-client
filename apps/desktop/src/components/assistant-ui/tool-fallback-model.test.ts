@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  browserExecStepLabel,
   buildToolView,
   countDiffLineStats,
   inlineDiffFromResult,
@@ -15,6 +16,27 @@ const part = (overrides: Partial<ToolPart>): ToolPart => ({
   toolName: 'vision_analyze',
   type: 'tool-call',
   ...overrides
+})
+
+describe('browserExecStepLabel', () => {
+  it('uses the leading browser step comment as the row title', () => {
+    expect(browserExecStepLabel('# Search the catalog\nawait page.goto("https://example.com")')).toBe(
+      'Search the catalog'
+    )
+    expect(
+      buildToolView(
+        part({
+          args: { code: '# Search the catalog\nawait page.goto("https://example.com")' },
+          toolName: 'browser_exec'
+        }),
+        ''
+      ).title
+    ).toBe('Search the catalog')
+  })
+
+  it('ignores code without a leading comment', () => {
+    expect(browserExecStepLabel('await page.goto("https://example.com")')).toBeNull()
+  })
 })
 
 describe('buildToolView image handling', () => {
@@ -40,8 +62,7 @@ describe('buildToolView image handling', () => {
 })
 
 describe('buildToolView terminal exit-code status', () => {
-  const terminal = (result: Record<string, unknown>) =>
-    buildToolView(part({ result, toolName: 'terminal' }), '')
+  const terminal = (result: Record<string, unknown>) => buildToolView(part({ result, toolName: 'terminal' }), '')
 
   // A non-zero exit code with real output is not a failure (grep no-match,
   // diff differences, piped commands surfacing the last stage's code, etc.) —
@@ -112,8 +133,6 @@ describe('buildToolView file edit diffs', () => {
 
 describe('countDiffLineStats', () => {
   it('counts added and removed lines', () => {
-    expect(
-      countDiffLineStats(`--- a/x\n+++ b/x\n@@\n-old\n+new\n context\n+another`)
-    ).toEqual({ added: 2, removed: 1 })
+    expect(countDiffLineStats(`--- a/x\n+++ b/x\n@@\n-old\n+new\n context\n+another`)).toEqual({ added: 2, removed: 1 })
   })
 })

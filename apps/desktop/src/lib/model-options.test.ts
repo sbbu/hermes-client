@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { getGlobalModelOptions } from '@/hermes'
 
-import { requestModelOptions } from './model-options'
+import { reconcileSelectionAfterCatalogRefresh, requestModelOptions } from './model-options'
 
 const globalOptions = { model: 'hermes-4', provider: 'nous', providers: [] }
 
@@ -46,5 +46,27 @@ describe('requestModelOptions', () => {
     await requestModelOptions({ refresh: true })
 
     expect(getGlobalModelOptions).toHaveBeenCalledWith({ explicitOnly: true, refresh: true })
+  })
+})
+
+describe('reconcileSelectionAfterCatalogRefresh', () => {
+  const providers = [
+    { models: ['preset'], name: 'MoA', slug: 'moa' },
+    { models: ['model-a', 'model-b'], name: 'Provider', slug: 'provider' }
+  ]
+
+  it('keeps a selection that remains in the refreshed catalog', () => {
+    expect(reconcileSelectionAfterCatalogRefresh('model-b', providers)).toBeNull()
+  })
+
+  it('selects the first real model when the old selection disappeared', () => {
+    expect(reconcileSelectionAfterCatalogRefresh('removed', providers)).toEqual({
+      model: 'model-a',
+      provider: 'provider'
+    })
+  })
+
+  it('does not clear the current selection for an empty catalog', () => {
+    expect(reconcileSelectionAfterCatalogRefresh('current', [])).toBeNull()
   })
 })

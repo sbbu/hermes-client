@@ -17,7 +17,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { requestModelOptions } from '@/lib/model-options'
+import { reconcileSelectionAfterCatalogRefresh, requestModelOptions } from '@/lib/model-options'
 import {
   currentPickerSelection,
   displayModelName,
@@ -144,6 +144,12 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
       const next = await requestModelOptions({ gateway, refresh: true, sessionId: activeSessionId })
 
       queryClient.setQueryData<ModelOptionsResponse>(queryKey, next)
+
+      const selection = reconcileSelectionAfterCatalogRefresh(optionsModel, next.providers)
+
+      if (selection) {
+        await onSelectModel(selection)
+      }
     } catch {
       // Network/backend hiccup — fall back to a plain invalidate so the next
       // open re-fetches (still cached, but no worse than before).

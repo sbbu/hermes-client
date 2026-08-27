@@ -3,6 +3,7 @@ import { atom } from 'nanostores'
 
 import { HermesGateway } from '@/hermes'
 import { reconnectBackoffDelayMs } from '@/lib/reconnect-backoff'
+import { RECONNECT_ATTEMPT_TIMEOUT_MS, withTimeout } from '@/lib/with-timeout'
 import { setGatewayState } from '@/store/session'
 
 // ── Multi-profile gateway routing ──────────────────────────────────────────
@@ -125,8 +126,18 @@ async function openSecondary(entry: Secondary): Promise<void> {
     return
   }
 
-  const conn = await desktop.getConnection(entry.profile)
-  const wsUrl = await resolveGatewayWsUrl(desktop, conn)
+  const conn = await withTimeout(
+    desktop.getConnection(entry.profile),
+    RECONNECT_ATTEMPT_TIMEOUT_MS,
+    `Timed out connecting to profile "${entry.profile}"`
+  )
+
+  const wsUrl = await withTimeout(
+    resolveGatewayWsUrl(desktop, conn),
+    RECONNECT_ATTEMPT_TIMEOUT_MS,
+    `Timed out re-minting the gateway WebSocket URL for profile "${entry.profile}"`
+  )
+
   await entry.gateway.connect(wsUrl)
   void desktop.touchBackend?.(entry.profile).catch(() => undefined)
 }
@@ -210,7 +221,11 @@ async function sharedPrimaryRoute(profile: string): Promise<boolean> {
   }
 
   try {
-    const conn = await desktop.getConnection(profile)
+    const conn = await withTimeout(
+      desktop.getConnection(profile),
+      RECONNECT_ATTEMPT_TIMEOUT_MS,
+      `Timed out resolving the shared-primary route for profile "${profile}"`
+    )
 
     return Boolean(conn && typeof conn === 'object' && (conn as { sharedPrimary?: boolean }).sharedPrimary === true)
   } catch {

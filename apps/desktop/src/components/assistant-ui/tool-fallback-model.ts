@@ -195,6 +195,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
+export function browserExecStepLabel(code: string, maxChars = 80): null | string {
+  const first = code.trim().split('\n', 1)[0]?.trim() ?? ''
+
+  if (!first.startsWith('#')) {
+    return null
+  }
+
+  const label = first.replace(/^#+/, '').trim()
+
+  if (!label) {
+    return null
+  }
+
+  return label.length > maxChars ? `${label.slice(0, maxChars - 1)}…` : label
+}
+
 export function compactPreview(value: unknown, max = 72): string {
   let raw: unknown
 
@@ -1370,6 +1386,14 @@ function dynamicTitle(
     const query = firstStringField(args, ['search_term', 'query']) || contextValue(args)
 
     return query ? `${verb('Searching', 'Searched')} “${compactPreview(query, 48)}”` : fallback
+  }
+
+  if (part.toolName === 'browser_exec') {
+    const label = browserExecStepLabel(firstStringField(args, ['code']))
+
+    if (label) {
+      return label
+    }
   }
 
   if (part.toolName === 'terminal' || part.toolName === 'execute_code') {
