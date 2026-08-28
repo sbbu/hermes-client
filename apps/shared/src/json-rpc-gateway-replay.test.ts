@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { JsonRpcGatewayClient } from "./json-rpc-gateway";
+import { JsonRpcGatewayClient, JsonRpcGatewayError } from "./json-rpc-gateway";
 
 class FakeWebSocket extends EventTarget {
   static instances: FakeWebSocket[] = [];
@@ -212,6 +212,40 @@ describe("JsonRpcGatewayClient replay", () => {
 
     await Promise.resolve();
     expect(seen).toEqual([10]);
+    client.close();
+  });
+});
+
+describe("JsonRpcGatewayClient errors", () => {
+  beforeEach(() => {
+    FakeWebSocket.instances = [];
+    sockets = FakeWebSocket.instances;
+  });
+
+  it("preserves JSON-RPC error codes and data for caller recovery", async () => {
+    const client = makeClient();
+    const connecting = client.connect("ws://example");
+    sockets[0].open();
+    await connecting;
+
+    const pending = client.request("ping");
+    const request = sockets[0].lastRequest();
+    sockets[0].serverFrame({
+      id: request.id,
+      error: {
+        code: -32601,
+        data: { method: "ping" },
+        message: "Method not found",
+      },
+    });
+
+    await expect(pending).rejects.toMatchObject({
+      code: -32601,
+      data: { method: "ping" },
+      message: "Method not found",
+      name: "JsonRpcGatewayError",
+    });
+    await expect(pending).rejects.toBeInstanceOf(JsonRpcGatewayError);
     client.close();
   });
 });

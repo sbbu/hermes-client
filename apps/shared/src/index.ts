@@ -5,8 +5,10 @@ export {
   type GatewayEvent,
   type GatewayEventName,
   type GatewayRequestId,
+  type JsonRpcErrorPayload,
   type JsonRpcFrame,
   type WebSocketLike,
+  JsonRpcGatewayError,
 } from "./json-rpc-gateway";
 export {
   GatewayReauthRequiredError,

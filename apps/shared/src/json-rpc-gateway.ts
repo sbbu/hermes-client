@@ -37,12 +37,31 @@ export type ConnectionState =
   | "error";
 export type GatewayRequestId = number | string;
 
+export interface JsonRpcErrorPayload {
+  code?: number;
+  data?: unknown;
+  message?: string;
+}
+
 export interface JsonRpcFrame {
-  error?: { message?: string };
+  error?: JsonRpcErrorPayload;
   id?: GatewayRequestId | null;
   method?: string;
   params?: GatewayEvent;
   result?: unknown;
+}
+
+/** JSON-RPC error with the structured recovery metadata sent by the gateway. */
+export class JsonRpcGatewayError extends Error {
+  readonly code?: number;
+  readonly data?: unknown;
+
+  constructor(message: string, options?: { code?: number; data?: unknown }) {
+    super(message);
+    this.name = "JsonRpcGatewayError";
+    this.code = options?.code;
+    this.data = options?.data;
+  }
 }
 
 export type WebSocketLike = WebSocket;
@@ -425,7 +444,15 @@ export class JsonRpcGatewayClient {
       this.clearPending(frame.id);
 
       if (frame.error) {
-        call.reject(new Error(frame.error.message || "Hermes RPC failed"));
+        call.reject(
+          new JsonRpcGatewayError(frame.error.message || "Hermes RPC failed", {
+            code:
+              typeof frame.error.code === "number"
+                ? frame.error.code
+                : undefined,
+            data: frame.error.data,
+          }),
+        );
       } else {
         call.resolve(frame.result);
       }
