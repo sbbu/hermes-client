@@ -147,7 +147,7 @@ async function fallbackRootFor(cwd: string): Promise<string | null> {
   }
 }
 
-async function loadRoot(cwd: string, { force = false }: { force?: boolean } = {}) {
+async function loadRoot(cwd: string, { force = false, reset = false }: { force?: boolean; reset?: boolean } = {}) {
   if (!cwd) {
     clearProjectTree()
 
@@ -168,15 +168,20 @@ async function loadRoot(cwd: string, { force = false }: { force?: boolean } = {}
     clearProjectDirCache(cwd)
   }
 
+  // A same-root refresh probes underneath the visible tree. Blanking it first
+  // makes a persistent read error strobe on every self-heal retry. A backend
+  // switch is different: the old machine's rows must not remain visible.
+  const keepVisible = current.cwd === cwd && !reset
+
   $projectTree.set({
     collapseNonce: current.collapseNonce,
     cwd,
-    data: [],
+    data: keepVisible ? current.data : [],
     loaded: false,
-    openState: current.cwd === cwd ? current.openState : {},
+    openState: keepVisible ? current.openState : {},
     requestId,
-    resolvedCwd: '',
-    rootError: null,
+    resolvedCwd: keepVisible ? current.resolvedCwd : '',
+    rootError: keepVisible ? current.rootError : null,
     rootLoading: true
   })
 
@@ -314,7 +319,7 @@ export function useProjectTree(cwd: string): UseProjectTreeResult {
 
     if (connectionChanged) {
       clearProjectDirCache()
-      void loadRoot(cwd, { force: true })
+      void loadRoot(cwd, { force: true, reset: true })
 
       return
     }

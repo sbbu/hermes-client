@@ -8,6 +8,7 @@ import {
   $activeSessionId,
   $activeSessionStoredIdRotation,
   $attentionSessionIds,
+  $connection,
   $currentFastMode,
   $currentModel,
   $currentProvider,
@@ -220,6 +221,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
       return null as unknown as number
     })
     setTurnStartedAt(null)
+    $connection.set(null)
     $activeGatewayProfile.set('default')
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
@@ -237,6 +239,7 @@ describe('useSessionStateCache — per-session turn timer', () => {
     cleanup()
     vi.restoreAllMocks()
     setTurnStartedAt(null)
+    $connection.set(null)
     $activeGatewayProfile.set('default')
     $activeSessionId.set(null)
     setActiveSessionStoredIdRotation(null)
@@ -371,6 +374,23 @@ describe('useSessionStateCache — per-session turn timer', () => {
 
     expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-A')
     expect(cache.runtimeIdByStoredSessionIdRef.current.has('stored-B')).toBe(false)
+  })
+
+  it('discards stored-id aliases when the backend changes under the same profile', () => {
+    let cache!: Cache
+    $connection.set({ baseUrl: 'https://backend-a.example', mode: 'remote' } as never)
+    render(<Harness activeSessionId="runtime-A" onReady={c => (cache = c)} selectedStoredSessionId="stored-A" />)
+
+    act(() => {
+      cache.ensureSessionState('runtime-A', 'stored-A')
+      cache.ensureSessionState('runtime-A', 'stored-B')
+    })
+    expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-B')
+
+    act(() => $connection.set({ baseUrl: 'https://backend-b.example', mode: 'remote' } as never))
+
+    expect(cache.resolveStoredSessionId('stored-A')).toBe('stored-A')
+    expect(cache.runtimeIdByStoredSessionIdRef.current.size).toBe(0)
   })
 
   it('rejects a late stored-id rotation from a background profile', () => {

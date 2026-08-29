@@ -29,3 +29,33 @@ export function threadLoadingState(
 
   return undefined
 }
+
+export function routedSessionIsLoading({
+  activeSessionId,
+  knownHistory,
+  messagesEmpty,
+  resumeExhausted,
+  routeSessionMismatch,
+  routedSessionView
+}: {
+  activeSessionId: string | null
+  knownHistory: boolean
+  messagesEmpty: boolean
+  resumeExhausted: boolean
+  routeSessionMismatch: boolean
+  routedSessionView: boolean
+}): boolean {
+  if (resumeExhausted || !routedSessionView) {
+    return false
+  }
+
+  if (routeSessionMismatch) {
+    return true
+  }
+
+  if (!messagesEmpty) {
+    return false
+  }
+
+  return !activeSessionId || knownHistory
+}

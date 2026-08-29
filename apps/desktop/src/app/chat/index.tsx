@@ -68,7 +68,7 @@ import { type DroppedFile, partitionDroppedFiles } from './hooks/use-composer-ac
 import { useFileDropZone } from './hooks/use-file-drop-zone'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { SessionActionsMenu } from './sidebar/session-actions-menu'
-import { threadLoadingState } from './thread-loading'
+import { routedSessionIsLoading, threadLoadingState } from './thread-loading'
 import { advanceTranscriptWindow, type TranscriptWindowState, visibleOutsideWindowIds } from './transcript-window'
 
 interface ChatViewProps extends Omit<React.ComponentProps<'div'>, 'onSubmit'> {
@@ -358,6 +358,7 @@ export function ChatView({
   // runtime that DOES need the messages lives in ChatRuntimeBoundary below;
   // this component only needs streaming-stable derivations.
   const messagesEmpty = useStore($messagesEmpty)
+  const sessions = useStore($sessions)
   const lastVisibleIsUser = useStore($lastVisibleMessageIsUser)
   const selectedSessionId = useStore($selectedStoredSessionId)
   const resumeExhaustedSessionId = useStore($resumeExhaustedSessionId)
@@ -393,8 +394,23 @@ export function ChatView({
   // session can't blank the current one.
   const resumeExhausted = isRoutedSessionView && resumeExhaustedSessionId === routedSessionId
 
-  const loadingSession =
-    !resumeExhausted && isRoutedSessionView && (routeSessionMismatch || (messagesEmpty && !activeSessionId))
+  const routedHasHistory = Boolean(
+    routedSessionId &&
+    sessions.some(
+      session =>
+        (session.id === routedSessionId || session._lineage_root_id === routedSessionId) &&
+        (session.message_count ?? 0) > 0
+    )
+  )
+
+  const loadingSession = routedSessionIsLoading({
+    activeSessionId,
+    knownHistory: routedHasHistory,
+    messagesEmpty,
+    resumeExhausted,
+    routeSessionMismatch,
+    routedSessionView: isRoutedSessionView
+  })
 
   const threadLoading = threadLoadingState(loadingSession, busy, awaitingResponse, lastVisibleIsUser)
   // Hide the composer in the exhausted error state too: there's no live runtime

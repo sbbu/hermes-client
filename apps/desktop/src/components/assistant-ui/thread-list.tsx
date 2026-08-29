@@ -96,10 +96,15 @@ const MIN_VISIBLE_GROUPS = 8
 // interruptibly, so the only thing a smaller budget changes is how much work
 // blocks the click-to-paint path.
 const FIRST_PAINT_BUDGET = 20
-// Units the backfill adds per committed step (see the backfill effect). ~8-15
-// ordinary turns or 1-2 tool-heavy ones per frame — big enough to fill a page
-// in ~10 frames, small enough that no single commit approaches a frame budget.
-const BACKFILL_STEP = 60
+// Fill a page in two interruptible prepend commits instead of about ten
+// visibly stepped frames, while staying below the single-jump freeze boundary.
+const BACKFILL_STEP = 290
+
+export const transcriptBackfillFrameCount = (
+  firstPaint = FIRST_PAINT_BUDGET,
+  step = BACKFILL_STEP,
+  budget = RENDER_BUDGET
+): number => Math.ceil(Math.max(0, budget - firstPaint) / step)
 
 // Browsers may quantize a requested scrollTop to a nearby device-pixel
 // boundary. use-stick-to-bottom otherwise compares the lower actual value to

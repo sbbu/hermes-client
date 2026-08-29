@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "hermes-client"
-version = "0.3.51"
+version = "0.3.52"
 description = "Remote-only Hermes client and local tool worker"
 readme = "README.md"
 requires-python = ">=3.10"

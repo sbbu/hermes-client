@@ -9,6 +9,7 @@ import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import {
   $activeSessionId,
   $busy,
+  $connection,
   $messages,
   getCurrentModelSource,
   noteSessionActivity,
@@ -71,7 +72,14 @@ export function useSessionStateCache({
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   const runtimeIdByStoredSessionIdRef = useRef(new Map<string, string>())
   const storedSessionIdRedirectsRef = useRef(new Map<string, string>())
-  const redirectsProfileRef = useRef(normalizeProfileKey(activeGatewayProfile))
+
+  const activeRouteScopeKey = () => {
+    const connection = $connection.get()
+
+    return `${connection?.mode ?? 'local'}:${connection?.baseUrl ?? ''}::${normalizeProfileKey($activeGatewayProfile.get())}`
+  }
+
+  const redirectsScopeRef = useRef(activeRouteScopeKey())
   const pendingViewStateRef = useRef<{ sessionId: string; state: ClientSessionState } | null>(null)
   const viewSyncRafRef = useRef<number | null>(null)
   // Runtime id whose transcript currently occupies `$messages` — lets the
@@ -99,15 +107,15 @@ export function useSessionStateCache({
   }, [busy, busyRef])
 
   const syncRedirectProfile = useCallback(() => {
-    const currentProfile = normalizeProfileKey($activeGatewayProfile.get())
+    const currentScope = activeRouteScopeKey()
 
-    if (redirectsProfileRef.current !== currentProfile) {
+    if (redirectsScopeRef.current !== currentScope) {
       storedSessionIdRedirectsRef.current.clear()
       // Stored ids are profile-local. Keeping this profile-blind reverse map
       // across a gateway-profile switch can route the new profile into the
       // previous profile's runtime when both use the same stored id.
       runtimeIdByStoredSessionIdRef.current.clear()
-      redirectsProfileRef.current = currentProfile
+      redirectsScopeRef.current = currentScope
     }
   }, [])
 
@@ -153,7 +161,7 @@ export function useSessionStateCache({
     (sessionId: string, storedSessionId?: string | null, sourceProfile?: string | null) => {
       syncRedirectProfile()
 
-      if (sourceProfile && normalizeProfileKey(sourceProfile) !== redirectsProfileRef.current) {
+      if (sourceProfile && normalizeProfileKey(sourceProfile) !== normalizeProfileKey($activeGatewayProfile.get())) {
         // A queued event from the profile we just left must not mutate this
         // profile-blind cache or either profile-blind route map.
         return sessionStateByRuntimeIdRef.current.get(sessionId) ?? createClientSessionState(storedSessionId ?? null)
@@ -193,7 +201,8 @@ export function useSessionStateCache({
               syncRedirectProfile()
 
               const rotationBelongsToActiveProfile =
-                !sourceProfile || normalizeProfileKey(sourceProfile) === redirectsProfileRef.current
+                !sourceProfile ||
+                normalizeProfileKey(sourceProfile) === normalizeProfileKey($activeGatewayProfile.get())
 
               if (rotationBelongsToActiveProfile) {
                 storedSessionIdRedirectsRef.current.set(
@@ -364,7 +373,7 @@ export function useSessionStateCache({
     ) => {
       syncRedirectProfile()
 
-      if (sourceProfile && normalizeProfileKey(sourceProfile) !== redirectsProfileRef.current) {
+      if (sourceProfile && normalizeProfileKey(sourceProfile) !== normalizeProfileKey($activeGatewayProfile.get())) {
         // Do not invoke the updater: callers can perform edge-triggered side
         // effects from inside it in addition to mutating the cache below.
         return sessionStateByRuntimeIdRef.current.get(sessionId) ?? createClientSessionState(storedSessionId ?? null)

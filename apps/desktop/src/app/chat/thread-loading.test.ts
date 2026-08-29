@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { ChatMessage } from '@/lib/chat-messages'
 
-import { lastVisibleMessageIsUser, threadLoadingState } from './thread-loading'
+import { lastVisibleMessageIsUser, routedSessionIsLoading, threadLoadingState } from './thread-loading'
 
 function message(id: string, role: ChatMessage['role'], hidden = false): ChatMessage {
   return {
@@ -30,5 +30,24 @@ describe('thread loading state', () => {
 
     expect(lastVisibleMessageIsUser(messages)).toBe(false)
     expect(threadLoadingState(false, true, true, lastVisibleMessageIsUser(messages))).toBeUndefined()
+  })
+})
+
+describe('routedSessionIsLoading', () => {
+  const base = {
+    activeSessionId: 'runtime-1' as string | null,
+    knownHistory: false,
+    messagesEmpty: false,
+    resumeExhausted: false,
+    routeSessionMismatch: false,
+    routedSessionView: true
+  }
+
+  it('keeps loading while known history is held off the view', () => {
+    expect(routedSessionIsLoading({ ...base, knownHistory: true, messagesEmpty: true })).toBe(true)
+  })
+
+  it('allows a genuinely empty new routed draft', () => {
+    expect(routedSessionIsLoading({ ...base, messagesEmpty: true })).toBe(false)
   })
 })
