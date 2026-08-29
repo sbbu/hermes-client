@@ -42,6 +42,12 @@ export const en: Translations = {
     off: 'Off'
   },
 
+  fileMenu: {
+    download: 'Download',
+    downloadSaved: 'Saved',
+    downloadFailed: 'Download failed'
+  },
+
   boot: {
     ready: 'Hermes Desktop is ready',
     desktopBootFailedWithMessage: message => `Desktop boot failed: ${message}`,

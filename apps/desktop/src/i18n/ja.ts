@@ -42,6 +42,12 @@ export const ja = defineLocale({
     off: 'オフ'
   },
 
+  fileMenu: {
+    download: 'ダウンロード',
+    downloadSaved: '保存しました',
+    downloadFailed: 'ダウンロードに失敗しました'
+  },
+
   boot: {
     ready: 'Hermes Desktop の準備ができました',
     desktopBootFailedWithMessage: message => `デスクトップの起動に失敗しました: ${message}`,

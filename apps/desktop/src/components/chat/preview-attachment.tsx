@@ -2,8 +2,9 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
-import { MonitorPlay } from '@/lib/icons'
+import { Download, MonitorPlay } from '@/lib/icons'
 import { normalizeOrLocalPreviewTarget } from '@/lib/local-preview'
+import { downloadGatewayMediaFile } from '@/lib/media'
 import { previewName } from '@/lib/preview-targets'
 import { notifyError } from '@/store/notifications'
 import {
@@ -19,8 +20,11 @@ export function PreviewAttachment({ source = 'manual', target }: { source?: Prev
   const cwd = useStore($currentCwd)
   const activePreview = useStore($previewTarget)
   const [opening, setOpening] = useState(false)
+  const [downloading, setDownloading] = useState(false)
+  const [downloaded, setDownloaded] = useState(false)
   const activePreviewRef = useRef(activePreview)
   const cwdRef = useRef(cwd)
+  const downloadTokenRef = useRef(0)
   const mountedRef = useRef(false)
   const requestTokenRef = useRef(0)
   const targetRef = useRef(target)
@@ -36,12 +40,16 @@ export function PreviewAttachment({ source = 'manual', target }: { source?: Prev
 
     return () => {
       mountedRef.current = false
+      downloadTokenRef.current += 1
       requestTokenRef.current += 1
     }
   }, [])
 
   useEffect(() => {
+    downloadTokenRef.current += 1
     requestTokenRef.current += 1
+    setDownloaded(false)
+    setDownloading(false)
     setOpening(false)
   }, [cwd, target])
 
@@ -103,6 +111,36 @@ export function PreviewAttachment({ source = 'manual', target }: { source?: Prev
     }
   }
 
+  async function downloadFile() {
+    if (downloading) {
+      return
+    }
+
+    setDownloading(true)
+    const downloadToken = ++downloadTokenRef.current
+    const downloadTarget = target
+
+    try {
+      await downloadGatewayMediaFile(downloadTarget)
+
+      if (mountedRef.current && downloadTokenRef.current === downloadToken && targetRef.current === downloadTarget) {
+        setDownloaded(true)
+        window.setTimeout(
+          () => mountedRef.current && downloadTokenRef.current === downloadToken && setDownloaded(false),
+          2000
+        )
+      }
+    } catch (error) {
+      if (mountedRef.current && downloadTokenRef.current === downloadToken && targetRef.current === downloadTarget) {
+        notifyError(error, t.fileMenu.downloadFailed)
+      }
+    } finally {
+      if (mountedRef.current && downloadTokenRef.current === downloadToken) {
+        setDownloading(false)
+      }
+    }
+  }
+
   return (
     <div className="flex w-full max-w-160 items-center gap-2 rounded-lg border border-border/55 bg-card/55 px-2.5 py-1.5 text-sm">
       <span className="grid size-6 shrink-0 place-items-center rounded-md bg-muted/55 text-muted-foreground/85">
@@ -111,6 +149,17 @@ export function PreviewAttachment({ source = 'manual', target }: { source?: Prev
       <span className="min-w-0 flex-1 truncate text-[0.78rem] font-medium text-foreground/90" title={target}>
         {name}
       </span>
+      <button
+        aria-label={t.fileMenu.download}
+        className="flex shrink-0 items-center gap-1 rounded-md border border-border/55 bg-background/40 px-2 py-1 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-accent/55 hover:text-foreground disabled:opacity-50"
+        disabled={downloading}
+        onClick={() => void downloadFile()}
+        title={t.fileMenu.download}
+        type="button"
+      >
+        <Download className="size-3" />
+        {downloaded ? t.fileMenu.downloadSaved : t.fileMenu.download}
+      </button>
       <button
         className="shrink-0 rounded-md border border-border/55 bg-background/40 px-2 py-1 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-accent/55 hover:text-foreground disabled:opacity-50"
         disabled={opening}

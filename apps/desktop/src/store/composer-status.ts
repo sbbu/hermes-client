@@ -1,7 +1,7 @@
 import { atom, computed } from 'nanostores'
 
 import { translateNow } from '@/i18n'
-import type { TodoItem, TodoStatus } from '@/lib/todos'
+import { type TodoItem, type TodoStatus, todoTree } from '@/lib/todos'
 
 import { $gateway } from './gateway'
 import { dispatchNativeNotification } from './native-notifications'
@@ -17,6 +17,8 @@ export interface ComposerStatusItem {
   exitCode?: number
   /** subagent: active tool label shown on the right. */
   currentTool?: string
+  /** todo nesting depth. */
+  depth?: number
   id: string
   /** background process: captured stdout/stderr tail for the inline viewer. */
   output?: string
@@ -47,7 +49,8 @@ const subToItem = (s: SubagentProgress): ComposerStatusItem => ({
   type: 'subagent'
 })
 
-const todoToItem = (t: TodoItem): ComposerStatusItem => ({
+const todoToItem = (t: TodoItem, depth: number): ComposerStatusItem => ({
+  depth,
   id: `todo:${t.id}`,
   state: t.status === 'in_progress' ? 'running' : 'done',
   title: t.content,
@@ -68,7 +71,10 @@ export const $statusItemsBySession = computed(
     }
 
     for (const [sid, list] of Object.entries(todos)) {
-      push(sid, list.map(todoToItem))
+      push(
+        sid,
+        todoTree(list).map(([todo, depth]) => todoToItem(todo, depth))
+      )
     }
 
     for (const [sid, list] of Object.entries(subs)) {

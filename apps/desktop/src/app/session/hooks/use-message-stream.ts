@@ -707,7 +707,10 @@ export function useMessageStream({
               }
             : {
                 ...settled,
-                parts: replaceTextPart(message.parts)
+                // Some gateways terminate a successfully streamed turn with an
+                // empty completion frame. Preserve the live text in that case;
+                // only a non-empty final is authoritative replacement text.
+                parts: finalText ? replaceTextPart(message.parts) : message.parts
               }
         }
 
@@ -761,8 +764,22 @@ export function useMessageStream({
         const hasInlineError = nextMessages.some(m => m.role === 'assistant' && m.error && !m.hidden)
         const lastVisible = [...nextMessages].reverse().find(m => !m.hidden)
         const unresolvedUserTail = lastVisible?.role === 'user'
+
+        const sameTurnAssistant = streamId
+          ? nextMessages.find(m => m.id === streamId)
+          : [...nextMessages].reverse().find(m => m.role === 'assistant' && !m.hidden)
+
+        const localVisibleText = sameTurnAssistant ? chatMessageText(sameTurnAssistant).trim() : ''
+
+        // An empty terminal frame must not hydrate over assistant text already
+        // streamed into this window. Stored history can still contain an empty
+        // placeholder when persistence and completion race.
         shouldHydrate =
-          !completionError && !hasInlineError && !unresolvedUserTail && (!state.sawAssistantPayload || !finalText)
+          !completionError &&
+          !hasInlineError &&
+          !unresolvedUserTail &&
+          !(localVisibleText && !finalText) &&
+          (!state.sawAssistantPayload || !finalText)
 
         return {
           ...state,

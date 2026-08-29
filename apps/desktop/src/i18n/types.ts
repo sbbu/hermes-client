@@ -57,6 +57,12 @@ export interface Translations {
     off: string
   }
 
+  fileMenu: {
+    download: string
+    downloadSaved: string
+    downloadFailed: string
+  }
+
   boot: {
     ready: string
     desktopBootFailedWithMessage: (message: string) => string

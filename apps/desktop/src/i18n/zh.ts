@@ -42,6 +42,12 @@ export const zh: Translations = {
     off: '关'
   },
 
+  fileMenu: {
+    download: '下载',
+    downloadSaved: '已保存',
+    downloadFailed: '下载失败'
+  },
+
   boot: {
     ready: 'Hermes 桌面版已就绪',
     desktopBootFailedWithMessage: message => `桌面启动失败：${message}`,

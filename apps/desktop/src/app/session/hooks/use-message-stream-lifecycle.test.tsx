@@ -30,6 +30,7 @@ const SID = 'session-1'
 const OTHER_SID = 'session-2'
 let handleEvent: ((event: RpcEvent) => void) | null = null
 let sessionStates: Map<string, ClientSessionState> | null = null
+const hydrateFromStoredSession = vi.fn(async () => undefined)
 
 function Harness() {
   const activeSessionIdRef = useRef<string | null>(SID)
@@ -39,7 +40,7 @@ function Harness() {
 
   const stream = useMessageStream({
     activeSessionIdRef,
-    hydrateFromStoredSession: vi.fn(async () => undefined),
+    hydrateFromStoredSession,
     queryClient: queryClientRef.current,
     refreshHermesConfig: vi.fn(async () => undefined),
     refreshSessions: vi.fn(async () => undefined),
@@ -73,6 +74,7 @@ describe('useMessageStream lifecycle recovery', () => {
   beforeEach(() => {
     handleEvent = null
     sessionStates = null
+    hydrateFromStoredSession.mockClear()
     $activeSessionId.set(SID)
     $compactingSessions.set({})
     setCurrentModel('')
@@ -243,6 +245,17 @@ describe('useMessageStream lifecycle recovery', () => {
     const message = sessionStates!.get(SID)?.messages.at(-1)
     expect(message?.error).toBe('stream dropped')
     expect(chatMessageText(message!)).toBe('Useful partial output')
+  })
+
+  it('does not hydrate an empty completion over streamed assistant text', async () => {
+    await mountStream()
+
+    emit('message.start')
+    emit('message.delta', { text: 'Visible streamed answer' })
+    emit('message.complete', {})
+
+    expect(chatMessageText(sessionStates!.get(SID)!.messages.at(-1)!)).toBe('Visible streamed answer')
+    expect(hydrateFromStoredSession).not.toHaveBeenCalled()
   })
 
   it('routes session metadata through the cache without directly writing composer atoms', async () => {

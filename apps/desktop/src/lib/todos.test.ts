@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { latestSessionTodos, parseTodos } from './todos'
+import { latestSessionTodos, parseTodos, todoTree } from './todos'
 
 describe('parseTodos', () => {
   it('parses todo arrays with valid ids, content, and statuses', () => {
@@ -31,6 +31,48 @@ describe('parseTodos', () => {
     expect(parseTodos(undefined)).toBeNull()
     expect(parseTodos('not json')).toBeNull()
     expect(parseTodos({ message: 'no todos here' })).toBeNull()
+  })
+
+  it('preserves valid parent ids and drops self-parenting', () => {
+    expect(
+      parseTodos([
+        { content: 'Parent', id: 'a', status: 'pending' },
+        { content: 'Child', id: 'b', parent: 'a', status: 'pending' },
+        { content: 'Self', id: 'c', parent: 'c', status: 'pending' }
+      ])
+    ).toEqual([
+      { content: 'Parent', id: 'a', status: 'pending' },
+      { content: 'Child', id: 'b', parent: 'a', status: 'pending' },
+      { content: 'Self', id: 'c', status: 'pending' }
+    ])
+  })
+})
+
+describe('todoTree', () => {
+  it('orders nested children after parents with depth', () => {
+    const items = [
+      { content: 'Child', id: 'b', parent: 'a', status: 'pending' as const },
+      { content: 'Parent', id: 'a', status: 'in_progress' as const },
+      { content: 'Grandchild', id: 'c', parent: 'b', status: 'pending' as const }
+    ]
+
+    expect(todoTree(items).map(([todo, depth]) => [todo.id, depth])).toEqual([
+      ['a', 0],
+      ['b', 1],
+      ['c', 2]
+    ])
+  })
+
+  it('keeps cycles visible at depth zero', () => {
+    const items = [
+      { content: 'A', id: 'a', parent: 'b', status: 'pending' as const },
+      { content: 'B', id: 'b', parent: 'a', status: 'pending' as const }
+    ]
+
+    expect(todoTree(items).map(([todo, depth]) => [todo.id, depth])).toEqual([
+      ['a', 0],
+      ['b', 0]
+    ])
   })
 })
 

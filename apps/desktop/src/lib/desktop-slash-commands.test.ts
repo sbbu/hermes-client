@@ -76,6 +76,10 @@ describe('desktop slash command curation', () => {
   it('allows aliases to execute without cluttering the popover', () => {
     expect(isDesktopSlashSuggestion('/reset')).toBe(false)
     expect(isDesktopSlashCommand('/reset')).toBe(true)
+    expect(isDesktopSlashSuggestion('/background')).toBe(false)
+    expect(isDesktopSlashCommand('/background')).toBe(true)
+    expect(isDesktopSlashSuggestion('/bg')).toBe(true)
+    expect(isDesktopSlashCommand('/btw')).toBe(true)
   })
 
   it('filters built-in catalog noise but keeps skill / quick-command extensions', () => {

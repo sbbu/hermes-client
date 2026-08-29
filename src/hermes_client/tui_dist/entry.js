@@ -76425,6 +76425,9 @@ function createGatewayEventHandler(ctx) {
         dropBgTask(ev.payload.task_id);
         sys(`[bg ${ev.payload.task_id}] ${ev.payload.text}`);
         return;
+      case "btw.complete":
+        sys(`[btw${ev.payload.question ? ` "${ev.payload.question}"` : ""}] ${ev.payload.text}`);
+        return;
       case "review.summary": {
         const text = String(ev.payload?.text ?? "").trim();
         if (text) {
@@ -80455,12 +80458,12 @@ var init_session = __esm({
     };
     sessionCommands = [
       {
-        aliases: ["bg", "btw"],
+        aliases: ["background"],
         help: "launch a background prompt",
-        name: "background",
+        name: "bg",
         run: (arg, ctx) => {
           if (!arg) {
-            return ctx.transcript.sys("/background <prompt>");
+            return ctx.transcript.sys("/bg <prompt>");
           }
           ctx.gateway.rpc("prompt.background", { session_id: ctx.sid, text: arg }).then(
             ctx.guarded((r) => {
@@ -80469,6 +80472,23 @@ var init_session = __esm({
               }
               patchUiState((state) => ({ ...state, bgTasks: new Set(state.bgTasks).add(r.task_id) }));
               ctx.transcript.sys(`bg ${r.task_id} started`);
+            })
+          );
+        }
+      },
+      {
+        help: "ask a side question about this conversation",
+        name: "btw",
+        run: (arg, ctx) => {
+          if (!arg) {
+            return ctx.transcript.sys("/btw <question>");
+          }
+          ctx.gateway.rpc("prompt.btw", { session_id: ctx.sid, text: arg }).then(
+            ctx.guarded((r) => {
+              if (!r.task_id) {
+                return;
+              }
+              ctx.transcript.sys(`btw ${r.task_id} \u2014 answering from a conversation snapshot`);
             })
           );
         }
@@ -83354,6 +83374,7 @@ var init_useInputHandlers = __esm({
     import_react53 = __toESM(require_react(), 1);
     init_env();
     init_timing();
+    init_attachments();
     init_slash();
     init_platform();
     init_precisionWheel();
@@ -88760,7 +88781,7 @@ function ConfirmScreen({
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: payLine }),
     s.card && !s.card.resolved_via && /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "Your card saved on the portal will be charged." }),
-    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Hermes Client to charge your card." }),
+    /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, { color: t.color.muted, children: "By confirming, you allow Hermes to charge your card." }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 0, color: t.color.ok, label: `Pay $${amount} now`, t }),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(ActionRow, { active: sel === 1, label: "Cancel", t }),
@@ -89054,7 +89075,7 @@ function AutoReloadScreen({ ctx, onClose, onPatch, s, t }) {
     fieldBox("Reload balance to:", reloadTo, setReloadTo, row === 1, "reloadTo"),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime37.jsxs)(Text, { color: t.color.muted, children: [
-      "By confirming, you authorize Hermes Client to charge ",
+      "By confirming, you authorize Hermes to charge ",
       chargeCardName,
       " whenever your balance falls below the threshold. Turn off any time here or on the portal."
     ] }),
@@ -91157,7 +91178,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, {}),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, children: [
       info.model.split("/").pop(),
-      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes Client" })
+      /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
     ] }),
     /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
     sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { children: [
@@ -91176,7 +91197,7 @@ function SessionPanel({ info, maxWidth, sid, t }) {
       /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Box_default, { flexDirection: "column", marginBottom: 1, children: [
         /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { color: t.color.accent, wrap: "truncate-end", children: [
           info.model.split("/").pop(),
-          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes Client" })
+          /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, children: " \xB7 Hermes" })
         ] }),
         /* @__PURE__ */ (0, import_jsx_runtime45.jsx)(Text, { color: t.color.muted, wrap: "truncate-end", children: info.cwd || process.cwd() }),
         sid && /* @__PURE__ */ (0, import_jsx_runtime45.jsxs)(Text, { wrap: "truncate-end", children: [
@@ -95826,6 +95847,7 @@ var GatewayClient = class extends EventEmitter {
   publish(ev) {
     if (ev.type === "gateway.ready") {
       this.ready = true;
+      this.resetReconnectBackoff();
       if (this.readyTimer) {
         clearTimeout(this.readyTimer);
         this.readyTimer = null;
@@ -95932,11 +95954,14 @@ var GatewayClient = class extends EventEmitter {
     }, delay);
     this.reconnectTimer.unref?.();
   }
-  clearReconnect() {
+  cancelReconnectTimer() {
     if (this.reconnectTimer !== null) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
+  }
+  resetReconnectBackoff() {
+    this.cancelReconnectTimer();
     this.reconnectAttempts = 0;
   }
   resetStartupState() {
@@ -96115,7 +96140,7 @@ var GatewayClient = class extends EventEmitter {
               resolve3();
             }
             this.lastActivityAt = Date.now();
-            this.clearReconnect();
+            this.resetReconnectBackoff();
             this.connectSidecarMirror();
           },
           { once: true }
@@ -96169,14 +96194,13 @@ var GatewayClient = class extends EventEmitter {
   }
   start() {
     this.disposed = false;
-    this.clearReconnect();
+    this.cancelReconnectTimer();
     const root2 = process.env.HERMES_PYTHON_SRC_ROOT ?? resolve(import.meta.dirname, "../../");
     const attachUrl = resolveGatewayAttachUrl();
     const sidecarUrl = resolveSidecarUrl();
     this.attachUrl = attachUrl;
     this.sidecarUrl = sidecarUrl;
     this.resetStartupState();
-    this.clearReconnect();
     this.stopHeartbeat();
     if (this.proc && !this.proc.killed && this.proc.exitCode === null) {
       this.lifecycle(`[lifecycle] replacing live gateway child ${describeChild(this.proc)}`);
@@ -96354,7 +96378,7 @@ var GatewayClient = class extends EventEmitter {
   }
   kill(reason = "requested") {
     this.disposed = true;
-    this.clearReconnect();
+    this.resetReconnectBackoff();
     this.stopHeartbeat();
     const proc = this.proc;
     const killed = proc?.kill();

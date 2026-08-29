@@ -42,6 +42,12 @@ export const zhHant = defineLocale({
     off: '關閉'
   },
 
+  fileMenu: {
+    download: '下載',
+    downloadSaved: '已儲存',
+    downloadFailed: '下載失敗'
+  },
+
   boot: {
     ready: 'Hermes Desktop 已就緒',
     desktopBootFailedWithMessage: message => `桌面啟動失敗：${message}`,
