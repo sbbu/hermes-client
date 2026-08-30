@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import plistlib
+import time
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -13,6 +15,68 @@ def test_worker_service_defaults_to_waiting_for_tailscale():
     args = cli.build_parser().parse_args(["worker-service-run"])
     assert args.host == "auto"
     assert args.wait_seconds == -1
+
+
+def test_worker_host_ignores_non_ip_tailscale_output(monkeypatch):
+    monkeypatch.setattr(cli, "_resolve_tailscale_cli", lambda: "/Applications/Tailscale.app/Contents/MacOS/Tailscale")
+    monkeypatch.setattr(
+        cli.subprocess,
+        "run",
+        lambda *args, **kwargs: SimpleNamespace(returncode=0, stdout="Tailscale GUI failed to start\n"),
+    )
+
+    assert cli._resolve_worker_host("auto", wait_seconds=0) == "127.0.0.1"
+
+
+def test_resolve_tailscale_cli_falls_back_to_app_bundle(tmp_path, monkeypatch):
+    bundled_cli = tmp_path / "Tailscale.app" / "Contents" / "MacOS" / "Tailscale"
+    bundled_cli.parent.mkdir(parents=True)
+    bundled_cli.write_text("#!/bin/sh\n")
+    bundled_cli.chmod(0o755)
+    monkeypatch.setattr(cli.shutil, "which", lambda command: None)
+    monkeypatch.setattr(cli, "TAILSCALE_CLI_PATHS", (bundled_cli,))
+
+    assert cli._resolve_tailscale_cli() == str(bundled_cli)
+
+
+@pytest.mark.parametrize("path", ["/opt/homebrew/bin/tailscale", "/usr/local/bin/tailscale"])
+def test_resolve_tailscale_cli_checks_homebrew_locations(path, monkeypatch):
+    expected = Path(path)
+    monkeypatch.setattr(cli.shutil, "which", lambda command: None)
+    monkeypatch.setattr(cli.Path, "is_file", lambda candidate: candidate == expected)
+    monkeypatch.setattr(cli.os, "access", lambda candidate, mode: candidate == expected)
+
+    assert cli._resolve_tailscale_cli() == path
+
+
+def test_worker_host_uses_resolved_tailscale_cli(monkeypatch):
+    executable = "/Applications/Tailscale.app/Contents/MacOS/Tailscale"
+    calls = []
+    monkeypatch.setattr(cli, "_resolve_tailscale_cli", lambda: executable)
+
+    def fake_run(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return SimpleNamespace(returncode=0, stdout="100.64.1.2\n")
+
+    monkeypatch.setattr(cli.subprocess, "run", fake_run)
+
+    assert cli._resolve_worker_host("auto", wait_seconds=0) == "100.64.1.2"
+    assert calls[0][0] == [executable, "ip", "-4"]
+
+
+def test_worker_host_retries_until_tailscale_has_an_ip(monkeypatch):
+    executable = "/opt/homebrew/bin/tailscale"
+    responses = iter(
+        [
+            SimpleNamespace(returncode=1, stdout=""),
+            SimpleNamespace(returncode=0, stdout="100.64.1.3\n"),
+        ]
+    )
+    monkeypatch.setattr(cli, "_resolve_tailscale_cli", lambda: executable)
+    monkeypatch.setattr(cli.subprocess, "run", lambda *args, **kwargs: next(responses))
+    monkeypatch.setattr(time, "sleep", lambda seconds: None)
+
+    assert cli._resolve_worker_host("auto", wait_seconds=1) == "100.64.1.3"
 
 
 def test_update_command_and_legacy_alias():

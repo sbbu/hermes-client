@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import getpass
+import ipaddress
 import os
 import plistlib
 import shutil
@@ -18,6 +19,12 @@ from .tui import run_tui
 from .worker import mcp_config_text, resolve_cua_driver, run_worker
 
 INSTALL_SPEC = "hermes-client[worker] @ git+https://github.com/sbbu/hermes-client.git"
+TAILSCALE_CLI_PATHS = (
+    Path("/opt/homebrew/bin/tailscale"),
+    Path("/usr/local/bin/tailscale"),
+    Path("/Applications/Tailscale.app/Contents/MacOS/Tailscale"),
+    Path("/Applications/Tailscale.app/Contents/MacOS/tailscale"),
+)
 
 
 def _resolve_uv() -> str | None:
@@ -144,6 +151,26 @@ def _default_worker_roots() -> list[str]:
     return roots or [str(Path.home() / "Documents")]
 
 
+def _resolve_tailscale_cli() -> str | None:
+    candidates = (shutil.which("tailscale"), *(str(path) for path in TAILSCALE_CLI_PATHS))
+    for raw in dict.fromkeys(candidate for candidate in candidates if candidate):
+        path = Path(raw).expanduser()
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+    return None
+
+
+def _tailscale_ipv4(stdout: str) -> str | None:
+    for line in stdout.splitlines():
+        try:
+            address = ipaddress.ip_address(line.strip())
+        except ValueError:
+            continue
+        if isinstance(address, ipaddress.IPv4Address):
+            return str(address)
+    return None
+
+
 def _resolve_worker_host(host: str, wait_seconds: int = 0) -> str:
     if host != "auto":
         return host
@@ -154,16 +181,18 @@ def _resolve_worker_host(host: str, wait_seconds: int = 0) -> str:
     deadline = time.time() + max(0, wait_seconds)
     while True:
         try:
-            proc = subprocess.run(
-                ["tailscale", "ip", "-4"],
-                text=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.DEVNULL,
-                timeout=5,
-            )
-            ips = [line.strip() for line in proc.stdout.splitlines() if line.strip()]
-            if ips:
-                return ips[0]
+            tailscale = _resolve_tailscale_cli()
+            if tailscale:
+                proc = subprocess.run(
+                    [tailscale, "ip", "-4"],
+                    text=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    timeout=5,
+                )
+                ip = _tailscale_ipv4(proc.stdout) if proc.returncode == 0 else None
+                if ip:
+                    return ip
         except Exception:
             pass
         if not wait_forever and time.time() >= deadline:
