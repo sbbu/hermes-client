@@ -97,7 +97,7 @@ import {
   setSessionsTotal
 } from '../store/session'
 import { onSessionsChanged } from '../store/session-sync'
-import { clearSessionTodos, setSessionTodos, todoListActive } from '../store/todos'
+import { $todoRevisionsBySession, restoreSessionTodosFromHydration, sessionTodoGeneration } from '../store/todos'
 import { openUpdatesWindow, startUpdatePoller, stopUpdatePoller } from '../store/updates'
 import { armWakeWord, stopClientCapture } from '../store/wake-word'
 import { isSecondaryWindow } from '../store/windows'
@@ -221,6 +221,7 @@ export function DesktopController() {
   const creatingSessionRef = useRef(false)
   const refreshCronJobsRequestRef = useRef(0)
   const refreshSessionsRequestRef = useRef(0)
+  const turnEpochBySessionRef = useRef(new Map<string, number>())
 
   const gatewayState = useStore($gatewayState)
   const activeSessionId = useStore($activeSessionId)
@@ -660,6 +661,16 @@ export function DesktopController() {
         return
       }
 
+      const messageSnapshot = sessionStateByRuntimeIdRef.current.get(runtimeSessionId)?.messages
+
+      if (!messageSnapshot) {
+        return
+      }
+
+      const todoGeneration = sessionTodoGeneration(runtimeSessionId)
+      const todoRevision = $todoRevisionsBySession.get()[runtimeSessionId]
+      const turnEpoch = turnEpochBySessionRef.current.get(runtimeSessionId) ?? 0
+
       const storedProfile = $sessions
         .get()
         .find(session => session.id === storedSessionId || session._lineage_root_id === storedSessionId)?.profile
@@ -667,6 +678,21 @@ export function DesktopController() {
       for (let index = 0; index < Math.max(1, attempts); index += 1) {
         try {
           const latest = await getLatestSessionMessages(storedSessionId, storedProfile)
+          const currentState = sessionStateByRuntimeIdRef.current.get(runtimeSessionId)
+
+          // A running newer turn or session teardown owns the transcript now.
+          // Todo mutations are checked independently below so a finished-list
+          // linger timer cannot suppress otherwise valid message hydration.
+          if (
+            !currentState ||
+            currentState.busy ||
+            currentState.interrupted ||
+            currentState.messages !== messageSnapshot ||
+            (turnEpochBySessionRef.current.get(runtimeSessionId) ?? 0) !== turnEpoch
+          ) {
+            return
+          }
+
           const messages = toChatMessages(latest.messages)
           updateSessionState(
             runtimeSessionId,
@@ -677,16 +703,10 @@ export function DesktopController() {
             storedSessionId
           )
 
-          // Seed the status stack's todo group from history — but only while
-          // the plan is still in flight, so reopening an old chat doesn't pin
-          // its finished todo list above the composer forever.
-          const todos = latestSessionTodos(messages)
-
-          if (todos && todoListActive(todos)) {
-            setSessionTodos(runtimeSessionId, todos)
-          } else {
-            clearSessionTodos(runtimeSessionId)
-          }
+          // Hydration runs after a turn completes, so an unfinished list in
+          // stored history is stale. Restore only a finished list for its short
+          // checkmark linger; otherwise keep the composer clear.
+          restoreSessionTodosFromHydration(runtimeSessionId, latestSessionTodos(messages), todoGeneration, todoRevision)
 
           return
         } catch {
@@ -698,7 +718,7 @@ export function DesktopController() {
         }
       }
     },
-    [activeSessionIdRef, selectedStoredSessionIdRef, updateSessionState]
+    [activeSessionIdRef, selectedStoredSessionIdRef, sessionStateByRuntimeIdRef, updateSessionState]
   )
 
   const { handleGatewayEvent } = useMessageStream({
@@ -708,6 +728,7 @@ export function DesktopController() {
     refreshHermesConfig,
     refreshSessions,
     sessionStateByRuntimeIdRef,
+    turnEpochBySessionRef,
     updateSessionState
   })
 

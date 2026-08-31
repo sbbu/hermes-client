@@ -5,9 +5,13 @@ import type { TodoItem } from '@/lib/todos'
 import {
   $todoRevisionsBySession,
   $todosBySession,
+  clearActiveSessionTodos,
   clearSessionTodos,
+  restoreSessionTodosFromHydration,
   restoreSessionTodosFromSnapshot,
-  setSessionTodos
+  sessionTodoGeneration,
+  setSessionTodos,
+  todosForHydration
 } from './todos'
 
 const todo = (id: string, status: TodoItem['status']): TodoItem => ({ content: `task ${id}`, id, status })
@@ -49,6 +53,71 @@ describe('setSessionTodos finished-list auto-clear', () => {
     vi.advanceTimersByTime(60_000)
 
     expect($todosBySession.get().s1).toHaveLength(2)
+  })
+})
+
+describe('turn-end and hydration cleanup', () => {
+  beforeEach(() => {
+    vi.useFakeTimers()
+    clearSessionTodos('s1')
+  })
+
+  afterEach(() => {
+    clearSessionTodos('s1')
+    vi.useRealTimers()
+  })
+
+  it('drops an active list at turn end but leaves a finished list to linger', () => {
+    setSessionTodos('s1', [todo('a', 'in_progress')])
+    clearActiveSessionTodos('s1')
+    expect($todosBySession.get().s1).toBeUndefined()
+
+    setSessionTodos('s1', [todo('a', 'completed')])
+    clearActiveSessionTodos('s1')
+    expect($todosBySession.get().s1).toHaveLength(1)
+  })
+
+  it('rejects stale active transcript state during hydration', () => {
+    expect(todosForHydration([todo('a', 'pending')])).toBeNull()
+
+    const finished = [todo('a', 'completed'), todo('b', 'cancelled')]
+    expect(todosForHydration(finished)).toEqual(finished)
+  })
+
+  it('does not let delayed hydration overwrite a newer todo revision', () => {
+    setSessionTodos('s1', [todo('old', 'in_progress')], 5)
+    const generation = sessionTodoGeneration('s1')
+    setSessionTodos('s1', [todo('new', 'in_progress')], 6)
+
+    expect(restoreSessionTodosFromHydration('s1', [todo('old', 'completed')], generation, 5)).toBe(false)
+    expect($todosBySession.get().s1?.[0]?.id).toBe('new')
+    expect($todoRevisionsBySession.get().s1).toBe(6)
+  })
+
+  it('invalidates delayed hydration at a later turn boundary even without visible todos', () => {
+    const generation = sessionTodoGeneration('s1')
+
+    clearActiveSessionTodos('s1')
+
+    expect(restoreSessionTodosFromHydration('s1', [todo('old', 'completed')], generation)).toBe(false)
+    expect($todosBySession.get().s1).toBeUndefined()
+  })
+
+  it('clears stale active history without forgetting the revision watermark', () => {
+    setSessionTodos('s1', [todo('live', 'in_progress')], 5)
+    clearActiveSessionTodos('s1')
+    const generation = sessionTodoGeneration('s1')
+
+    expect(restoreSessionTodosFromHydration('s1', [todo('stale', 'pending')], generation, 5)).toBe(false)
+    expect($todosBySession.get().s1).toBeUndefined()
+    expect($todoRevisionsBySession.get().s1).toBe(5)
+  })
+
+  it('restores transcript todos only for an unfenced legacy session', () => {
+    const generation = sessionTodoGeneration('s1')
+
+    expect(restoreSessionTodosFromHydration('s1', [todo('legacy', 'completed')], generation)).toBe(true)
+    expect($todosBySession.get().s1?.[0]?.id).toBe('legacy')
   })
 })
 

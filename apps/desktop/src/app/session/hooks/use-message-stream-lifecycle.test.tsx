@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { ClientSessionState } from '@/app/types'
 import { chatMessageText } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
+import type { TodoItem } from '@/lib/todos'
 import { $compactingSessions, setSessionCompacting } from '@/store/compaction'
 import { $secretRequest, $sudoRequest, clearAllPrompts, setSecretRequest, setSudoRequest } from '@/store/prompts'
 import {
@@ -22,20 +23,25 @@ import {
   setCurrentReasoningEffort,
   setCurrentServiceTier
 } from '@/store/session'
+import { $todosBySession, clearSessionTodos, setSessionTodos } from '@/store/todos'
 import type { RpcEvent } from '@/types/hermes'
 
 import { useMessageStream } from './use-message-stream'
 
 const SID = 'session-1'
 const OTHER_SID = 'session-2'
+const todo = (id: string, status: TodoItem['status']): TodoItem => ({ content: `task ${id}`, id, status })
 let handleEvent: ((event: RpcEvent) => void) | null = null
 let sessionStates: Map<string, ClientSessionState> | null = null
+let turnEpochs: Map<string, number> | null = null
 const hydrateFromStoredSession = vi.fn(async () => undefined)
 
 function Harness() {
   const activeSessionIdRef = useRef<string | null>(SID)
   const sessionStateByRuntimeIdRef = useRef(new Map<string, ClientSessionState>())
   sessionStates = sessionStateByRuntimeIdRef.current
+  const turnEpochBySessionRef = useRef(new Map<string, number>())
+  turnEpochs = turnEpochBySessionRef.current
   const queryClientRef = useRef(new QueryClient())
 
   const stream = useMessageStream({
@@ -45,6 +51,7 @@ function Harness() {
     refreshHermesConfig: vi.fn(async () => undefined),
     refreshSessions: vi.fn(async () => undefined),
     sessionStateByRuntimeIdRef,
+    turnEpochBySessionRef,
     updateSessionState: (sessionId, updater) => {
       const current = sessionStateByRuntimeIdRef.current.get(sessionId) ?? createClientSessionState()
       const next = updater(current)
@@ -74,6 +81,7 @@ describe('useMessageStream lifecycle recovery', () => {
   beforeEach(() => {
     handleEvent = null
     sessionStates = null
+    turnEpochs = null
     hydrateFromStoredSession.mockClear()
     $activeSessionId.set(SID)
     $compactingSessions.set({})
@@ -84,6 +92,7 @@ describe('useMessageStream lifecycle recovery', () => {
     setCurrentFastMode(false)
     setCurrentModelSource('')
     clearAllPrompts()
+    clearSessionTodos(SID)
   })
 
   afterEach(() => {
@@ -97,6 +106,7 @@ describe('useMessageStream lifecycle recovery', () => {
     setCurrentFastMode(false)
     setCurrentModelSource('')
     clearAllPrompts()
+    clearSessionTodos(SID)
     vi.restoreAllMocks()
   })
 
@@ -191,6 +201,34 @@ describe('useMessageStream lifecycle recovery', () => {
     const messages = sessionStates!.get(SID)?.messages ?? []
     expect(messages).toHaveLength(1)
     expect(chatMessageText(messages[0])).toBe('Same reply')
+  })
+
+  it.each(['message.complete', 'error'])('drops an unfinished task list when %s ends the turn', async type => {
+    await mountStream()
+    setSessionTodos(SID, [todo('a', 'completed'), todo('b', 'in_progress')])
+
+    emit(type, type === 'error' ? { message: 'boom' } : { text: 'done' })
+
+    expect($todosBySession.get()[SID]).toBeUndefined()
+  })
+
+  it('advances the session turn epoch on every terminal event', async () => {
+    await mountStream()
+
+    emit('message.complete', { text: 'done' })
+    expect(turnEpochs!.get(SID)).toBe(1)
+
+    emit('error', { message: 'boom' })
+    expect(turnEpochs!.get(SID)).toBe(2)
+  })
+
+  it('preserves a finished task list through completion for its normal linger', async () => {
+    await mountStream()
+    setSessionTodos(SID, [todo('a', 'completed')])
+
+    emit('message.complete', { text: 'done' })
+
+    expect($todosBySession.get()[SID]).toHaveLength(1)
   })
 
   it('settles a prefix-extended non-previewed tool-turn interim', async () => {

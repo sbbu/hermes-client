@@ -62,7 +62,12 @@ import {
 } from '@/store/session'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents, pruneDelegateFallbackSubagents, upsertSubagent } from '@/store/subagents'
-import { $todosBySession, restoreSessionTodosFromSnapshot, setSessionTodos } from '@/store/todos'
+import {
+  $todosBySession,
+  clearActiveSessionTodos,
+  restoreSessionTodosFromSnapshot,
+  setSessionTodos
+} from '@/store/todos'
 import { recordToolDiff } from '@/store/tool-diffs'
 import { reportInstallMethodWarning } from '@/store/updates'
 import type { RpcEvent } from '@/types/hermes'
@@ -80,6 +85,7 @@ interface MessageStreamOptions {
   refreshHermesConfig: () => Promise<void>
   refreshSessions: () => Promise<void>
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
+  turnEpochBySessionRef?: MutableRefObject<Map<string, number>>
   updateSessionState: (
     sessionId: string,
     updater: (state: ClientSessionState) => ClientSessionState,
@@ -324,8 +330,20 @@ export function useMessageStream({
   refreshHermesConfig,
   refreshSessions,
   sessionStateByRuntimeIdRef,
+  turnEpochBySessionRef: providedTurnEpochBySessionRef,
   updateSessionState
 }: MessageStreamOptions) {
+  const fallbackTurnEpochBySessionRef = useRef(new Map<string, number>())
+  const turnEpochBySessionRef = providedTurnEpochBySessionRef ?? fallbackTurnEpochBySessionRef
+
+  const markTurnEnded = useCallback(
+    (sessionId: string) => {
+      const epochs = turnEpochBySessionRef.current
+      epochs.set(sessionId, (epochs.get(sessionId) ?? 0) + 1)
+    },
+    [turnEpochBySessionRef]
+  )
+
   const sessionInterrupted = useCallback(
     (sessionId: string) => sessionStateByRuntimeIdRef.current.get(sessionId)?.interrupted ?? false,
     [sessionStateByRuntimeIdRef]
@@ -1093,11 +1111,14 @@ export function useMessageStream({
           return
         }
 
+        markTurnEnded(sessionId)
+
         // Turn ended — drop any blocking prompt still open for THIS session
         // (e.g. interrupted, or the approval already resolved). Scoped to the
         // session so a background turn finishing can't wipe the active chat's
         // prompt, and vice versa.
         clearAllPrompts(sessionId)
+        clearActiveSessionTodos(sessionId)
         setSessionCompacting(sessionId, false)
 
         flushQueuedDeltas(sessionId)
@@ -1427,7 +1448,9 @@ export function useMessageStream({
         // for this session so an approval/sudo/secret overlay can't linger past
         // the failed turn (same intent as the message.complete clear).
         if (sessionId) {
+          markTurnEnded(sessionId)
           clearAllPrompts(sessionId)
+          clearActiveSessionTodos(sessionId)
           setSessionCompacting(sessionId, false)
           compactedTurnRef.current.delete(sessionId)
         }
@@ -1477,6 +1500,7 @@ export function useMessageStream({
       failAssistantMessage,
       finalizeInterimAssistantMessage,
       flushQueuedDeltas,
+      markTurnEnded,
       queryClient,
       scheduleConfigRefresh,
       sessionInterrupted,
