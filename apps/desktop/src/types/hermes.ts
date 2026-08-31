@@ -440,6 +440,10 @@ export interface SessionResumeResponse {
   running?: boolean
   session_id: string
   status?: string
+  todo_state?: {
+    revision?: number
+    todos?: unknown
+  }
 }
 
 export interface SessionRuntimeInfo {

@@ -2,7 +2,7 @@
   "name": "hermes-client-desktop",
   "productName": "Hermes Client",
   "private": true,
-  "version": "0.3.53",
+  "version": "0.3.54",
   "description": "Native remote-only desktop shell for Hermes Client.",
   "author": "Hermes Client contributors",
   "type": "module",

@@ -1,24 +1,14 @@
 import { atom } from 'nanostores'
 
-import type { TodoItem } from '@/lib/todos'
+import { parseTodoRevision, parseTodos, type TodoItem } from '@/lib/todos'
 
-/**
- * Live todo list per runtime session, rendered by the composer status stack
- * (the inline transcript panel is gone). Fed from two places:
- *
- * - live `todo` tool events (use-message-stream)
- * - stored-session hydration (desktop-controller) — but only when the list is
- *   still in flight, so reopening an old chat doesn't pin its finished plan
- *   above the composer forever.
- */
+/** Live todo list per runtime session, rendered by the composer status stack. */
 export const $todosBySession = atom<Record<string, TodoItem[]>>({})
+export const $todoRevisionsBySession = atom<Record<string, number>>({})
 
 export const todoListActive = (todos: readonly TodoItem[]) =>
   todos.some(t => t.status === 'pending' || t.status === 'in_progress')
 
-// Once a list finishes (every item completed/cancelled), the final state
-// lingers just long enough to see the last checkmark land, then the group
-// drops out of the stack on its own.
 const FINISHED_LINGER_MS = 4_000
 const clearTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -31,8 +21,28 @@ function cancelScheduledClear(sid: string) {
   }
 }
 
-export function setSessionTodos(sid: string, todos: TodoItem[]) {
-  if (!sid) {
+function acceptRevision(sid: string, revision?: null | number): boolean {
+  const revisions = $todoRevisionsBySession.get()
+  const current = revisions[sid]
+
+  // tool.start has no revision; allow its optimistic merge without moving the watermark.
+  if (revision == null) {
+    return true
+  }
+
+  if (current != null && revision < current) {
+    return false
+  }
+
+  if (current !== revision) {
+    $todoRevisionsBySession.set({ ...revisions, [sid]: revision })
+  }
+
+  return true
+}
+
+export function setSessionTodos(sid: string, todos: TodoItem[], revision?: null | number) {
+  if (!sid || !acceptRevision(sid, revision)) {
     return
   }
 
@@ -44,21 +54,53 @@ export function setSessionTodos(sid: string, todos: TodoItem[]) {
       sid,
       setTimeout(() => {
         clearTimers.delete(sid)
-        clearSessionTodos(sid)
+        dropSessionTodos(sid, false)
       }, FINISHED_LINGER_MS)
     )
   }
 }
 
-export function clearSessionTodos(sid: string) {
+function dropSessionTodos(sid: string, forgetRevision: boolean) {
   cancelScheduledClear(sid)
 
   const map = $todosBySession.get()
 
-  if (!(sid in map)) {
+  if (sid in map) {
+    const { [sid]: _drop, ...rest } = map
+    $todosBySession.set(rest)
+  }
+
+  if (forgetRevision) {
+    const revisions = $todoRevisionsBySession.get()
+
+    if (sid in revisions) {
+      const { [sid]: _drop, ...rest } = revisions
+      $todoRevisionsBySession.set(rest)
+    }
+  }
+}
+
+export function clearSessionTodos(sid: string) {
+  dropSessionTodos(sid, true)
+}
+
+/** Apply a session.resume/activate or todo.updated full snapshot. */
+export function restoreSessionTodosFromSnapshot(sid: string, snapshot: unknown, running: boolean) {
+  const todos = parseTodos(snapshot)
+
+  if (!sid || todos === null) {
     return
   }
 
-  const { [sid]: _drop, ...rest } = map
-  $todosBySession.set(rest)
+  const revision = parseTodoRevision(snapshot)
+
+  if (todos.length === 0 && (revision == null || revision === 0)) {
+    return
+  }
+
+  if (running || !todoListActive(todos)) {
+    setSessionTodos(sid, todos, revision)
+  } else if (acceptRevision(sid, revision)) {
+    dropSessionTodos(sid, false)
+  }
 }

@@ -29,7 +29,7 @@ import {
 } from '@/lib/generated-images'
 import { triggerHaptic } from '@/lib/haptics'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
-import { parseTodos } from '@/lib/todos'
+import { nextTodosFromToolEvent, parseTodoRevision } from '@/lib/todos'
 import { normalizeClarifyQuestions, setClarifyRequest } from '@/store/clarify'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
@@ -62,7 +62,7 @@ import {
 } from '@/store/session'
 import { broadcastSessionsChanged } from '@/store/session-sync'
 import { clearSessionSubagents, pruneDelegateFallbackSubagents, upsertSubagent } from '@/store/subagents'
-import { setSessionTodos } from '@/store/todos'
+import { $todosBySession, restoreSessionTodosFromSnapshot, setSessionTodos } from '@/store/todos'
 import { recordToolDiff } from '@/store/tool-diffs'
 import { reportInstallMethodWarning } from '@/store/updates'
 import type { RpcEvent } from '@/types/hermes'
@@ -573,10 +573,10 @@ export function useMessageStream({
       // The composer status stack owns todo display now (no inline panel) —
       // mirror every todo state the tool reports into its session store.
       if (payload?.name === 'todo') {
-        const todos = parseTodos(payload.todos) ?? parseTodos(payload.result) ?? parseTodos(payload.args)
+        const todos = nextTodosFromToolEvent($todosBySession.get()[sessionId] ?? [], payload)
 
         if (todos) {
-          setSessionTodos(sessionId, todos)
+          setSessionTodos(sessionId, todos, parseTodoRevision(payload))
         }
       }
 
@@ -1141,6 +1141,10 @@ export function useMessageStream({
 
         if (payload?.usage) {
           setCurrentUsage(current => ({ ...current, ...payload.usage }))
+        }
+      } else if (event.type === 'todo.updated') {
+        if (sessionId && !sessionInterrupted(sessionId)) {
+          restoreSessionTodosFromSnapshot(sessionId, payload, true)
         }
       } else if (event.type === 'tool.start' || event.type === 'tool.progress' || event.type === 'tool.generating') {
         if (!sessionId) {

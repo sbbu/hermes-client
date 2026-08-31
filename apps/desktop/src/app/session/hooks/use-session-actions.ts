@@ -71,6 +71,7 @@ import {
 } from '@/store/session'
 import { requestForSessionProfile } from '@/store/session-request-router'
 import { broadcastSessionsChanged } from '@/store/session-sync'
+import { restoreSessionTodosFromSnapshot } from '@/store/todos'
 import { reportBackendContract, reportInstallMethodWarning } from '@/store/updates'
 import { isWatchWindow } from '@/store/windows'
 import type {
@@ -902,6 +903,7 @@ export function useSessionActions({
           })
 
           const hasPendingClarify = restorePendingClarifyFromSnapshot(activated, cachedRuntimeId, activateStartedAt)
+          restoreSessionTodosFromSnapshot(cachedRuntimeId, activated.todo_state, Boolean(activated.running))
 
           const activatedState = updateSessionState(
             cachedRuntimeId,
@@ -1015,6 +1017,7 @@ export function useSessionActions({
         }
 
         const hasPendingClarify = restorePendingClarifyFromSnapshot(resumed, resumed.session_id, resumeStartedAt)
+        restoreSessionTodosFromSnapshot(resumed.session_id, resumed.todo_state, Boolean(resumed.running))
 
         const currentMessages = $messages.get()
 

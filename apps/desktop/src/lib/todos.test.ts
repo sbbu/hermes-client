@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { latestSessionTodos, parseTodos, todoTree } from './todos'
+import { latestSessionTodos, nextTodosFromToolEvent, parseTodoRevision, parseTodos, todoTree } from './todos'
 
 describe('parseTodos', () => {
   it('parses todo arrays with valid ids, content, and statuses', () => {
@@ -118,5 +118,29 @@ describe('latestSessionTodos', () => {
   it('returns null when no todo tool calls exist', () => {
     expect(latestSessionTodos([{ parts: [{ type: 'text', text: 'hi' }] }])).toBeNull()
     expect(latestSessionTodos([])).toBeNull()
+  })
+})
+
+describe('live todo updates', () => {
+  it('merges a status-only patch without dropping the rest of the list', () => {
+    const current = [
+      { content: 'First', id: 'a', status: 'pending' as const },
+      { content: 'Second', id: 'b', status: 'pending' as const }
+    ]
+
+    expect(
+      nextTodosFromToolEvent(current, {
+        args: { merge: true, todos: [{ id: 'a', status: 'completed' }] }
+      })
+    ).toEqual([
+      { content: 'First', id: 'a', status: 'completed' },
+      { content: 'Second', id: 'b', status: 'pending' }
+    ])
+  })
+
+  it('reads revision metadata from direct and nested results', () => {
+    expect(parseTodoRevision({ revision: 3 })).toBe(3)
+    expect(parseTodoRevision({ result: '{"revision":4}' })).toBe(4)
+    expect(parseTodoRevision({ revision: -1 })).toBeNull()
   })
 })
